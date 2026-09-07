@@ -1,0 +1,17 @@
+{
+  "project": "ABAProgress",
+  "handoffPurpose": "Codex + Build iOS Apps runtime validation and continued development",
+  "sourceVersion": "0.6.0",
+  "sourceBuild": "2026-09-07T16:30:00+09:00",
+  "sourceBuildHash": "5c3fddaa0d",
+  "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
+  "playgroundsProject": "ABAProgress.swiftpm",
+  "minimumOS": "iOS/iPadOS 17.0",
+  "readFirst": [
+    "AGENTS.md",
+    "CODEX_START_HERE.md",
+    "SCENARIO_VALIDATION.md",
+    "CHANGELOG.md",
+    "BUILD_INFO.json"
+  ]
+}

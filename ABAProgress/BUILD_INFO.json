@@ -1,0 +1,24 @@
+{
+  "product": "ABAProgress",
+  "version": "0.6.0",
+  "buildTimeKST": "2026-09-07T16:30:48+09:00",
+  "buildHash": "5c3fddaa0d",
+  "sourceSHA256": "5c3fddaa0d085d27bbd896e50bf0306414384568e8189239051431f50c9449d5",
+  "previousBuild": "v0.5_UX_Refined",
+  "validation": {
+    "swiftParse": "PASS",
+    "swiftPlaygroundsParse": "PASS",
+    "pureSwiftScenarioTests": "PASS",
+    "scenarioTestCount": 12,
+    "swiftUIExpertStaticAudit": "PASS",
+    "iosRuntimeTest": "PENDING_DEVICE"
+  },
+  "compatibility": {
+    "minimumOS": "iOS/iPadOS 17.0",
+    "deviceFamilies": [
+      "iPhone",
+      "iPad"
+    ]
+  },
+  "notes": "Source SHA is computed over source/docs/QA files before BUILD_INFO.json and SHA256SUMS.txt are added."
+}

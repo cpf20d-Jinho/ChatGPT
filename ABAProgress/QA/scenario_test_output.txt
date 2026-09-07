@@ -1,0 +1,16 @@
+PASS | Trial 1회 탭: NA → +
+PASS | Trial 2회 탭: + → -
+PASS | Trial 3회 탭: - → NA
+PASS | NA 제외 정반응률 75%
+PASS | 빈 세션은 기록일 표시에서 제외
+PASS | 메모만 있는 세션은 기록으로 보존
+PASS | 간헐적 날짜에서도 기록일 기준 2회 연속 충족
+PASS | 모든 과제가 기준을 만족해야 Level 성공일
+PASS | 과거 수정 후 Level 재검토 필요 상태 검출
+PASS | 보고서는 완료 Session만 사용
+PASS | 과거 Session의 저장된 Trial 수 보존
+PASS | 완료 전 NA 잔여 경고 조건
+PASS | 잘못된 추가 탭 상태 생성
+PASS | 마지막 Trial 실행 취소 복구
+PASS | 날짜별 Session 독립 저장
+ALL SCENARIO TESTS PASSED
