@@ -5,6 +5,20 @@
 	objectVersion = 60;
 	objects = {
 
+        AA0000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIGFlowTests.swift; sourceTree = "<group>"; };
+        AA0000000000000000000002 = {isa = PBXBuildFile; fileRef = AA0000000000000000000001; };
+        AA0000000000000000000003 = {isa = PBXGroup; children = (AA0000000000000000000001,); path = ABAProgressUITests; sourceTree = "<group>"; };
+        AA0000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = ABAProgressUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+        AA0000000000000000000005 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AA0000000000000000000002,); runOnlyForDeploymentPostprocessing = 0; };
+        AA0000000000000000000006 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        AA0000000000000000000007 = {isa = PBXNativeTarget; buildConfigurationList = AA0000000000000000000008; buildPhases = (AA0000000000000000000005, AA0000000000000000000006,); buildRules = (); dependencies = (AA000000000000000000000C,); name = ABAProgressUITests; productName = ABAProgressUITests; productReference = AA0000000000000000000004; productType = "com.apple.product-type.bundle.ui-testing"; };
+        AA0000000000000000000008 = {isa = XCConfigurationList; buildConfigurations = (AA0000000000000000000009, AA000000000000000000000A,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        AA0000000000000000000009 = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.ABAProgressUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = ABAProgress; }; name = Debug; };
+        AA000000000000000000000A = {isa = XCBuildConfiguration; buildSettings = {GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.ABAProgressUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; TEST_TARGET_NAME = ABAProgress; }; name = Release; };
+        AA000000000000000000000B = {isa = PBXContainerItemProxy; containerPortal = E10000000000000000000002; proxyType = 1; remoteGlobalIDString = E10000000000000000000001; remoteInfo = ABAProgress; };
+        AA000000000000000000000C = {isa = PBXTargetDependency; target = E10000000000000000000001; targetProxy = AA000000000000000000000B; };
+
+
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* ABAProgressApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* ABAProgressApp.swift */; };
 		A10000000000000000000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* Models.swift */; };
@@ -45,6 +59,7 @@
 			children = (
 				D10000000000000000000002 /* ABAProgress */,
 				D10000000000000000000006 /* Products */,
+ AA0000000000000000000003,
 			);
 			sourceTree = "<group>";
 		};
@@ -88,7 +103,7 @@
 		};
 		D10000000000000000000006 /* Products */ = {
 			isa = PBXGroup;
-			children = (B10000000000000000000008 /* ABAProgress.app */);
+			children = (B10000000000000000000008 /* ABAProgress.app */, AA0000000000000000000004,);
 			name = Products;
 			sourceTree = "<group>";
 		};
@@ -132,7 +147,7 @@
 			productRefGroup = D10000000000000000000006 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			targets = (E10000000000000000000001 /* ABAProgress */);
+			targets = (E10000000000000000000001 /* ABAProgress */, AA0000000000000000000007,);
 		};
 /* End PBXProject section */
 
@@ -198,14 +213,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "ABA 경과관리";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.ABAProgress;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -221,14 +236,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "ABA 경과관리";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.ABAProgress;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

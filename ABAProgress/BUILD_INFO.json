@@ -1,17 +1,13 @@
 {
   "product": "ABAProgress",
-  "version": "0.6.0",
-  "buildTimeKST": "2026-09-07T16:30:48+09:00",
-  "buildHash": "5c3fddaa0d",
-  "sourceSHA256": "5c3fddaa0d085d27bbd896e50bf0306414384568e8189239051431f50c9449d5",
-  "previousBuild": "v0.5_UX_Refined",
+  "version": "0.6.1",
+  "buildTimeKST": "2026-09-07T21:37:20.146836+09:00",
+  "buildHash": "b34e26aed0",
+  "sourceSHA256": "b34e26aed0b3931650b0e801c2f452ddf5fd1218b875029b133701964841ddb7",
+  "previousBuild": "v0.6.0",
   "validation": {
-    "swiftParse": "PASS",
-    "swiftPlaygroundsParse": "PASS",
-    "pureSwiftScenarioTests": "PASS",
-    "scenarioTestCount": 12,
-    "swiftUIExpertStaticAudit": "PASS",
-    "iosRuntimeTest": "PENDING_DEVICE"
+    "macOSCI": "PENDING",
+    "interactiveQA": "Registration/search test prepared; full therapy scenarios pending"
   },
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -20,5 +16,6 @@
       "iPad"
     ]
   },
-  "notes": "Source SHA is computed over source/docs/QA files before BUILD_INFO.json and SHA256SUMS.txt are added."
+  "notes": "Source digest: sorted relative Swift paths, NUL separator, and LF-normalized contents. CI artifacts include exact commit and run ID.",
+  "baseCommit": "681ceb62db6816fec72a5fc5f63e643f13429a77"
 }

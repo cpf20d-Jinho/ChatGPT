@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v0.6.1 — HIG usability improvements
+- 등록 빈 화면의 기본 동작, 아동 검색, iPad 사이드바 개선
+- Dynamic Type 기록 버튼과 캘린더, VoiceOver 상태/초기화 작업 개선
+- 아동 입력 보존과 저장 실패 안내
+- Xcode/Playgrounds 소스 동기화; macOS UI 자동 테스트 추가
+
 ## v0.6 — Field Workflow Validation
 - 실시간 치료/과거기록 사용 시나리오 전면 점검
 - Trial/Bulk 직전 입력 Undo 추가

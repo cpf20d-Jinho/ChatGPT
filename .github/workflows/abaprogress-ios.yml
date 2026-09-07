@@ -13,7 +13,7 @@ permissions:
 jobs:
   simulator:
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Build, run scenarios, and launch on iPhone and iPad
@@ -27,4 +27,5 @@ jobs:
             validation-results/*.txt
             validation-results/*.json
             validation-results/*.png
+            validation-results/*.xcresult/**
           if-no-files-found: error

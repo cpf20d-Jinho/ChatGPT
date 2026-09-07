@@ -97,11 +97,17 @@ struct ChildDetailView: View {
 
                 Section("프로그램") {
                     if programs.isEmpty {
-                        ContentUnavailableView(
-                            "등록된 프로그램이 없습니다",
-                            systemImage: "list.bullet.rectangle",
-                            description: Text("아동에게 사용할 프로그램을 자유롭게 추가하세요.")
-                        )
+                        ContentUnavailableView {
+                            Label("프로그램을 추가하세요", systemImage: "list.bullet.rectangle")
+                        } description: {
+                            Text("아동에게 필요한 프로그램과 과제를 구성하세요.")
+                        } actions: {
+                            Button("프로그램 추가", systemImage: "plus") { showingAddProgram = true }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .accessibilityIdentifier("empty-add-program")
+                        }
+                        .listRowBackground(Color.clear)
                     } else {
                         ForEach(programs) { program in
                             NavigationLink {

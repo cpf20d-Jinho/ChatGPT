@@ -80,6 +80,14 @@ def main():
             if not any(line.split() and line.split()[0] == pid for line in processes.splitlines()):
                 raise RuntimeError(f"App process {pid} exited after launch on {device['name']}")
             run(["xcrun", "simctl", "io", udid, "screenshot", str(OUT / (prefix + ".png"))])
+            run(["xcrun", "simctl", "ui", udid, "appearance", "dark"])
+            time.sleep(2)
+            run(["xcrun", "simctl", "io", udid, "screenshot", str(OUT / (prefix + "-dark.png"))])
+            run(["xcrun", "simctl", "ui", udid, "appearance", "light"])
+            run(["xcrun", "simctl", "ui", udid, "content_size", "accessibility-extra-extra-extra-large"])
+            time.sleep(2)
+            run(["xcrun", "simctl", "io", udid, "screenshot", str(OUT / (prefix + "-AX5.png"))])
+            run(["xcrun", "simctl", "ui", udid, "content_size", "large"])
             item["status"] = "PASS: process survived 8 seconds; screenshot captured"
         finally:
             try:
@@ -89,7 +97,14 @@ def main():
                 item["logCaptureError"] = str(error)
             if booted_here:
                 run(["xcrun", "simctl", "shutdown", udid])
-    SUMMARY["status"] = "PASS: build, standalone scenarios, launch smoke checks only"
+    for device in (compact, pad11):
+        run(["xcodebuild", "-project", str(PROJECT), "-scheme", "ABAProgress",
+             "-destination", f"platform=iOS Simulator,id={device['udid']}",
+             "-derivedDataPath", str(derived), "-resultBundlePath", str(OUT / (device['udid'] + ".xcresult")),
+             "-parallel-testing-enabled", "NO", "CODE_SIGNING_ALLOWED=NO", "test"],
+            device['udid'] + "-uitests.txt", timeout=1200)
+    SUMMARY["interactiveQA"] = "PASS: registration, relaunch persistence and search on iPhone/iPad. Full therapy flows NOT_RUN."
+    SUMMARY["status"] = "PASS: build, standalone scenarios, launch and registration/search UI checks"
 
 
 if __name__ == "__main__":
