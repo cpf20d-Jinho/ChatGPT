@@ -45,11 +45,16 @@ struct ProgramDetailView: View {
                 if !levelReviewIssues.isEmpty { levelReviewBanner }
 
                 if activeTargets.isEmpty {
-                    ContentUnavailableView(
-                        "현재 레벨에 진행 과제가 없습니다",
-                        systemImage: "checklist",
-                        description: Text("과제를 추가하면 현재 \(currentLevel?.label ?? "레벨")에 귀속되고 즉시 Trial을 기록할 수 있습니다.")
-                    )
+                    ContentUnavailableView {
+                        Label("기록할 과제를 추가하세요", systemImage: "checklist")
+                    } description: {
+                        Text("\(currentLevel?.label ?? "현재 레벨")에 과제를 추가하면 바로 시행 기록을 시작할 수 있습니다.")
+                    } actions: {
+                        Button("과제 추가", systemImage: "plus") { showingAddTarget = true }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .disabled(currentLevel == nil)
+                    }
                     .padding(.top, 24)
                 } else {
                     ForEach(activeTargets) { target in
@@ -284,6 +289,8 @@ private enum SessionMutationSnapshot {
 struct TargetSessionCard: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .title2) private var trialWidth = 76.0
 
     let target: TherapyTarget
     let selectedDate: Date
@@ -380,14 +387,15 @@ struct TargetSessionCard: View {
             }
 
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: horizontalSizeClass == .compact ? 64 : 76, maximum: 110), spacing: 10)],
+                columns: [GridItem(.adaptive(minimum: min(trialWidth, 150)), spacing: 10)],
                 spacing: 10
             ) {
                 ForEach(1...effectiveTrialCount, id: \.self) { number in
                     VStack(spacing: 4) {
                         Text("\(number)")
-                            .font(.caption2)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                         TrialResponseButton(trialNumber: number, response: displayResponses[number - 1]) {
                             cycleTrial(number: number)
                         } resetAction: {
@@ -396,6 +404,11 @@ struct TargetSessionCard: View {
                     }
                 }
             }
+
+            Text("+ 정반응 · − 촉구반응 · NA 미기록")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
@@ -406,7 +419,7 @@ struct TargetSessionCard: View {
                         .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) { bulkButtons }
+                    adaptiveActionLayout { bulkButtons }
                     Text("전체 입력은 확인 후 적용")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -420,14 +433,18 @@ struct TargetSessionCard: View {
                     secondaryActions
                 }
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) { statBadges }
-                    HStack(spacing: 8) { secondaryActions }
+                    adaptiveActionLayout { statBadges }
+                    adaptiveActionLayout { secondaryActions }
                 }
             }
 
             if let session {
-                Button(session.completed ? "완료 취소" : "기록 완료") {
+                Button {
                     requestCompletionToggle()
+                } label: {
+                    Label(session.completed ? "완료 취소" : "기록 완료",
+                          systemImage: session.completed ? "arrow.uturn.backward" : "checkmark.circle")
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity)
@@ -435,6 +452,7 @@ struct TargetSessionCard: View {
             }
         }
         .padding()
+        .controlSize(.large)
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
         .overlay {
             RoundedRectangle(cornerRadius: 18)
@@ -476,8 +494,17 @@ struct TargetSessionCard: View {
     @ViewBuilder
     private var bulkButtons: some View {
         Button("+ 전체") { requestBulk(.correct) }.buttonStyle(.bordered)
+            .accessibilityLabel("모든 시행을 정반응으로 변경")
         Button("- 전체") { requestBulk(.prompted) }.buttonStyle(.bordered)
+            .accessibilityLabel("모든 시행을 촉구반응으로 변경")
         Button("NA 전체") { requestBulk(.notApplicable) }.buttonStyle(.bordered)
+            .accessibilityLabel("모든 시행을 미기록으로 초기화")
+    }
+
+    private var adaptiveActionLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
     }
 
     @ViewBuilder
@@ -763,6 +790,7 @@ private struct TrialResponseButton: View {
 
     @State private var longPressTriggered = false
     @State private var feedbackTrigger = 0
+    @ScaledMetric(relativeTo: .title2) private var buttonHeight = 60.0
 
     var body: some View {
         Button {
@@ -776,7 +804,7 @@ private struct TrialResponseButton: View {
             Text(response.rawValue)
                 .font(.title2.bold())
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 60)
+                .frame(minHeight: buttonHeight)
                 .contentShape(Rectangle())
         }
         .buttonStyle(TrialButtonStyle(response: response))
@@ -786,14 +814,18 @@ private struct TrialResponseButton: View {
             feedbackTrigger += 1
             resetAction()
         }
-        .accessibilityLabel("Trial \(trialNumber), \(response.accessibilityLabel)")
-        .accessibilityValue(response.rawValue)
-        .accessibilityHint("탭하여 NA, 정반응, 촉구반응 순서로 변경합니다. 길게 누르면 NA로 초기화합니다.")
+        .accessibilityLabel("시행 \(trialNumber)")
+        .accessibilityValue(response.accessibilityLabel)
+        .accessibilityHint("활성화하면 미기록, 정반응, 촉구반응 순서로 변경합니다.")
+        .accessibilityAction(named: "미기록으로 초기화") { resetAction() }
+        .accessibilityIdentifier("trial-\(trialNumber)")
     }
 }
 
 private struct TrialButtonStyle: ButtonStyle {
     let response: TrialResponse
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -801,10 +833,10 @@ private struct TrialButtonStyle: ButtonStyle {
             .background(background.opacity(configuration.isPressed ? 0.65 : 1))
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(border, lineWidth: 1.5)
+                    .stroke(border, lineWidth: contrast == .increased ? 3 : 1.5)
             }
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
     }
 
     private var background: Color {
@@ -816,11 +848,7 @@ private struct TrialButtonStyle: ButtonStyle {
     }
 
     private var foreground: Color {
-        switch response {
-        case .notApplicable: return .secondary
-        case .correct: return .green
-        case .prompted: return .orange
-        }
+        .primary
     }
 
     private var border: Color {

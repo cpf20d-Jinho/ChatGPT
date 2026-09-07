@@ -148,6 +148,7 @@ private struct CalendarDaySlot: Identifiable {
 }
 
 private struct MonthCalendar: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding var displayedMonth: Date
     @Binding var selectedDate: Date
     let recordedDates: Set<Date>
@@ -192,6 +193,7 @@ private struct MonthCalendar: View {
                     Image(systemName: "chevron.left")
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("이전 달")
                 Spacer()
                 Text(displayedMonth.formatted(.dateTime.year().month(.wide)))
                     .font(.title3.bold())
@@ -200,9 +202,17 @@ private struct MonthCalendar: View {
                     Image(systemName: "chevron.right")
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("다음 달")
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 6) {
+            if dynamicTypeSize.isAccessibilitySize {
+                DatePicker("기록 날짜", selection: $selectedDate, displayedComponents: .date)
+                    .datePickerStyle(.compact)
+                    .onChange(of: selectedDate) {
+                        displayedMonth = calendar.startOfMonth(for: selectedDate)
+                    }
+            } else {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 6) {
                 ForEach(weekdayHeaders) { weekday in
                     Text(weekday.symbol)
                         .font(.caption.bold())
@@ -224,8 +234,10 @@ private struct MonthCalendar: View {
                     }
                 }
             }
+            }
         }
-        .padding()
+        .padding(.horizontal, 8)
+        .padding(.vertical, 16)
         .background(.background, in: RoundedRectangle(cornerRadius: 18))
         .overlay { RoundedRectangle(cornerRadius: 18).stroke(.quaternary) }
     }
@@ -242,6 +254,7 @@ private struct DayCell: View {
     let selected: Bool
     let hasRecord: Bool
     let action: () -> Void
+    @ScaledMetric(relativeTo: .body) private var cellHeight = 48.0
 
     var body: some View {
         Button(action: action) {
@@ -253,13 +266,14 @@ private struct DayCell: View {
                     .frame(width: 5, height: 5)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 48)
+            .frame(minHeight: cellHeight)
             .background(selected ? Color.accentColor.opacity(0.14) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
         .accessibilityValue(hasRecord ? "기록 있음" : "기록 없음")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

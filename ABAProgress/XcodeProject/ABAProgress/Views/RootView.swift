@@ -47,11 +47,12 @@ private struct CompactRootView: View {
 private struct RegularRootView: View {
     let children: [ChildProfile]
     @State private var selection: SidebarDestination? = .children
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List(selection: $selection) {
-                Section("워크스페이스") {
+                Section("치료 기록") {
                     Label("아동", systemImage: "person.2")
                         .tag(SidebarDestination.children)
                     Label("오늘", systemImage: "checkmark.circle")
@@ -63,6 +64,7 @@ private struct RegularRootView: View {
                 }
             }
             .navigationTitle("ABA Progress")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         } detail: {
             NavigationStack {
                 switch selection ?? .children {
@@ -77,6 +79,7 @@ private struct RegularRootView: View {
                 }
             }
         }
+        .navigationSplitViewStyle(.balanced)
     }
 }
 
@@ -92,18 +95,33 @@ struct ChildrenListView: View {
     let children: [ChildProfile]
     @State private var showingAddChild = false
     @State private var childPendingDeletion: ChildProfile?
+    @State private var searchText = ""
+
+    private var displayedChildren: [ChildProfile] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query.isEmpty ? children : children.filter { $0.name.localizedStandardContains(query) }
+    }
 
     var body: some View {
         List {
             if children.isEmpty {
-                ContentUnavailableView(
-                    "등록된 아동이 없습니다",
-                    systemImage: "person.crop.circle.badge.plus",
-                    description: Text("아동을 추가한 뒤 프로그램과 실시간 Trial 기록을 시작하세요.")
-                )
+                ContentUnavailableView {
+                    Label("첫 아동을 등록하세요", systemImage: "person.crop.circle.badge.plus")
+                } description: {
+                    Text("아동의 프로그램과 과제를 추가하고 치료 기록을 시작하세요.")
+                } actions: {
+                    Button("아동 추가", systemImage: "plus") { showingAddChild = true }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .accessibilityIdentifier("empty-add-child")
+                }
+                .listRowBackground(Color.clear)
+            } else if displayedChildren.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+                    .listRowBackground(Color.clear)
             } else {
                 Section {
-                    ForEach(children) { child in
+                    ForEach(displayedChildren) { child in
                         NavigationLink {
                             ChildDetailView(child: child)
                         } label: {
@@ -115,6 +133,7 @@ struct ChildrenListView: View {
             }
         }
         .navigationTitle("아동")
+        .searchable(text: $searchText, prompt: "아동 이름 검색")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -143,8 +162,8 @@ struct ChildrenListView: View {
     }
 
     private func deleteChildren(at offsets: IndexSet) {
-        guard let index = offsets.first, children.indices.contains(index) else { return }
-        childPendingDeletion = children[index]
+        guard let index = offsets.first, displayedChildren.indices.contains(index) else { return }
+        childPendingDeletion = displayedChildren[index]
     }
 
     private func confirmChildDeletion() {
@@ -167,10 +186,11 @@ private struct ChildSummaryRow: View {
             Image(systemName: "person.crop.circle.fill")
                 .font(.title2)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(child.name).font(.headline)
-                HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("프로그램 \(child.programs.count)개")
                     if let latestSessionDate {
                         Text("최근 \(latestSessionDate.formatted(.dateTime.month().day()))")
@@ -181,6 +201,7 @@ private struct ChildSummaryRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -399,6 +420,7 @@ struct AddChildView: View {
     @State private var useBirthDate = false
     @State private var birthDate = Date()
     @State private var memo = ""
+    @State private var saveFailed = false
 
     var body: some View {
         NavigationStack {
@@ -407,7 +429,7 @@ struct AddChildView: View {
                     TextField("이름", text: $name)
                     Toggle("생년월일 입력", isOn: $useBirthDate)
                     if useBirthDate {
-                        DatePicker("생년월일", selection: $birthDate, displayedComponents: .date)
+                        DatePicker("생년월일", selection: $birthDate, in: ...Date(), displayedComponents: .date)
                     }
                     TextField("메모", text: $memo, axis: .vertical)
                 }
@@ -423,11 +445,23 @@ struct AddChildView: View {
                             memo: memo
                         )
                         modelContext.insert(child)
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            modelContext.delete(child)
+                            saveFailed = true
+                        }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled(!name.isEmpty || !memo.isEmpty || useBirthDate)
+            .alert("아동을 저장하지 못했습니다", isPresented: $saveFailed) {
+                Button("확인", role: .cancel) { }
+            } message: {
+                Text("입력한 내용은 유지됩니다. 저장 공간을 확인한 뒤 다시 시도하세요.")
             }
         }
     }
