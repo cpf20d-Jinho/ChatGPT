@@ -16,7 +16,7 @@ Apple HIG의 Typography, Buttons, Labels, Sidebars 지침을 참고했습니다.
 Xcode와 Swift Playgrounds의 View 소스를 함께 변경했습니다. iOS 17 호환성을 유지합니다.
 
 검증: GitHub macOS에서 기존 Swift 시나리오, 앱 빌드, 네 기종 시작 확인,
-라이트/다크/접근성 글꼴 초기 화면 캡처, 아동 등록·재시작·검색 UI 테스트를 실행합니다.
+라이트/다크/접근성 글꼴 초기 화면 캡처, 아동 등록·검색과 시행 순환·터치 영역·재시작 저장 UI 테스트를 실행합니다.
 결과는 실행 artifact를 기준으로 판단합니다. 전체 치료 시나리오와 실제 VoiceOver 사용성은
 이 자동 테스트가 보증하지 않습니다.
 

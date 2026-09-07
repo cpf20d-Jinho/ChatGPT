@@ -1,13 +1,13 @@
 {
   "product": "ABAProgress",
   "version": "0.6.1",
-  "buildTimeKST": "2026-09-07T21:37:20.146836+09:00",
-  "buildHash": "b34e26aed0",
-  "sourceSHA256": "b34e26aed0b3931650b0e801c2f452ddf5fd1218b875029b133701964841ddb7",
+  "buildTimeKST": "2026-09-07T21:45:55.969202+09:00",
+  "buildHash": "17fc1c10cd",
+  "sourceSHA256": "17fc1c10cd027d913290409f6424e5922800bd0d3c3b60d9afd1c77e51ed9923",
   "previousBuild": "v0.6.0",
   "validation": {
     "macOSCI": "PENDING",
-    "interactiveQA": "Registration/search test prepared; full therapy scenarios pending"
+    "interactiveQA": "CI: registration/search and trial cycle/persistence; full therapy scenarios pending"
   },
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",

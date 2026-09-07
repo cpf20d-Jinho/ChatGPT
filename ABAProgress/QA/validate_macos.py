@@ -103,7 +103,7 @@ def main():
              "-derivedDataPath", str(derived), "-resultBundlePath", str(OUT / (device['udid'] + ".xcresult")),
              "-parallel-testing-enabled", "NO", "CODE_SIGNING_ALLOWED=NO", "test"],
             device['udid'] + "-uitests.txt", timeout=1200)
-    SUMMARY["interactiveQA"] = "PASS: registration, relaunch persistence and search on iPhone/iPad. Full therapy flows NOT_RUN."
+    SUMMARY["interactiveQA"] = "PASS: registration, search, trial cycles, touch size and relaunch persistence on iPhone/iPad. Full therapy flows NOT_RUN."
     SUMMARY["status"] = "PASS: build, standalone scenarios, launch and registration/search UI checks"
 
 
