@@ -1,27 +1,59 @@
-# Google Gemini 숫자 해석 서버 (v0.8.1)
+# Groq 숫자 해석 서버 (v0.8.1)
 
-모델: `gemini-3.8-flash`. 무료 할당량·정식 모델·구조화 출력 지원을 기준으로 선정했다. 실제 한국어 품질 비교나 API 호출은 아직 수행하지 않았다.
+모델은 Groq에서 제공하는 `openai/gpt-oss-120b`다. 앱과 서버는 이름·날짜·프로그램명·메모를 제외하는 기존 숫자 전송 경계를 유지한다.
 
-## 전송 범위
-앱은 각 프로그램의 단계별 측정값을 날짜순으로 정렬한 숫자 배열만 서버에 전송한다. 이름, 생년월일, ID, 실제 날짜, 프로그램명, 영역명, 관찰 메모, 기관, 서명, 작성한 보고서 문장은 전송하지 않는다.
-서버는 버전 숫자와 숫자 배열 외의 필드를 거부한다. Google에는 원시 배열 대신 계열 번호, 관측 개수, 처음/마지막 최대 3회 평균, 평균 차이, 최솟값, 최댓값, 비교 구간 중복 여부만 전달한다. 평균은 단계 사이를 합치지 않는다.
-Google에는 수치 변화 설명만 요청한다. 진단, 치료 효과, 인과관계, 중재 권고, 숙달 판단은 요청하지 않는다. 응답은 두 문구를 검토한 후 사용자가 적용한다.
+## 사용자 연결
 
-숫자 요약만으로 완전한 익명성이나 비민감성을 보장하지는 않는다. [Google 약관](https://ai.google.dev/gemini-api/terms)은 무료 서비스에 민감·개인정보를 제출하지 않도록 하며 임상 실무 사용도 제한한다. 식별정보 제거가 이 사용 제한을 없애지는 않는다. 실제 업무 적합성 확인 전 합성 데이터로 검증한다. 무료 요청/응답은 Google 제품 개선에 사용될 수 있다. `store:false`는 이 조건을 바꾸지 않는다.
+Groq는 현재 제3자 앱용 OAuth나 “Groq로 로그인” API를 제공하지 않는다. 모든 API 요청은 API 키로 인증된다. 따라서 ABAProgress가 사용자의 Groq 로그인 후 키를 자동으로 가져오는 기능은 구현할 수 없다.
 
-## 발급 및 설정
-1. [Google AI Studio](https://aistudio.google.com/apikey)에 본인 Google 계정으로 로그인하여 프로젝트와 API 키를 생성한다.
-2. 프로젝트의 무료 티어와 사용 가능 모델을 확인한다. 무료 사용을 원하면 결제 계정을 연결하거나 유료 티어로 전환하지 않는다.
-3. Node.js 20 이상인 서버에 비밀 환경변수 `GEMINI_API_KEY`와 무작위 32자 이상의 `REPORT_SERVER_TOKEN`을 설정한다. 키는 채팅·소스·앱에 넣지 않는다.
-4. `node ABAProgress/Server/server.mjs`를 실행한다. 기본 `127.0.0.1:8787`, POST `/report/narrative`이다.
-5. HTTPS 리버스 프록시와 인증/요청 제한을 구성한다. 앱에는 전체 HTTPS 경로와 서버 접속 토큰만 입력한다. 서버 배포는 아직 완료되지 않았다.
+지원하는 흐름은 다음과 같다.
 
-API 키의 결제 상태는 코드에서 확인할 수 없다. 유료 프로젝트 키를 사용하면 비용이 발생할 수 있다. 자동 재시도·유료 모델 전환은 없으며 429이면 수동 재시도를 안내한다. 무료 한도는 [AI Studio/공식 한도](https://ai.google.dev/gemini-api/docs/rate-limits)에서 확인한다. 서버 호스팅 비용은 별도다.
-현재 서버당 키 하나를 사용한다. 치료사별 Google OAuth 로그인과 공용 서버의 개별 키 보관/사용량 분리는 구현하지 않았다. Google 로그인 자체가 이 서버의 API 설정을 대신하지 않는다.
+1. 사용자가 앱의 링크로 Groq Console에 로그인한다.
+2. 본인 프로젝트에서 API 키를 만들고 앱에 최초 한 번 붙여넣는다.
+3. 앱은 키를 iOS Keychain의 `WhenUnlockedThisDeviceOnly` 접근 등급으로 저장한다.
+4. 이후 보고서 요청 때 앱이 키를 HTTPS 서버에 자동으로 전달한다.
+5. 서버는 키를 저장·로그하지 않고 해당 Groq 요청 한 번에만 사용한다.
+
+키를 앱 설정이나 보고서 데이터에 평문으로 저장하지 않는다. 기기 백업으로 이동하지 않으며 앱을 다시 설치하거나 다른 기기를 사용하면 다시 등록해야 한다. 연결 해제와 키 폐기는 Groq Console에서 수행한다.
+
+## 전송 데이터
+
+앱은 프로그램의 단계별 측정값을 날짜순으로 정렬한 숫자 배열만 ABAProgress 서버로 보낸다. 서버는 버전 숫자와 0~100 숫자 배열 외의 필드를 거부한다. Groq에는 원시 배열 대신 계열 번호, 관측 개수, 처음/마지막 최대 3회 평균, 평균 차이, 최솟값, 최댓값, 비교 구간 중복 여부만 전달한다.
+
+모델은 수치 변화만 한국어로 설명한다. 진단, 치료 효과, 인과관계, 중재 권고, 숙달 판단을 생성하지 않는다. 결과는 사용자가 검토한 후 두 보고서 항목에 적용한다.
+
+숫자 요약만으로 완전한 익명성을 보장하지는 않는다. Groq의 현재 정책 및 기관 정책을 실제 배포 전에 확인한다. [Groq 데이터 정책](https://console.groq.com/docs/your-data)
+
+## 서버 설정
+
+Node.js 20 이상에서 무작위 32자 이상의 `REPORT_SERVER_TOKEN`을 환경변수로 설정하고 다음을 실행한다.
+
+```sh
+node ABAProgress/Server/server.mjs
+```
+
+기본 주소는 `127.0.0.1:8787`, 경로는 `POST /report/narrative`다. 인증과 사용자별 요청 제한이 적용된 HTTPS 프록시 뒤에 배치해야 한다. 앱은 `Authorization`에 ABAProgress 접속 토큰, `X-Groq-API-Key`에 사용자의 키를 전송한다. 서버가 Groq로 전달하기 전 키 형식을 검증한다.
+
+배포 시 Xcode 빌드 설정의 `INFOPLIST_KEY_ABAReportServerHost`를 실제 HTTPS 서버 호스트로 바꿔야 한다. 현재 값 `reports.example.invalid`는 의도적으로 연결되지 않는 자리표시자다. 앱은 이 호스트와 정확히 일치하는 주소에만 Groq 키를 보낸다. 리버스 프록시에서도 `X-Groq-API-Key`를 접근 로그와 오류 추적에서 반드시 마스킹한다.
+
+현재 `REPORT_SERVER_TOKEN`은 공용 배포용 사용자 인증 체계가 아니다. 여러 사용자가 실제로 이용하기 전 다음 작업이 필요하다.
+
+- ABAProgress 사용자 로그인과 만료되는 사용자별 서버 토큰
+- 서버 측 사용자별·IP별 속도 제한 및 동시 요청 제어
+- 키·요청 본문·제공자 오류를 남기지 않는 로그 정책
+- TLS, 감사 기록, 계정 폐기 및 접근 차단
+
+## 무료 한도
+
+무료 한도는 각 사용자의 Groq 조직에 적용된다. 한도를 넘으면 429를 반환하고 앱은 자동 재시도하거나 유료 모델로 전환하지 않는다. [Groq 한도](https://console.groq.com/docs/rate-limits)
 
 ## 검증
-`node --test ABAProgress/QA/report-ai.test.mjs`: 합성 입력과 모의 Google 응답으로 12개 검사.
-`node ABAProgress/QA/report-template.test.cjs`: 기존 보고서 템플릿 검사.
-실제 API 키가 없어 실모델 출력과 한국어 품질은 미검증이다. Windows에서 iOS 실행은 불가능하므로 macOS CI 빌드를 별도 확인한다.
 
-[모델](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash) · [가격](https://ai.google.dev/gemini-api/docs/pricing) · [API](https://ai.google.dev/api/generate-content)
+```sh
+node --test ABAProgress/QA/report-ai.test.mjs
+node ABAProgress/QA/report-template.test.cjs
+```
+
+합성 데이터와 모의 Groq 응답으로 숫자 전송 경계, 사용자별 키 전달, 인증·한도·응답 실패를 검사한다. 실제 키를 사용한 API 품질은 아직 검증하지 않았다.
+
+[Groq 보안 안내](https://console.groq.com/docs/production-readiness/security-onboarding) · [API 키](https://console.groq.com/keys) · [구조화 출력](https://console.groq.com/docs/structured-outputs)

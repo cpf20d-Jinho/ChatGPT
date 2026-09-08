@@ -1,7 +1,9 @@
 # CHANGELOG
 
-## v0.8.1 — Gemini numeric-only interpretation
-- Gemini 3.8 Flash JSON with numeric summaries only; exclude dates, labels, notes and identifiers.
+## v0.8.1 — Groq BYOK numeric-only interpretation
+- Groq GPT-OSS 120B strict JSON with numeric summaries only; exclude dates, labels, notes and identifiers.
+- Store each user's key in the iOS Keychain and forward it per request without server persistence.
+- Link to Groq Console for the required one-time key creation; Groq does not provide third-party OAuth.
 - Explicit quota/configuration errors; no automatic retry or paid fallback.
 - 12 synthetic server/HTTP tests pass; live API pending key provisioning.
 

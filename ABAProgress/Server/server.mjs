@@ -17,30 +17,28 @@ export function validatePayload(p){
  });
  return {version:1,series};
 }
-export const MODEL="gemini-3.8-flash";
+export const MODEL="openai/gpt-oss-120b";
 export function requestBody(payload){
- return {store:false,systemInstruction:{parts:[{text:guide}]},
-  contents:[{role:"user",parts:[{text:JSON.stringify(validatePayload(payload))}]}],
-  generationConfig:{maxOutputTokens:4096,thinkingConfig:{thinkingLevel:"LOW"},responseMimeType:"application/json",responseJsonSchema:{
+ return {model:MODEL,max_completion_tokens:3072,reasoning_effort:"low",
+  messages:[{role:"system",content:guide},{role:"user",content:JSON.stringify(validatePayload(payload))}],
+  response_format:{type:"json_schema",json_schema:{name:"aba_numeric_interpretation",strict:true,schema:{
    type:"object",additionalProperties:false,
    properties:{currentStatus:{type:"string"},majorChanges:{type:"string"},warnings:{type:"array",items:{type:"string"}}},
    required:["currentStatus","majorChanges","warnings"]
-  }}};
+  }}}};
 }
 export function parseResponse(r){
- const candidate=r?.candidates?.[0];
- if(r?.promptFeedback?.blockReason||candidate?.finishReason!=="STOP"||candidate?.safetyRatings?.some(x=>x.blocked))throw Error("Incomplete or blocked response");
- const parts=candidate.content?.parts;
- if(!Array.isArray(parts)||parts.some(x=>x.functionCall))throw Error("Invalid parts");
- const out=JSON.parse(parts.filter(x=>!x.thought&&typeof x.text==="string").map(x=>x.text).join(""));
+ const choice=r?.choices?.[0];
+ if(choice?.finish_reason!=="stop"||choice.message?.refusal||choice.message?.tool_calls)throw Error("Incomplete or refused response");
+ const out=JSON.parse(choice.message.content);
  if(!out||Object.keys(out).sort().join(",")!=="currentStatus,majorChanges,warnings")throw Error("Unexpected fields");
  if(typeof out.currentStatus!=="string"||typeof out.majorChanges!=="string"||!Array.isArray(out.warnings)||
   out.warnings.length>20||out.warnings.some(x=>typeof x!=="string"||x.length>2000)||!out.currentStatus.trim()||!out.majorChanges.trim()||
   out.currentStatus.length>12000||out.majorChanges.length>12000)throw Error("Invalid response");
  return out;
 }
-export function server({apiKey,token,fetchImpl=fetch}){
- if(!apiKey||!token||token.length<32)throw Error("Set GEMINI_API_KEY and REPORT_SERVER_TOKEN (32+ chars) on server only");
+export function server({token,fetchImpl=fetch}){
+ if(!token||token.length<32)throw Error("Set REPORT_SERVER_TOKEN (32+ chars) on server only");
  let busy=false;
  return createServer(async(req,res)=>{
   res.setHeader("Cache-Control","no-store");res.setHeader("Content-Type","application/json");
@@ -55,8 +53,10 @@ export function server({apiKey,token,fetchImpl=fetch}){
    let body;
    try {body=requestBody(JSON.parse(Buffer.concat(chunks).toString()));}
    catch {res.writeHead(400);res.end('{"error":"invalid_payload"}');return;}
-   const r=await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,{method:"POST",
-    headers:{"x-goog-api-key":apiKey,"Content-Type":"application/json"},
+   const userKey=req.headers["x-groq-api-key"];
+   if(typeof userKey!=="string"||!/^gsk_[A-Za-z0-9_-]{20,}$/.test(userKey)){res.writeHead(422);res.end('{"error":"groq_key_required"}');return;}
+   const r=await fetchImpl("https://api.groq.com/openai/v1/chat/completions",{method:"POST",
+    headers:{"Authorization":"Bearer "+userKey,"Content-Type":"application/json"},
     body:JSON.stringify(body),signal:AbortSignal.timeout(75000)});
    // One call only: never retry automatically or switch providers/models/plans.
    if(r.status===429){
@@ -76,6 +76,6 @@ export function server({apiKey,token,fetchImpl=fetch}){
  });
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const service=server({apiKey:process.env.GEMINI_API_KEY,token:process.env.REPORT_SERVER_TOKEN});
+ const service=server({token:process.env.REPORT_SERVER_TOKEN});
  service.listen(Number(process.env.PORT??8787),"127.0.0.1",()=>console.log("Report service listening on loopback; place behind authenticated TLS ingress."));
 }

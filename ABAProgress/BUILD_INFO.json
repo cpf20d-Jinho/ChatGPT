@@ -12,7 +12,7 @@
     "iOSBuild": "PENDING_GITHUB_ACTIONS",
     "clinicalScenarios": "PENDING_GITHUB_ACTIONS",
     "iosRuntimeTest": "NOT_RUN",
-    "liveAPI": "NOT_RUN_MISSING_GEMINI_KEY",
+    "liveAPI": "NOT_RUN_MISSING_GROQ_KEY",
     "iosPDFPagination": "PENDING"
   },
   "compatibility": {

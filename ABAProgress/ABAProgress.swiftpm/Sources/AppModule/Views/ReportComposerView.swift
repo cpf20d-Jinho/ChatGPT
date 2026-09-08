@@ -10,6 +10,7 @@ struct ReportComposerView: View {
     @State private var error: String?
     @State private var endpoint = ""
     @State private var token = ""
+    @State private var groqKey = ""
     @State private var aiResult: ReportAIResult?
     @State private var aiFingerprint = ""
     @State private var isBusy = false
@@ -99,6 +100,7 @@ struct ReportComposerView: View {
         .task {
             do {
                 draft = try ReportDraftStore.load(childID: child.id, start: startDate, end: endDate)
+                groqKey = ReportAIClient.savedGroqKey()
                 loaded = true
             } catch {
                 self.error = "저장된 보고서를 읽지 못했습니다. 기존 파일을 보호하기 위해 편집 저장을 중단합니다. \(error.localizedDescription)"
@@ -115,11 +117,11 @@ struct ReportComposerView: View {
             reviewed = false
             shareURL = nil
         }
-        .confirmationDialog("선택한 서버와 Google Gemini로 전송할까요?", isPresented: $showConsent) {
+        .confirmationDialog("숫자 요약을 Groq로 전송할까요?", isPresented: $showConsent) {
             Button("전송 내용 확인 완료 · AI 초안 요청") { generate() }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("전송할 수치 배열을 확인하세요. 서버는 배열별 개수·초기/최근 평균·변화량·최솟값·최댓값만 Google에 보냅니다. 숫자만으로 완전한 익명성을 보장하지 않습니다. Google 무료 API의 데이터 이용 및 임상 실무 제한을 확인하세요.")
+            Text("전송할 수치 배열을 확인하세요. 서버는 배열별 개수·초기/최근 평균·변화량·최솟값·최댓값만 Groq에 보냅니다. 이름·날짜·프로그램명·메모는 보내지 않습니다.")
         }
     }
 
@@ -134,11 +136,24 @@ struct ReportComposerView: View {
 
     private var aiControls: some View {
         DisclosureGroup("AI 초안 작성 · 서버 연결 필요") {
-            Text("Gemini 3.8 Flash는 번호로 구분한 수치 요약만 해석합니다. 이름·날짜·프로그램명·메모는 전송하지 않습니다. 무료 사용량 제한이 있습니다.")
+            Text("Groq의 GPT-OSS 120B가 번호로 구분한 수치 요약만 해석합니다. 최초 한 번 본인의 API 키를 등록하면 이후 요청에 자동으로 사용됩니다.")
                 .font(.footnote).foregroundStyle(.secondary)
+            Link("Groq 계정 로그인 · API 키 만들기", destination: URL(string: "https://console.groq.com/keys")!)
+            SecureField("본인의 Groq API 키 (gsk_…)", text: $groqKey)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .privacySensitive()
+            Button("이 기기에 Groq 키 저장") {
+                do {
+                    try ReportAIClient.saveGroqKey(groqKey)
+                    error = nil
+                } catch { self.error = error.localizedDescription }
+            }
+            .disabled(!groqKey.hasPrefix("gsk_") || groqKey.count < 24)
+            Text("키는 이 기기의 Keychain에만 저장되며 서버는 보관하지 않습니다. Groq는 제3자 앱용 로그인 연결을 제공하지 않아 최초 키 생성·붙여넣기는 필요합니다.")
+                .font(.caption).foregroundStyle(.secondary)
             TextField("HTTPS 보고서 서버 주소", text: $endpoint)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-            SecureField("보고서 서버 접속 토큰 (Google Gemini 키 아님)", text: $token)
+            SecureField("보고서 서버 접속 토큰 (Groq 키 아님)", text: $token)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
             DisclosureGroup("전송할 데이터 검토") {
                 Text(payloadPreview).font(.caption.monospaced()).textSelection(.enabled)
@@ -147,7 +162,7 @@ struct ReportComposerView: View {
                 Text(seriesLegend).font(.footnote).textSelection(.enabled)
             }
             Button("현황 · 주요 변화 초안 요청") { showConsent = true }
-                .disabled(isBusy || !loaded || endpoint.isEmpty || token.isEmpty || document.goals.isEmpty)
+                .disabled(isBusy || !loaded || endpoint.isEmpty || token.isEmpty || groqKey.isEmpty || document.goals.isEmpty)
             if let result = aiResult {
                 Text("AI 초안 · 검토 전").font(.headline)
                 Text(result.currentStatus).textSelection(.enabled)
@@ -183,7 +198,7 @@ struct ReportComposerView: View {
         Task { @MainActor in
             defer { isBusy = false }
             do {
-                let result = try await ReportAIClient.generate(payload: payload, endpoint: endpoint, token: token)
+                let result = try await ReportAIClient.generate(payload: payload, endpoint: endpoint, token: token, groqKey: groqKey)
                 guard snapshot.fingerprint == document.fingerprint else {
                     error = "생성 중 데이터가 변경되었습니다. 초안을 다시 요청하세요."
                     return
