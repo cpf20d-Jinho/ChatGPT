@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v0.7 — Apple HIG Alignment
+- GitHub v0.6 구현 범위와 배포 준비도 점검 문서 추가
+- `오늘`을 iPhone/iPad 기본 진입점으로 변경
+- iPhone TabView와 iPad NavigationSplitView 탐색 구조 정리
+- iPad 사이드바 폭과 균형형 Split View 설정
+- 아동 이름 검색 및 검색 결과 없음 상태 추가
+- 시스템 그룹 배경과 공통 표면 스타일 적용
+- 완료·진행·미기록 상태를 SF Symbol+텍스트 캡슐로 통일
+- Trial 버튼에 상태 보조 텍스트, Dynamic Type 높이, 대비 증가 대응 추가
+- Trial VoiceOver `NA로 초기화` 사용자 지정 동작 추가
+- 캘린더 탐색/선택 접근성 정보 강화
+- 기록 완료와 PDF 생성·공유 버튼의 전체 폭 터치 영역 확보
+- 보고서 빈 상태 및 프로그램 미선택 상태 추가
+- iOS/iPadOS 17 최소 지원과 기존 임상·데이터 동작 유지
+
 ## v0.6 — Field Workflow Validation
 - 실시간 치료/과거기록 사용 시나리오 전면 점검
 - Trial/Bulk 직전 입력 Undo 추가

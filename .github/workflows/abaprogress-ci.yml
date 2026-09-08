@@ -1,0 +1,56 @@
+name: ABAProgress iOS CI
+
+on:
+  push:
+    branches:
+      - main
+      - codex/**
+    paths:
+      - ABAProgress/**
+      - .github/workflows/abaprogress-ci.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ABAProgress/**
+      - .github/workflows/abaprogress-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: abaprogress-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and clinical rules
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build Universal iOS app for Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ABAProgress/XcodeProject/ABAProgress.xcodeproj \
+            -scheme ABAProgress \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/ABAProgressDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build \
+            | tee "$RUNNER_TEMP/abaprogress-xcodebuild.log"
+
+      - name: Run clinical scenario checks
+        run: swift ABAProgress/QA/scenario_tests.swift

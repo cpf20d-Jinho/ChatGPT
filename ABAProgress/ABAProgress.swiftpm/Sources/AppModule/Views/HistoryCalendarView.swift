@@ -111,6 +111,7 @@ struct HistoryCalendarView: View {
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
         }
+        .background(ABAVisualStyle.groupedBackground)
         .navigationTitle("기록 캘린더")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $childSearchText, prompt: "이 날짜의 아동 검색")
@@ -132,8 +133,7 @@ struct HistoryCalendarView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .abaSurface()
     }
 }
 
@@ -192,6 +192,7 @@ private struct MonthCalendar: View {
                     Image(systemName: "chevron.left")
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("이전 달")
                 Spacer()
                 Text(displayedMonth.formatted(.dateTime.year().month(.wide)))
                     .font(.title3.bold())
@@ -200,6 +201,7 @@ private struct MonthCalendar: View {
                     Image(systemName: "chevron.right")
                         .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("다음 달")
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 6) {
@@ -225,9 +227,7 @@ private struct MonthCalendar: View {
                 }
             }
         }
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .overlay { RoundedRectangle(cornerRadius: 18).stroke(.quaternary) }
+        .abaSurface(background: Color(uiColor: .systemBackground))
     }
 
     private func changeMonth(_ offset: Int) {
@@ -260,6 +260,8 @@ private struct DayCell: View {
         .buttonStyle(.plain)
         .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
         .accessibilityValue(hasRecord ? "기록 있음" : "기록 없음")
+        .accessibilityHint("이 날짜의 치료 기록을 확인합니다.")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -273,6 +275,7 @@ private struct CalendarMetric: View {
             Text(value).font(.headline.monospacedDigit())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -301,6 +304,7 @@ private struct ChildDateSummaryCard: View {
             Image(systemName: "person.crop.circle.fill")
                 .font(.title)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(child.name).font(.headline)
@@ -324,9 +328,10 @@ private struct ChildDateSummaryCard: View {
             Image(systemName: "chevron.right")
                 .font(.caption.bold())
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .abaSurface()
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -420,6 +425,7 @@ private struct HistoricalTargetRow: View {
                     .font(.headline.monospacedDigit())
             }
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -466,16 +472,14 @@ private struct HistoricalTargetEditView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                .abaSurface()
 
                 if !levelReviewIssues.isEmpty {
                     Label(levelReviewIssues.joined(separator: "\n"), systemImage: "exclamationmark.triangle.fill")
                         .font(.footnote)
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                        .abaSurface(background: Color.orange.opacity(0.08))
                 }
 
                 TargetSessionCard(
@@ -494,6 +498,7 @@ private struct HistoricalTargetEditView: View {
             .frame(maxWidth: 900)
             .frame(maxWidth: .infinity)
         }
+        .background(ABAVisualStyle.groupedBackground)
         .navigationTitle(target.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

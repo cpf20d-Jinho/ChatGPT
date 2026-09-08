@@ -1,17 +1,18 @@
 {
   "product": "ABAProgress",
-  "version": "0.6.0",
-  "buildTimeKST": "2026-09-07T16:30:48+09:00",
-  "buildHash": "5c3fddaa0d",
-  "sourceSHA256": "5c3fddaa0d085d27bbd896e50bf0306414384568e8189239051431f50c9449d5",
-  "previousBuild": "v0.5_UX_Refined",
+  "version": "0.7.0",
+  "buildTimeKST": "2026-09-08T09:50:06+09:00",
+  "buildHash": "15c8e24d86",
+  "sourceSHA256": "15c8e24d863f25b1e642767df1d5579c3da17dc0f2ab9d8abf83ea24445f0079",
+  "previousBuild": "v0.6_Field_Workflow_Validated",
   "validation": {
-    "swiftParse": "PASS",
-    "swiftPlaygroundsParse": "PASS",
-    "pureSwiftScenarioTests": "PASS",
+    "swiftParse": "PENDING_XCODE_RUNTIME",
+    "swiftPlaygroundsParse": "PENDING_XCODE_RUNTIME",
+    "pureSwiftScenarioTests": "PASS_V0.6_LOGIC_UNCHANGED",
     "scenarioTestCount": 12,
     "swiftUIExpertStaticAudit": "PASS",
-    "iosRuntimeTest": "PENDING_DEVICE"
+    "sourceParity": "PASS",
+    "iosRuntimeTest": "PENDING_XCODE_RUNTIME"
   },
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -20,5 +21,5 @@
       "iPad"
     ]
   },
-  "notes": "Source SHA is computed over source/docs/QA files before BUILD_INFO.json and SHA256SUMS.txt are added."
+  "notes": "Source SHA is computed from sorted file checksums excluding BUILD_INFO.json, HANDOFF_MANIFEST.json, and SHA256SUMS.txt. Clinical logic is unchanged from v0.6; v0.7 requires Xcode compile and simulator validation."
 }

@@ -13,59 +13,63 @@ struct RootView: View {
                 RegularRootView(children: children)
             }
         }
+        .tint(.accentColor)
     }
 }
 
 private struct CompactRootView: View {
     let children: [ChildProfile]
+    @State private var selection: AppDestination = .today
 
     var body: some View {
-        TabView {
-            NavigationStack {
-                ChildrenListView(children: children)
-            }
-            .tabItem { Label("아동", systemImage: "person.2") }
-
+        TabView(selection: $selection) {
             NavigationStack {
                 TodayOverviewView(children: children)
             }
-            .tabItem { Label("오늘", systemImage: "checkmark.circle") }
+            .tabItem { Label(AppDestination.today.title, systemImage: AppDestination.today.systemImage) }
+            .tag(AppDestination.today)
+
+            NavigationStack {
+                ChildrenListView(children: children)
+            }
+            .tabItem { Label(AppDestination.children.title, systemImage: AppDestination.children.systemImage) }
+            .tag(AppDestination.children)
 
             NavigationStack {
                 HistoryCalendarView(children: children)
             }
-            .tabItem { Label("기록", systemImage: "calendar") }
+            .tabItem { Label(AppDestination.history.title, systemImage: AppDestination.history.systemImage) }
+            .tag(AppDestination.history)
 
             NavigationStack {
                 ReportHomeView(children: children)
             }
-            .tabItem { Label("보고서", systemImage: "chart.xyaxis.line") }
+            .tabItem { Label(AppDestination.reports.title, systemImage: AppDestination.reports.systemImage) }
+            .tag(AppDestination.reports)
         }
     }
 }
 
 private struct RegularRootView: View {
     let children: [ChildProfile]
-    @State private var selection: SidebarDestination? = .children
+    @State private var selection: AppDestination? = .today
 
     var body: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 Section("워크스페이스") {
-                    Label("아동", systemImage: "person.2")
-                        .tag(SidebarDestination.children)
-                    Label("오늘", systemImage: "checkmark.circle")
-                        .tag(SidebarDestination.today)
-                    Label("기록 캘린더", systemImage: "calendar")
-                        .tag(SidebarDestination.history)
-                    Label("보고서", systemImage: "chart.xyaxis.line")
-                        .tag(SidebarDestination.reports)
+                    ForEach(AppDestination.allCases) { destination in
+                        Label(destination.title, systemImage: destination.systemImage)
+                            .tag(destination)
+                    }
                 }
             }
+            .listStyle(.sidebar)
             .navigationTitle("ABA Progress")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         } detail: {
             NavigationStack {
-                switch selection ?? .children {
+                switch selection ?? .today {
                 case .children:
                     ChildrenListView(children: children)
                 case .today:
@@ -77,14 +81,35 @@ private struct RegularRootView: View {
                 }
             }
         }
+        .navigationSplitViewStyle(.balanced)
     }
 }
 
-private enum SidebarDestination: Hashable {
-    case children
+private enum AppDestination: String, CaseIterable, Identifiable {
     case today
+    case children
     case history
     case reports
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .today: return "오늘"
+        case .children: return "아동"
+        case .history: return "기록"
+        case .reports: return "보고서"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .today: return "checkmark.circle"
+        case .children: return "person.2"
+        case .history: return "calendar"
+        case .reports: return "chart.xyaxis.line"
+        }
+    }
 }
 
 struct ChildrenListView: View {
@@ -92,6 +117,13 @@ struct ChildrenListView: View {
     let children: [ChildProfile]
     @State private var showingAddChild = false
     @State private var childPendingDeletion: ChildProfile?
+    @State private var searchText = ""
+
+    private var displayedChildren: [ChildProfile] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return children }
+        return children.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
 
     var body: some View {
         List {
@@ -101,9 +133,11 @@ struct ChildrenListView: View {
                     systemImage: "person.crop.circle.badge.plus",
                     description: Text("아동을 추가한 뒤 프로그램과 실시간 Trial 기록을 시작하세요.")
                 )
+            } else if displayedChildren.isEmpty {
+                ContentUnavailableView.search(text: searchText)
             } else {
                 Section {
-                    ForEach(children) { child in
+                    ForEach(displayedChildren) { child in
                         NavigationLink {
                             ChildDetailView(child: child)
                         } label: {
@@ -115,6 +149,7 @@ struct ChildrenListView: View {
             }
         }
         .navigationTitle("아동")
+        .searchable(text: $searchText, prompt: "아동 이름 검색")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -143,8 +178,8 @@ struct ChildrenListView: View {
     }
 
     private func deleteChildren(at offsets: IndexSet) {
-        guard let index = offsets.first, children.indices.contains(index) else { return }
-        childPendingDeletion = children[index]
+        guard let index = offsets.first, displayedChildren.indices.contains(index) else { return }
+        childPendingDeletion = displayedChildren[index]
     }
 
     private func confirmChildDeletion() {
@@ -167,6 +202,7 @@ private struct ChildSummaryRow: View {
             Image(systemName: "person.crop.circle.fill")
                 .font(.title2)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(child.name).font(.headline)
@@ -181,6 +217,7 @@ private struct ChildSummaryRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -208,6 +245,7 @@ struct TodayOverviewView: View {
             .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
         }
+        .background(ABAVisualStyle.groupedBackground)
         .navigationTitle("오늘")
     }
 }
@@ -259,7 +297,11 @@ private struct TodayChildCard: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                NavigationLink("열기") { ChildDetailView(child: child) }
+                NavigationLink {
+                    ChildDetailView(child: child)
+                } label: {
+                    Label("아동 열기", systemImage: "arrow.right")
+                }
                     .buttonStyle(.bordered)
             }
 
@@ -285,8 +327,8 @@ private struct TodayChildCard: View {
                 }
             }
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+        .abaSurface()
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -304,7 +346,8 @@ private struct MetricTile: View {
         }
         .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
         .padding(12)
-        .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(ABAVisualStyle.tertiarySurface, in: .rect(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -338,24 +381,34 @@ private struct TodayProgramStatusCompact: View {
         return "미기록"
     }
 
+    private var statusIcon: String {
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return "checkmark.circle.fill" }
+        if inProgressCount > 0 || completedCount > 0 { return "clock.fill" }
+        if activeTargets.isEmpty { return "exclamationmark.circle" }
+        return "circle.dashed"
+    }
+
+    private var statusTint: Color {
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return .green }
+        if inProgressCount > 0 || completedCount > 0 { return .orange }
+        return .secondary
+    }
+
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: completedCount == activeTargets.count && !activeTargets.isEmpty ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(completedCount == activeTargets.count && !activeTargets.isEmpty ? .green : .secondary)
             Text(program.name)
             Spacer()
             if let level = program.currentLevel {
                 Text(level.label).font(.caption.bold()).foregroundStyle(.secondary)
             }
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: 4) {
                 Text("\(completedCount)/\(activeTargets.count)")
                     .font(.subheadline.monospacedDigit())
-                Text(statusText)
-                    .font(.caption2)
+                ABAStatusPill(title: statusText, systemImage: statusIcon, tint: statusTint)
             }
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 9)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -430,5 +483,54 @@ struct AddChildView: View {
                 }
             }
         }
+    }
+}
+
+enum ABAVisualStyle {
+    static let cornerRadius: CGFloat = 16
+    static let contentMaxWidth: CGFloat = 980
+    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
+    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
+    static let separator = Color(uiColor: .separator).opacity(0.18)
+}
+
+private struct ABASurfaceModifier: ViewModifier {
+    let padding: CGFloat
+    let background: Color
+
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(background, in: .rect(cornerRadius: ABAVisualStyle.cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: ABAVisualStyle.cornerRadius)
+                    .strokeBorder(ABAVisualStyle.separator, lineWidth: 0.5)
+            }
+    }
+}
+
+extension View {
+    func abaSurface(
+        padding: CGFloat = 16,
+        background: Color = ABAVisualStyle.secondarySurface
+    ) -> some View {
+        modifier(ABASurfaceModifier(padding: padding, background: background))
+    }
+}
+
+struct ABAStatusPill: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(tint.opacity(0.12), in: Capsule())
+            .accessibilityElement(children: .combine)
     }
 }
