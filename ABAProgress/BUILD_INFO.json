@@ -1,9 +1,9 @@
 {
   "product": "ABAProgress",
   "version": "0.7.0",
-  "buildTimeKST": "2026-09-08T09:50:06+09:00",
-  "buildHash": "15c8e24d86",
-  "sourceSHA256": "15c8e24d863f25b1e642767df1d5579c3da17dc0f2ab9d8abf83ea24445f0079",
+  "buildTimeKST": "2026-09-08T10:19:08+09:00",
+  "buildHash": "1fa0ea4f49",
+  "sourceSHA256": "1fa0ea4f49f037e9c6e3103c31a0afd19ba76def1830d2ae85a51044c7071206",
   "previousBuild": "v0.6_Field_Workflow_Validated",
   "validation": {
     "swiftParse": "PENDING_XCODE_RUNTIME",

@@ -783,7 +783,7 @@ private struct TrialResponseButton: View {
     @State private var longPressTriggered = false
     @State private var feedbackTrigger = 0
     @ScaledMetric(relativeTo: .title2) private var minimumHeight: CGFloat = 64
-    @Environment(\.accessibilityContrast) private var accessibilityContrast
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     var body: some View {
         Button {
@@ -807,7 +807,7 @@ private struct TrialResponseButton: View {
         .buttonStyle(
             TrialButtonStyle(
                 response: response,
-                increasedContrast: accessibilityContrast == .increased
+                increasedContrast: colorSchemeContrast == .increased
             )
         )
         .sensoryFeedback(.selection, trigger: feedbackTrigger)
