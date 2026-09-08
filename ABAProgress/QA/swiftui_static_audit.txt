@@ -1,4 +1,4 @@
-ABAProgress v0.7 SwiftUI Expert static audit
+ABAProgress v0.8 SwiftUI Expert static audit
 
 PASS - @State declarations are private
 PASS - no NavigationView / navigationBarTitle / navigationBarItems legacy API
@@ -20,3 +20,8 @@ PASS - delimiter structure, JSON, whitespace, and legacy API static scans
 PASS - GitHub Actions Xcode build for generic iOS Simulator (run 34176398306)
 PASS - GitHub Actions clinical scenario checks (run 34176398306)
 PENDING - iPhone and iPad simulator interaction and visual validation
+
+PASS - centralized SF Symbols and vector-derived AppIcon assets
+PASS - 7 server tests and synthetic 16-section report structure
+PASS - synthetic HTML previews inspected; not iOS print output
+PENDING - live API request, exact reference formulas and iOS PDF pagination

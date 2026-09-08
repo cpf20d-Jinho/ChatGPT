@@ -1,4 +1,14 @@
-# ABAProgress v0.7 — Apple HIG Alignment
+# ABAProgress v0.8 — Symbols, Vector Icon and Interim Reports
+
+## v0.8 구현 및 검증 범위
+
+- SF Symbols 이름을 공통 정의로 통합하고 핑크 브랜드 색상과 벡터 ABA 앱 아이콘을 적용했습니다.
+- 제공된 중간보고서의 표지, 영역별 막대그래프, 성장 추이, 단계별 목표 그래프, 서술란, 서명란을 기본 양식으로 구현했습니다.
+- AI는 종합 현황과 주요 변화 두 항목만 초안을 제안합니다. 치료사 소견, 가정 연계, 다음 목표는 직접 작성합니다.
+- `Server/GUIDE_SCRIPT.md`와 Responses API 서버 구현을 포함합니다. 실제 사용에는 HTTPS 서버 배포 및 서버 측 API 키 설정이 필요합니다. 실제 API 호출은 아직 검증하지 않았습니다.
+- Xcode 빌드, 임상 시나리오, 서버 단위 테스트 및 합성 데이터 HTML 미리보기가 통과했습니다: GitHub Actions run 34179188414.
+- 원본 로고와 글꼴, 정확한 STO 집계 정의, 실제 iOS PDF 페이지 나눔은 추가 확인이 필요합니다. 원본과 완전히 동일한 결과를 보장하는 상태는 아닙니다. 상세 차이는 `REPORT_TEMPLATE_SPEC.md`를 참고하세요.
+- 원본 보고서와 실제 아동 자료는 저장소에 포함하지 않습니다.
 
 iPhone + iPad 공용 ABA 치료 실시간 기록/경과관리 앱의 개인기기 테스트 패키지입니다.
 

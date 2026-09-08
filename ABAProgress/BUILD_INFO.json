@@ -1,10 +1,10 @@
 {
   "product": "ABAProgress",
-  "version": "0.7.0",
-  "buildTimeKST": "2026-09-08T10:25:58+09:00",
-  "buildHash": "37f54f1ae3",
-  "sourceSHA256": "37f54f1ae37b924f2acdd76888a490fc46180faed547ff682f11ad39750c48dd",
-  "previousBuild": "v0.6_Field_Workflow_Validated",
+  "version": "0.8.0",
+  "buildTimeKST": "2026-09-08T16:44:17+09:00",
+  "buildHash": "61ecce1ffa",
+  "sourceSHA256": "61ecce1ffa2bacb872a08a3534d8eb6772749a02dbc7a89d211863bd907fe6c8",
+  "previousBuild": "v0.7_Apple_HIG",
   "validation": {
     "swiftParse": "PASS_GITHUB_ACTIONS_XCODEBUILD",
     "swiftPlaygroundsParse": "PENDING_RUNTIME_VALIDATION",
@@ -12,7 +12,12 @@
     "scenarioTestCount": 12,
     "swiftUIExpertStaticAudit": "PASS",
     "sourceParity": "PASS",
-    "iosRuntimeTest": "PENDING_SIMULATOR_INTERACTION"
+    "iosRuntimeTest": "PENDING_SIMULATOR_INTERACTION",
+    "reportServerTests": "PASS_7",
+    "syntheticReportPreview": "PASS_HTML_ONLY",
+    "liveAPI": "NOT_RUN",
+    "iosPDFPagination": "PENDING",
+    "validatedImplementationCommit": "65b35cf4337eb7370d75c6ae829ecfc148c6d733"
   },
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -21,5 +26,5 @@
       "iPad"
     ]
   },
-  "notes": "Source SHA is computed from sorted file checksums excluding BUILD_INFO.json, HANDOFF_MANIFEST.json, and SHA256SUMS.txt. Clinical logic is unchanged from v0.6. GitHub Actions Xcode build and clinical scenarios pass; visual and interaction validation on iPhone/iPad remains."
+  "notes": "Source SHA excludes metadata files. Prior implementation build and clinical tests passed in run 34179188414. Final follow-up build must pass on PR. Actual iOS interaction/printing and live API remain unverified."
 }

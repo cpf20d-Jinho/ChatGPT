@@ -73,7 +73,15 @@ struct ReportComposerView: View {
                 isBusy = true
                 Task { @MainActor in
                     defer { isBusy = false }
-                    do { shareURL = try await ReportTemplateExporter.export(snapshot) }
+                    do {
+                        let url = try await ReportTemplateExporter.export(snapshot)
+                        guard snapshot.fingerprint == document.fingerprint, snapshot.draft == draft else {
+                            try? FileManager.default.removeItem(at: url)
+                            self.error = "생성 중 보고서가 변경되었습니다. 내용을 검토한 뒤 다시 생성하세요."
+                            return
+                        }
+                        shareURL = url
+                    }
                     catch { self.error = error.localizedDescription }
                 }
             } label: {

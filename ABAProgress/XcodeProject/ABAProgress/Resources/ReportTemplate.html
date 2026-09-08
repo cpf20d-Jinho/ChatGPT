@@ -68,7 +68,7 @@ function renderReport(doc){
  const dates=[...new Set(doc.goals.flatMap(g=>g.points.map(p=>p.date)))].sort();
  const growth=dates.map(date=>({date,level:0,value:mean(doc.goals.map(g=>g.points.filter(p=>p.date<=date).at(-1)?.value).filter(v=>v!==undefined))}));
  const events={};for(const g of doc.goals){const levels=[...new Set(g.points.map(p=>p.level))];for(const l of levels){const date=g.points.find(p=>p.level===l)?.date;if(date)events[date]=l===levels[0]?"+새 목표":"+새 단계";}}
- html+='<section class="page"><h2>영역별 균형 분석</h2><p class="hint">※ 영역별 최근 3회기 평균 달성률 · 괄호는 단기 목표(STO) 수 · 회색은 달성률로 나타내지 않는 영역<br>※ 초록 80% 이상 숙달 · 파랑 60~79% 진전 · 주황 60% 미만 집중 지도</p>'+bars+'</svg><div style="height:25pt"></div><h2>성장 추이 (전체 목표 평균)</h2><p class="hint">※ 진행 중인 전체 목표의 평균 정반응률 · 그날 측정하지 않은 목표는 최근 값 사용 · 라벨은 일부만 표시<br>※ +새 목표 / +새 단계는 새로 시작한 날 — 낮은 수행률에서 출발해 평균이 잠시 내려갈 수 있습니다</p>'+chart(growth,{},false,true,events)+'</section>';
+ html+='<section class="page"><h2>영역별 균형 분석</h2><p class="hint">※ 영역별 최근 3회기 평균 달성률 · 괄호는 단기 목표(STO) 수 · 회색은 달성률로 나타내지 않는 영역<br>※ 초록 80% 이상 숙달 · 파랑 60~79% 진전 · 주황 60% 미만 집중 지도</p>'+bars+'</svg><div style="height:25pt"></div><h2>성장 추이 (전체 목표 평균)</h2><p class="hint">※ 선택 기간에 관측된 전체 목표의 평균 정반응률 · 그날 측정하지 않은 목표는 최근 값 사용 · 라벨은 일부만 표시<br>※ +새 목표 / +새 단계는 새로 시작한 날 — 낮은 수행률에서 출발해 평균이 잠시 내려갈 수 있습니다</p>'+chart(growth,{},false,true,events)+'</section>';
  const ordered=[...doc.goals].sort((a,b)=>a.group.localeCompare(b.group,"ko")||a.domain.localeCompare(b.domain,"ko")||a.name.localeCompare(b.name,"ko"));
  for(let i=0;i<ordered.length;i+=2){
   html+='<section class="page">'+(i===0?'<h2>영역별 세부 학습 목표</h2><p class="hint">※ 영역별 목표의 진행 상태와 추이선 · 회기당 1회 시도 목표는 O(성공)·X(실패)로 표시</p>':"");

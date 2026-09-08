@@ -12,12 +12,13 @@ export function validatePayload(p){
   if(!Array.isArray(g.points)||g.points.length<1||g.points.length>2000)throw Error("Invalid points");
   for(const x of g.points)if(!/^\d{4}-\d{2}-\d{2}$/.test(x.date)||!Number.isFinite(x.value)||x.value<0||x.value>100||!Number.isInteger(x.level)||x.level<1||x.level>100)throw Error("Invalid observation");
   if(!Array.isArray(g.masteredLevels)||g.masteredLevels.some(l=>!g.points.some(x=>x.level===l)))throw Error("Invalid mastery");
+  if(g.criteria!==undefined && (!g.criteria || typeof g.criteria!=="object" || Array.isArray(g.criteria) || Object.entries(g.criteria).some(([level,value])=>!g.points.some(x=>String(x.level)===level)||!Number.isFinite(value)||value<0||value>100)))throw Error("Invalid criteria");
  }
  // Whitelist only the fields needed for drafting. Never forward a full child/document object.
  const goals=p.goals.map(g=>({name:g.name,domain:g.domain,
   points:g.points.map(x=>({date:x.date,value:x.value,level:x.level})),
-  masteredLevels:[...new Set(g.masteredLevels)]}));
- const grouped={};
+  criteria:g.criteria??{},masteredLevels:[...new Set(g.masteredLevels)]}));
+ const grouped=Object.create(null);
  const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
  let stoCount=0,masteredCount=0;
  for(const g of goals){
