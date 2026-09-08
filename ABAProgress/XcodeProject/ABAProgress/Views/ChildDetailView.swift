@@ -100,7 +100,7 @@ struct ChildDetailView: View {
                 if programs.isEmpty {
                     ContentUnavailableView(
                         "등록된 프로그램이 없습니다",
-                        systemImage: "list.bullet.rectangle",
+                        systemImage: ABASymbol.program,
                         description: Text("아동에게 사용할 프로그램을 자유롭게 추가하세요.")
                     )
                 } else {
@@ -119,7 +119,7 @@ struct ChildDetailView: View {
                 NavigationLink {
                     ReportView(child: child)
                 } label: {
-                    Label("사용자 지정 기간 경과 보고서", systemImage: "chart.xyaxis.line")
+                    Label("사용자 지정 기간 경과 보고서", systemImage: ABASymbol.report)
                 }
             }
         }
@@ -129,7 +129,7 @@ struct ChildDetailView: View {
                 Button {
                     showingAddProgram = true
                 } label: {
-                    Label("프로그램 추가", systemImage: "plus")
+                    Label("프로그램 추가", systemImage: ABASymbol.add)
                 }
             }
         }
@@ -225,9 +225,9 @@ private struct TodayProgramStatusRow: View {
     }
 
     private var statusIcon: String {
-        if isComplete { return "checkmark.circle.fill" }
-        if completedCount > 0 { return "clock.fill" }
-        return "circle.dashed"
+        if isComplete { return ABASymbol.completed }
+        if completedCount > 0 { return ABASymbol.inProgress }
+        return ABASymbol.empty
     }
 
     var body: some View {

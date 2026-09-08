@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct RootView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -13,7 +14,7 @@ struct RootView: View {
                 RegularRootView(children: children)
             }
         }
-        .tint(.accentColor)
+        .tint(ABAVisualStyle.brand)
     }
 }
 
@@ -104,10 +105,10 @@ private enum AppDestination: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .today: return "checkmark.circle"
-        case .children: return "person.2"
-        case .history: return "calendar"
-        case .reports: return "chart.xyaxis.line"
+        case .today: return ABASymbol.today
+        case .children: return ABASymbol.children
+        case .history: return ABASymbol.history
+        case .reports: return ABASymbol.report
         }
     }
 }
@@ -130,7 +131,7 @@ struct ChildrenListView: View {
             if children.isEmpty {
                 ContentUnavailableView(
                     "등록된 아동이 없습니다",
-                    systemImage: "person.crop.circle.badge.plus",
+                    systemImage: ABASymbol.addChild,
                     description: Text("아동을 추가한 뒤 프로그램과 실시간 Trial 기록을 시작하세요.")
                 )
             } else if displayedChildren.isEmpty {
@@ -155,7 +156,7 @@ struct ChildrenListView: View {
                 Button {
                     showingAddChild = true
                 } label: {
-                    Label("아동 추가", systemImage: "plus")
+                    Label("아동 추가", systemImage: ABASymbol.add)
                 }
             }
         }
@@ -199,7 +200,7 @@ private struct ChildSummaryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "person.crop.circle.fill")
+            Image(systemName: ABASymbol.child)
                 .font(.title2)
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
@@ -231,7 +232,7 @@ struct TodayOverviewView: View {
                 if children.isEmpty {
                     ContentUnavailableView(
                         "오늘 기록할 아동이 없습니다",
-                        systemImage: "calendar.badge.plus",
+                        systemImage: ABASymbol.startSession,
                         description: Text("먼저 아동을 등록하세요.")
                     )
                     .padding(.top, 40)
@@ -300,7 +301,7 @@ private struct TodayChildCard: View {
                 NavigationLink {
                     ChildDetailView(child: child)
                 } label: {
-                    Label("아동 열기", systemImage: "arrow.right")
+                    Label("아동 열기", systemImage: ABASymbol.open)
                 }
                     .buttonStyle(.bordered)
             }
@@ -309,8 +310,8 @@ private struct TodayChildCard: View {
                 columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
                 spacing: 12
             ) {
-                MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: "checkmark.circle")
-                MetricTile(title: "평균 정반응률", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: "percent")
+                MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: ABASymbol.today)
+                MetricTile(title: "평균 정반응률", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: ABASymbol.accuracy)
             }
 
             if !programs.isEmpty {
@@ -382,10 +383,10 @@ private struct TodayProgramStatusCompact: View {
     }
 
     private var statusIcon: String {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return "checkmark.circle.fill" }
-        if inProgressCount > 0 || completedCount > 0 { return "clock.fill" }
-        if activeTargets.isEmpty { return "exclamationmark.circle" }
-        return "circle.dashed"
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return ABASymbol.completed }
+        if inProgressCount > 0 || completedCount > 0 { return ABASymbol.inProgress }
+        if activeTargets.isEmpty { return ABASymbol.warning }
+        return ABASymbol.empty
     }
 
     private var statusTint: Color {
@@ -420,7 +421,7 @@ struct ReportHomeView: View {
             if children.isEmpty {
                 ContentUnavailableView(
                     "보고서 대상이 없습니다",
-                    systemImage: "chart.xyaxis.line",
+                    systemImage: ABASymbol.report,
                     description: Text("아동과 기록을 추가하면 사용자 지정 기간 보고서를 만들 수 있습니다.")
                 )
             } else {
@@ -486,7 +487,56 @@ struct AddChildView: View {
     }
 }
 
+/// Semantic SF Symbols shared by every screen. Keep names compatible with iOS 17.
+enum ABASymbol {
+    static let today = "checkmark.circle"
+    static let children = "person.2"
+    static let history = "calendar"
+    static let report = "chart.xyaxis.line"
+    static let add = "plus"
+    static let addChild = "person.crop.circle.badge.plus"
+    static let child = "person.crop.circle.fill"
+    static let startSession = "calendar.badge.plus"
+    static let open = "arrow.right"
+    static let accuracy = "percent"
+    static let completed = "checkmark.circle.fill"
+    static let inProgress = "clock.fill"
+    static let empty = "circle.dashed"
+    static let warning = "exclamationmark.circle"
+    static let review = "exclamationmark.triangle.fill"
+    static let targets = "checklist"
+    static let program = "list.bullet.rectangle"
+    static let settings = "slider.horizontal.3"
+    static let trial = "hand.tap"
+    static let editHistory = "clock.arrow.circlepath"
+    static let reopen = "arrow.uturn.backward.circle"
+    static let correct = "checkmark"
+    static let prompted = "hand.raised"
+    static let reset = "arrow.counterclockwise"
+    static let note = "note.text"
+    static let undo = "arrow.uturn.backward"
+    static let more = "ellipsis.circle"
+    static let previous = "chevron.left"
+    static let next = "chevron.right"
+    static let noRecords = "calendar.badge.exclamationmark"
+    static let search = "magnifyingglass"
+    static let delete = "trash"
+    static let pdf = "doc.richtext"
+    static let share = "square.and.arrow.up"
+    static let active = "play.circle.fill"
+    static let mastered = "checkmark.seal.fill"
+    static let discontinued = "pause.circle.fill"
+}
+
 enum ABAVisualStyle {
+    // Pink is reserved for navigation/actions; clinical green/orange remain semantic.
+    static let brand = Color(uiColor: UIColor { traits in
+        if traits.userInterfaceStyle == .dark {
+            return UIColor(red: 1.0, green: 0.54, blue: 0.72, alpha: 1)
+        }
+        return UIColor(red: 0.70, green: 0.12, blue: 0.36, alpha: 1)
+    })
+
     static let cornerRadius: CGFloat = 16
     static let contentMaxWidth: CGFloat = 980
     static let groupedBackground = Color(uiColor: .systemGroupedBackground)
@@ -520,6 +570,7 @@ extension View {
 }
 
 struct ABAStatusPill: View {
+    @Environment(\.colorSchemeContrast) private var contrast
     let title: String
     let systemImage: String
     let tint: Color
@@ -527,10 +578,14 @@ struct ABAStatusPill: View {
     var body: some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
             .foregroundStyle(tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(tint.opacity(0.12), in: Capsule())
+            .background(tint.opacity(contrast == .increased ? 0.22 : 0.12), in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(tint.opacity(contrast == .increased ? 1 : 0), lineWidth: 1)
+            }
             .accessibilityElement(children: .combine)
     }
 }

@@ -15,6 +15,12 @@
 		A10000000000000000000007 /* ReportPDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* ReportPDFExporter.swift */; };
 		A10000000000000000000009 /* HistoryCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* HistoryCalendarView.swift */; };
 		A10000000000000000000010 /* LevelProgressionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* LevelProgressionService.swift */; };
+		A10000000000000000000011 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* Assets.xcassets */; };
+		A10000000000000000000012 /* ReportDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* ReportDocument.swift */; };
+		A10000000000000000000013 /* ReportAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* ReportAIClient.swift */; };
+		A10000000000000000000014 /* ReportTemplateExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* ReportTemplateExporter.swift */; };
+		A10000000000000000000015 /* ReportComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* ReportComposerView.swift */; };
+		A10000000000000000000016 /* ReportTemplate.html in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* ReportTemplate.html */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +34,12 @@
 		B10000000000000000000009 /* HistoryCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryCalendarView.swift; sourceTree = "<group>"; };
 		B10000000000000000000010 /* LevelProgressionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelProgressionService.swift; sourceTree = "<group>"; };
 		B10000000000000000000008 /* ABAProgress.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ABAProgress.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B10000000000000000000012 /* ReportDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReportDocument.swift"; sourceTree = "<group>"; };
+		B10000000000000000000013 /* ReportAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReportAIClient.swift"; sourceTree = "<group>"; };
+		B10000000000000000000014 /* ReportTemplateExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReportTemplateExporter.swift"; sourceTree = "<group>"; };
+		B10000000000000000000015 /* ReportComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReportComposerView.swift"; sourceTree = "<group>"; };
+		B10000000000000000000016 /* ReportTemplate.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Resources/ReportTemplate.html"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +64,8 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000001 /* ABAProgressApp.swift */,
+				B10000000000000000000011 /* Assets.xcassets */,
+				B10000000000000000000016 /* ReportTemplate.html */,
 				D10000000000000000000003 /* Models */,
 				D10000000000000000000004 /* Views */,
 				D10000000000000000000005 /* Services */,
@@ -73,6 +87,7 @@
 				B10000000000000000000005 /* ProgramDetailView.swift */,
 				B10000000000000000000006 /* ReportView.swift */,
 				B10000000000000000000009 /* HistoryCalendarView.swift */,
+				B10000000000000000000015 /* ReportComposerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -82,6 +97,9 @@
 			children = (
 				B10000000000000000000007 /* ReportPDFExporter.swift */,
 				B10000000000000000000010 /* LevelProgressionService.swift */,
+				B10000000000000000000014 /* ReportTemplateExporter.swift */,
+				B10000000000000000000013 /* ReportAIClient.swift */,
+				B10000000000000000000012 /* ReportDocument.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -140,7 +158,7 @@
 		C10000000000000000000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (A10000000000000000000011 /* Assets.xcassets in Resources */, A10000000000000000000016 /* ReportTemplate.html in Resources */);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -150,6 +168,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000015 /* ReportComposerView.swift in Sources */,
+				A10000000000000000000014 /* ReportTemplateExporter.swift in Sources */,
+				A10000000000000000000013 /* ReportAIClient.swift in Sources */,
+				A10000000000000000000012 /* ReportDocument.swift in Sources */,
 				A10000000000000000000001 /* ABAProgressApp.swift in Sources */,
 				A10000000000000000000002 /* Models.swift in Sources */,
 				A10000000000000000000003 /* RootView.swift in Sources */,
@@ -198,14 +220,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "ABA 경과관리";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.ABAProgress;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -221,14 +244,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 8;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "ABA 경과관리";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.6.0;
+				MARKETING_VERSION = 0.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.ABAProgress;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

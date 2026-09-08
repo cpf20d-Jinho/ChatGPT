@@ -47,7 +47,7 @@ struct ProgramDetailView: View {
                 if activeTargets.isEmpty {
                     ContentUnavailableView(
                         "현재 레벨에 진행 과제가 없습니다",
-                        systemImage: "checklist",
+                        systemImage: ABASymbol.targets,
                         description: Text("과제를 추가하면 현재 \(currentLevel?.label ?? "레벨")에 귀속되고 즉시 Trial을 기록할 수 있습니다.")
                     )
                     .padding(.top, 24)
@@ -101,13 +101,13 @@ struct ProgramDetailView: View {
                 Button {
                     showingLevelSettings = true
                 } label: {
-                    Label("레벨 설정", systemImage: "slider.horizontal.3")
+                    Label("레벨 설정", systemImage: ABASymbol.settings)
                 }
 
                 Button {
                     showingAddTarget = true
                 } label: {
-                    Label("과제 추가", systemImage: "plus")
+                    Label("과제 추가", systemImage: ABASymbol.add)
                 }
                 .disabled(currentLevel == nil)
             }
@@ -164,7 +164,7 @@ struct ProgramDetailView: View {
             Label {
                 Text("탭: NA → + → -  ·  길게 누르기: NA 초기화  ·  자동 저장")
             } icon: {
-                Image(systemName: "hand.tap")
+                Image(systemName: ABASymbol.trial)
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -230,7 +230,7 @@ struct ProgramDetailView: View {
 
     private var levelReviewBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("과거 기록 수정으로 레벨 판정 확인이 필요합니다", systemImage: "exclamationmark.triangle.fill")
+            Label("과거 기록 수정으로 레벨 판정 확인이 필요합니다", systemImage: ABASymbol.review)
                 .font(.headline)
                 .foregroundStyle(.orange)
             Text(levelReviewIssues.joined(separator: "\n"))
@@ -350,7 +350,7 @@ struct TargetSessionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if historicalEditMode {
-                Label("과거 기록 수정 모드", systemImage: "clock.arrow.circlepath")
+                Label("과거 기록 수정 모드", systemImage: ABASymbol.editHistory)
                     .font(.caption.bold())
                     .foregroundStyle(.orange)
             }
@@ -425,7 +425,7 @@ struct TargetSessionCard: View {
                 } label: {
                     Label(
                         session.completed ? "완료 취소" : "기록 완료",
-                        systemImage: session.completed ? "arrow.uturn.backward.circle" : "checkmark.circle.fill"
+                        systemImage: session.completed ? ABASymbol.reopen : ABASymbol.completed
                     )
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 3)
@@ -472,17 +472,17 @@ struct TargetSessionCard: View {
     @ViewBuilder
     private var bulkButtons: some View {
         Button { requestBulk(.correct) } label: {
-            Label("+ 전체", systemImage: "checkmark")
+            Label("+ 전체", systemImage: ABASymbol.correct)
         }
         .buttonStyle(.bordered)
 
         Button { requestBulk(.prompted) } label: {
-            Label("- 전체", systemImage: "hand.raised")
+            Label("- 전체", systemImage: ABASymbol.prompted)
         }
         .buttonStyle(.bordered)
 
         Button { requestBulk(.notApplicable) } label: {
-            Label("NA 전체", systemImage: "arrow.counterclockwise")
+            Label("NA 전체", systemImage: ABASymbol.reset)
         }
         .buttonStyle(.bordered)
     }
@@ -499,7 +499,7 @@ struct TargetSessionCard: View {
         Button {
             showingNote = true
         } label: {
-            Label("메모", systemImage: "note.text")
+            Label("메모", systemImage: ABASymbol.note)
         }
         .buttonStyle(.bordered)
 
@@ -507,7 +507,7 @@ struct TargetSessionCard: View {
             Button {
                 undoLastMutation()
             } label: {
-                Label("실행 취소", systemImage: "arrow.uturn.backward")
+                Label("실행 취소", systemImage: ABASymbol.undo)
             }
             .buttonStyle(.bordered)
         }
@@ -521,7 +521,7 @@ struct TargetSessionCard: View {
                     }
                 }
             } label: {
-                Label("상태", systemImage: "ellipsis.circle")
+                Label("상태", systemImage: ABASymbol.more)
             }
             .buttonStyle(.bordered)
         }
@@ -610,12 +610,12 @@ struct TargetSessionCard: View {
     }
 
     private var sessionStatusIcon: String {
-        if session?.completed == true { return "checkmark.circle.fill" }
-        if attemptedCount > 0 { return "clock.fill" }
+        if session?.completed == true { return ABASymbol.completed }
+        if attemptedCount > 0 { return ABASymbol.inProgress }
         if let session, !session.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "note.text"
+            return ABASymbol.note
         }
-        return "circle.dashed"
+        return ABASymbol.empty
     }
 
     private var bulkLabel: String {

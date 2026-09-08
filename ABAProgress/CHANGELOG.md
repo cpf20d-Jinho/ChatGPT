@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v0.8 — Symbols, Rose Icon, Interim Report
+- 화면별 SF Symbols를 공통 의미 기반 정의로 통합하고 대비 대응 상태 표시 강화
+- 핑크 강조색, 독자적인 ABA 벡터 원본과 iOS 앱 아이콘 리소스 추가
+- 기본 중간보고서의 표지·그래프·목표별 학습 내용·서술·서명 양식 구현
+- 종합 현황/주요 변화에 한정된 AI 초안 미리보기 및 명시적 적용
+- 치료사 소견 이후 수동 작성, 아동·보고기간별 로컬 자동 저장
+- 서버 측 Responses API 연동 및 GUIDE_SCRIPT, 합성 데이터 검증 추가
+- 원본 PDF와 실제 아동 기록은 저장소에 포함하지 않음
+- 원본 로고, 집계 정의 확정, iOS 인쇄 렌더링, 실제 API 검증은 별도 필요
+
 ## v0.7 — Apple HIG Alignment
 - GitHub v0.6 구현 범위와 배포 준비도 점검 문서 추가
 - `오늘`을 iPhone/iPad 기본 진입점으로 변경

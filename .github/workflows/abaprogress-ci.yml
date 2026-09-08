@@ -54,3 +54,8 @@ jobs:
 
       - name: Run clinical scenario checks
         run: swift ABAProgress/QA/scenario_tests.swift
+
+      - name: Report template and AI boundary checks (synthetic data only)
+        run: |
+          node --test ABAProgress/QA/report-ai.test.mjs
+          node ABAProgress/QA/report-template.test.cjs

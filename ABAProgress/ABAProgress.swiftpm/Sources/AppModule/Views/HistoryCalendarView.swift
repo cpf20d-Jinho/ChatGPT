@@ -83,14 +83,14 @@ struct HistoryCalendarView: View {
                 if childrenForSelectedDate.isEmpty {
                     ContentUnavailableView(
                         "이 날짜에는 기록이 없습니다",
-                        systemImage: "calendar.badge.exclamationmark",
+                        systemImage: ABASymbol.noRecords,
                         description: Text("기록이 작성된 날짜에는 캘린더에 점이 표시됩니다.")
                     )
                     .padding(.top, 12)
                 } else if displayedChildrenForSelectedDate.isEmpty {
                     ContentUnavailableView(
                         "검색 결과가 없습니다",
-                        systemImage: "magnifyingglass",
+                        systemImage: ABASymbol.search,
                         description: Text("‘\(childSearchText)’와 일치하는 아동이 없습니다.")
                     )
                     .padding(.top, 12)
@@ -189,7 +189,7 @@ private struct MonthCalendar: View {
         VStack(spacing: 12) {
             HStack {
                 Button { changeMonth(-1) } label: {
-                    Image(systemName: "chevron.left")
+                    Image(systemName: ABASymbol.previous)
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("이전 달")
@@ -198,7 +198,7 @@ private struct MonthCalendar: View {
                     .font(.title3.bold())
                 Spacer()
                 Button { changeMonth(1) } label: {
-                    Image(systemName: "chevron.right")
+                    Image(systemName: ABASymbol.next)
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("다음 달")
@@ -301,7 +301,7 @@ private struct ChildDateSummaryCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: "person.crop.circle.fill")
+            Image(systemName: ABASymbol.child)
                 .font(.title)
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
@@ -325,7 +325,7 @@ private struct ChildDateSummaryCard: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Image(systemName: "chevron.right")
+            Image(systemName: ABASymbol.next)
                 .font(.caption.bold())
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
@@ -454,7 +454,7 @@ private struct HistoricalTargetEditView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Label("과거 기록 수정", systemImage: "clock.arrow.circlepath")
+                    Label("과거 기록 수정", systemImage: ABASymbol.editHistory)
                         .font(.caption.bold())
                         .foregroundStyle(.orange)
                     Text("\(child.name) · \(program.name)")
@@ -475,7 +475,7 @@ private struct HistoricalTargetEditView: View {
                 .abaSurface()
 
                 if !levelReviewIssues.isEmpty {
-                    Label(levelReviewIssues.joined(separator: "\n"), systemImage: "exclamationmark.triangle.fill")
+                    Label(levelReviewIssues.joined(separator: "\n"), systemImage: ABASymbol.review)
                         .font(.footnote)
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -506,7 +506,7 @@ private struct HistoricalTargetEditView: View {
                 Button(role: .destructive) {
                     showingDeleteConfirmation = true
                 } label: {
-                    Label("이 기록 삭제", systemImage: "trash")
+                    Label("이 기록 삭제", systemImage: ABASymbol.delete)
                 }
             }
         }
