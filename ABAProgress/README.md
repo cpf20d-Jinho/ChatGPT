@@ -66,6 +66,8 @@ iPhone + iPad 공용 ABA 치료 실시간 기록/경과관리 앱의 개인기�
 - v0.6 Swift Playgrounds 단일 source: parse PASS
 - v0.6 순수 Swift 현장 시나리오 자동 테스트: ALL PASS
 - v0.7 Xcode/Swift Playgrounds View 소스 동기화 및 정적 API 검사 완료
-- v0.7 컴파일·시뮬레이터 검증: Xcode 런타임에서 수행 필요
+- v0.7 GitHub Actions Xcode iOS Simulator 대상 빌드: PASS
+- v0.7 GitHub Actions 임상 규칙 시나리오: PASS
+- v0.7 iPhone/iPad 화면·상호작용 검증: Xcode 또는 실기기에서 수행 필요
 
 실제 iOS/iPadOS 렌더링, Long Press 체감, SwiftData 앱 라이프사이클은 iPad Swift Playgrounds에서 추가 실기기 검증이 필요합니다.

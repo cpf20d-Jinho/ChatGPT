@@ -1,24 +1,25 @@
 # ABAProgress 진행도 및 Apple 디자인 점검
 
-점검 기준: GitHub `main`의 `44cfb9f` 커밋에 포함된 ABAProgress v0.6.0
+점검 기준: GitHub `main`의 `44cfb9f`(v0.6.0)와 HIG 개선 브랜치의 ABAProgress v0.7.0
 점검일: 2026-09-08
 
 ## 요약
 
-- 기능 MVP 구현도: 약 **76%**
-- 실제 기기 검증을 포함한 배포 준비도: 약 **50%**
-- 핵심 치료 기록 흐름은 구현되어 있으나, 실제 iOS/iPadOS 런타임 검증과 보고서 확장, 배포 자산이 남아 있다.
+- `main` v0.6 기능 MVP 구현도: 약 **76%**
+- HIG 개선 브랜치 v0.7 기능 MVP 구현도: 약 **79%**
+- 실제 기기 검증을 포함한 v0.7 배포 준비도: 약 **56%**
+- 핵심 치료 기록 흐름과 Xcode 컴파일은 검증되었으나, 실제 iPhone/iPad 상호작용 검증과 보고서 확장, 배포 자산이 남아 있다.
 
 위 수치는 아래 항목을 가중 평가한 프로젝트 관리용 추정치이며 App Store 심사 통과율을 의미하지 않는다.
 
-| 영역 | 비중 | v0.6 구현도 | 확인 근거 |
+| 영역 | 비중 | v0.7 구현도 | 확인 근거 |
 | --- | ---: | ---: | --- |
 | 데이터·임상 규칙 | 20% | 90% | Child → Program → Level → Target → Session → Trial, NA 제외 계산, 레벨 판정 서비스 |
 | 실시간 Trial 기록 | 25% | 90% | NA → + → -, 자동 저장, Undo, 전체 입력 확인, 완료 확인 |
 | 캘린더·과거 수정 | 15% | 85% | 날짜별 조회, 동일 편집기 수정, 삭제 확인, 판정 검토 경고 |
 | 보고서·내보내기 | 15% | 55% | 기간 그래프와 PDF는 구현, 구조화 ReportData·XLSX·HWPX·서술 작성은 미구현 |
-| iPhone·iPad UI·접근성 | 15% | 70% | 적응형 Tab/SplitView와 기본 VoiceOver 지원, 실제 화면 검증은 미완료 |
-| 테스트·배포 준비 | 10% | 35% | 순수 Swift 시나리오 결과는 존재, Xcode 빌드·UI 테스트·서명·앱 아이콘 미완료 |
+| iPhone·iPad UI·접근성 | 15% | 82% | 적응형 Tab/SplitView, 시스템 표면, 접근성 강화 완료, 실제 화면 검증은 미완료 |
+| 테스트·배포 준비 | 10% | 50% | Xcode 빌드·임상 시나리오 CI 통과, UI 테스트·서명·앱 아이콘 미완료 |
 
 ## 이미 구현된 핵심 범위
 
@@ -32,7 +33,7 @@
 
 ## 남은 주요 범위
 
-1. Xcode에서 iPhone/iPad 빌드 및 실제 화면·상호작용 검증
+1. Xcode에서 iPhone/iPad 실제 화면·상호작용 검증
 2. 앱 종료·잠금·백그라운드 후 SwiftData 복원 검증
 3. Dynamic Type 최대 크기, VoiceOver, 대비 증가, 색상 없이 구분 검증
 4. 공통 `ReportData` 계층과 XLSX/HWPX 템플릿 매퍼
@@ -72,4 +73,5 @@ Apple의 [디자인 허브](https://developer.apple.com/kr/design/), [Human Inte
 - Xcode/Swift Playgrounds 대응 View 소스 동기화 확인
 - 기존 임상 모델과 레벨 판정·보고서 계산 로직은 변경하지 않음
 - 정적 최신 API·안정 ID·레거시 API 검사 수행
-- 현재 실행 환경에 Swift/Xcode 런타임이 없어 컴파일 및 시뮬레이터 렌더링은 보류
+- GitHub Actions의 iOS Simulator 대상 Xcode 빌드와 임상 규칙 시나리오 통과
+- iPhone/iPad 시뮬레이터의 화면 렌더링과 직접 상호작용 검증은 보류

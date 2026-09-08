@@ -17,5 +17,6 @@ PASS - business Level progression logic separated into LevelProgressionService
 PASS - completed report data filtered from incomplete sessions
 PASS - Xcode and Swift Playgrounds View sources match byte-for-byte
 PASS - delimiter structure, JSON, whitespace, and legacy API static scans
-PENDING - Swift compiler / Xcode build validation (runtime unavailable in current environment)
+PASS - GitHub Actions Xcode build for generic iOS Simulator (run 34176398306)
+PASS - GitHub Actions clinical scenario checks (run 34176398306)
 PENDING - iPhone and iPad simulator interaction and visual validation

@@ -14,6 +14,8 @@
 - 기록 완료와 PDF 생성·공유 버튼의 전체 폭 터치 영역 확보
 - 보고서 빈 상태 및 프로그램 미선택 상태 추가
 - iOS/iPadOS 17 최소 지원과 기존 임상·데이터 동작 유지
+- 저장소 루트에 Xcode 빌드·임상 시나리오 GitHub Actions CI 추가
+- GitHub Actions iOS Simulator 대상 Xcode 빌드와 임상 규칙 시나리오 통과
 
 ## v0.6 — Field Workflow Validation
 - 실시간 치료/과거기록 사용 시나리오 전면 점검
