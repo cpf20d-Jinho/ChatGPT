@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.8.1 — Gemini numeric-only interpretation
+- Gemini 3.8 Flash JSON with numeric summaries only; exclude dates, labels, notes and identifiers.
+- Explicit quota/configuration errors; no automatic retry or paid fallback.
+- 12 synthetic server/HTTP tests pass; live API pending key provisioning.
+
 ## v0.8 — Symbols, Rose Icon, Interim Report
 - 화면별 SF Symbols를 공통 의미 기반 정의로 통합하고 대비 대응 상태 표시 강화
 - 핑크 강조색, 독자적인 ABA 벡터 원본과 iOS 앱 아이콘 리소스 추가

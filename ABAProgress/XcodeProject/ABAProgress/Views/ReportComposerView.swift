@@ -115,22 +115,36 @@ struct ReportComposerView: View {
             reviewed = false
             shareURL = nil
         }
-        .confirmationDialog("선택한 서버와 OpenAI API로 전송할까요?", isPresented: $showConsent) {
+        .confirmationDialog("선택한 서버와 Google Gemini로 전송할까요?", isPresented: $showConsent) {
             Button("전송 내용 확인 완료 · AI 초안 요청") { generate() }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("전송 전 아래 JSON을 확인하세요. 아동명·생년월일·서명은 제외되지만 프로그램명과 관찰 기록에 개인정보가 남아 있을 수 있습니다. 동의·기관 정책을 확인한 경우에만 전송하세요.")
+            Text("전송할 수치 배열을 확인하세요. 서버는 배열별 개수·초기/최근 평균·변화량·최솟값·최댓값만 Google에 보냅니다. 숫자만으로 완전한 익명성을 보장하지 않습니다. Google 무료 API의 데이터 이용 및 임상 실무 제한을 확인하세요.")
         }
+    }
+
+    private var seriesLegend: String {
+        let labels = document.goals.flatMap { goal in
+            Set(goal.points.map(\.level)).sorted().map { level in
+                "\(goal.name) · L\(level)"
+            }
+        }
+        return labels.enumerated().map { "계열 \($0.offset + 1): \($0.element)" }.joined(separator: "\n")
     }
 
     private var aiControls: some View {
         DisclosureGroup("AI 초안 작성 · 서버 연결 필요") {
+            Text("Gemini 3.8 Flash는 번호로 구분한 수치 요약만 해석합니다. 이름·날짜·프로그램명·메모는 전송하지 않습니다. 무료 사용량 제한이 있습니다.")
+                .font(.footnote).foregroundStyle(.secondary)
             TextField("HTTPS 보고서 서버 주소", text: $endpoint)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-            SecureField("보고서 서버 접속 토큰 (OpenAI 키 아님)", text: $token)
+            SecureField("보고서 서버 접속 토큰 (Google Gemini 키 아님)", text: $token)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
             DisclosureGroup("전송할 데이터 검토") {
                 Text(payloadPreview).font(.caption.monospaced()).textSelection(.enabled)
+            }
+            DisclosureGroup("계열 번호 대응표 · 기기에만 표시") {
+                Text(seriesLegend).font(.footnote).textSelection(.enabled)
             }
             Button("현황 · 주요 변화 초안 요청") { showConsent = true }
                 .disabled(isBusy || !loaded || endpoint.isEmpty || token.isEmpty || document.goals.isEmpty)

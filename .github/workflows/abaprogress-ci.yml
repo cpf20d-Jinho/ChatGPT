@@ -11,6 +11,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/abaprogress-brand-report-v0.8
     paths:
       - ABAProgress/**
       - .github/workflows/abaprogress-ci.yml
@@ -54,6 +55,11 @@ jobs:
 
       - name: Run clinical scenario checks
         run: swift ABAProgress/QA/scenario_tests.swift
+
+      - name: Check production numeric-only serializer
+        run: |
+          swiftc ABAProgress/XcodeProject/ABAProgress/Services/ReportAIClient.swift ABAProgress/QA/report-privacy-tests.swift -o "$RUNNER_TEMP/report-privacy-tests"
+          "$RUNNER_TEMP/report-privacy-tests"
 
       - name: Report template and AI boundary checks (synthetic data only)
         run: |
