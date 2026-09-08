@@ -23,7 +23,7 @@ struct ReportDraft: Codable, Equatable {
     var reviewedFingerprint = ""
 }
 
-struct ReportPoint: Codable {
+struct InterimReportPoint: Codable {
     let date: String
     let value: Double
     let level: Int
@@ -34,7 +34,7 @@ struct ReportGoal: Codable {
     let name: String
     let domain: String
     let group: String
-    let points: [ReportPoint]
+    let points: [InterimReportPoint]
     let learning: [String: String]
     let criteria: [String: Double]
     let masteredLevels: [Int]
@@ -79,7 +79,7 @@ struct ReportDocument: Codable {
     }
 
     // Carry forward within the currently observed level only; no fabricated zero before first observation.
-    var growth: [ReportPoint] {
+    var growth: [InterimReportPoint] {
         let dates = Set(goals.flatMap(\.points).map(\.date)).sorted()
         return dates.compactMap { date in
             let values = goals.compactMap { goal in
@@ -87,7 +87,7 @@ struct ReportDocument: Codable {
                     $0.date == $1.date ? $0.level < $1.level : $0.date < $1.date
                 }.last?.value
             }
-            return values.isEmpty ? nil : ReportPoint(date: date, value: Self.mean(values), level: 0)
+            return values.isEmpty ? nil : InterimReportPoint(date: date, value: Self.mean(values), level: 0)
         }
     }
 
@@ -111,7 +111,7 @@ struct ReportDocument: Codable {
         let upper = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: end))!
         var incomplete = 0
         let goals = programs.map { program -> ReportGoal in
-            var points: [ReportPoint] = []
+            var points: [InterimReportPoint] = []
             var learning: [String: String] = [:]
             var criteria: [String: Double] = [:]
             var mastered: [Int] = []
@@ -138,7 +138,7 @@ struct ReportDocument: Codable {
                         }.compactMap(\.accuracy)
                         return daily.isEmpty ? nil : mean(daily)
                     }
-                    points.append(ReportPoint(date: date(day), value: mean(values), level: level))
+                    points.append(InterimReportPoint(date: date(day), value: mean(values), level: level))
                     // Averages alone do not establish mastery. Every applicable target must pass.
                     let applicable = targets.filter { target in
                         calendar.startOfDay(for: target.startDate) <= day &&

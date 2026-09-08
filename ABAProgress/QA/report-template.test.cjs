@@ -27,7 +27,7 @@ console.log("PASS: 22 STO / 13 graphs / 16 sections / escaped text / SVG charts"
 if(process.argv.includes("--render")){
  (async()=>{
   const {chromium}=require("playwright");
-  const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
+  const browser=await chromium.launch({headless:true,executablePath:process.env.REPORT_QA_CHROME||undefined,args:["--no-sandbox"]});
   const page=await browser.newPage({viewport:{width:794,height:1123},deviceScaleFactor:1});
   await page.setContent(html);await page.evaluate(doc=>renderReport(doc),doc);
   const root=process.env.REPORT_QA_OUTPUT;

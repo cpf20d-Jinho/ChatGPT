@@ -59,3 +59,19 @@ jobs:
         run: |
           node --test ABAProgress/QA/report-ai.test.mjs
           node ABAProgress/QA/report-template.test.cjs
+
+      - name: Render synthetic report preview
+        run: |
+          npm install --prefix "$RUNNER_TEMP/aba-report-tools" playwright
+          mkdir -p "$RUNNER_TEMP/aba-report-preview"
+          NODE_PATH="$RUNNER_TEMP/aba-report-tools/node_modules" \
+          REPORT_QA_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+          REPORT_QA_OUTPUT="$RUNNER_TEMP/aba-report-preview" \
+          node ABAProgress/QA/report-template.test.cjs --render
+
+      - name: Upload synthetic report preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-report-preview
+          path: ${{ runner.temp }}/aba-report-preview/
+          retention-days: 3
