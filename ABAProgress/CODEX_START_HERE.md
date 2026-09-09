@@ -1,6 +1,6 @@
 # Codex Start Here
 
-This folder is a complete handoff of ABAProgress v0.6.0.
+This folder is a complete handoff of ABAProgress v0.8.0.
 
 ## First task
 Use the **Build iOS Apps** plugin / Xcode runtime if available and bring this project to a reproducibly runnable state on iPhone and iPad simulators.
@@ -11,7 +11,7 @@ Use the **Build iOS Apps** plugin / Xcode runtime if available and bring this pr
 ### Validate first — do not redesign blindly
 1. Build the `ABAProgress` scheme for an iPhone simulator.
 2. Resolve all compiler/runtime issues.
-3. Run the app and perform the end-to-end scenarios in `AGENTS.md` and `SCENARIO_VALIDATION.md`.
+3. Run the app and perform the end-to-end scenarios in `AGENTS.md`, `SCENARIO_VALIDATION.md`, and the accessibility checks in `DESIGN_AUDIT.md`.
 4. Repeat layout checks on iPad.
 5. Fix interaction/layout/data-integrity issues and retest.
 6. Preserve all existing clinical behavior unless the change is explicitly documented.

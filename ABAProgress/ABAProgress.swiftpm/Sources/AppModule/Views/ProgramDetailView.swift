@@ -47,7 +47,7 @@ struct ProgramDetailView: View {
                 if activeTargets.isEmpty {
                     ContentUnavailableView(
                         "현재 레벨에 진행 과제가 없습니다",
-                        systemImage: "checklist",
+                        systemImage: ABASymbol.targets,
                         description: Text("과제를 추가하면 현재 \(currentLevel?.label ?? "레벨")에 귀속되고 즉시 Trial을 기록할 수 있습니다.")
                     )
                     .padding(.top, 24)
@@ -81,20 +81,19 @@ struct ProgramDetailView: View {
                                     .buttonStyle(.bordered)
                                     .disabled(currentLevel == nil)
                                 }
-                                .padding()
-                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                                .abaSurface(padding: 12, background: ABAVisualStyle.tertiarySurface)
                             }
                         }
                         .padding(.top, 8)
                     }
-                    .padding()
-                    .background(.background, in: RoundedRectangle(cornerRadius: 16))
+                    .abaSurface(background: Color(uiColor: .systemBackground))
                 }
             }
             .padding()
-            .frame(maxWidth: 980)
+            .frame(maxWidth: ABAVisualStyle.contentMaxWidth)
             .frame(maxWidth: .infinity)
         }
+        .background(ABAVisualStyle.groupedBackground)
         .navigationTitle(program.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -102,13 +101,13 @@ struct ProgramDetailView: View {
                 Button {
                     showingLevelSettings = true
                 } label: {
-                    Label("레벨 설정", systemImage: "slider.horizontal.3")
+                    Label("레벨 설정", systemImage: ABASymbol.settings)
                 }
 
                 Button {
                     showingAddTarget = true
                 } label: {
-                    Label("과제 추가", systemImage: "plus")
+                    Label("과제 추가", systemImage: ABASymbol.add)
                 }
                 .disabled(currentLevel == nil)
             }
@@ -165,13 +164,12 @@ struct ProgramDetailView: View {
             Label {
                 Text("탭: NA → + → -  ·  길게 누르기: NA 초기화  ·  자동 저장")
             } icon: {
-                Image(systemName: "hand.tap")
+                Image(systemName: ABASymbol.trial)
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .abaSurface()
     }
 
     private var programIdentity: some View {
@@ -221,9 +219,7 @@ struct ProgramDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 16))
-        .overlay { RoundedRectangle(cornerRadius: 16).stroke(.quaternary) }
+        .abaSurface(background: Color(uiColor: .systemBackground))
     }
 
     private func ensureInitialLevel() {
@@ -234,7 +230,7 @@ struct ProgramDetailView: View {
 
     private var levelReviewBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("과거 기록 수정으로 레벨 판정 확인이 필요합니다", systemImage: "exclamationmark.triangle.fill")
+            Label("과거 기록 수정으로 레벨 판정 확인이 필요합니다", systemImage: ABASymbol.review)
                 .font(.headline)
                 .foregroundStyle(.orange)
             Text(levelReviewIssues.joined(separator: "\n"))
@@ -246,9 +242,7 @@ struct ProgramDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
-        .overlay { RoundedRectangle(cornerRadius: 16).stroke(Color.orange.opacity(0.35)) }
+        .abaSurface(background: Color.orange.opacity(0.08))
     }
 
     private func evaluateCurrentLevel() {
@@ -356,7 +350,7 @@ struct TargetSessionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if historicalEditMode {
-                Label("과거 기록 수정 모드", systemImage: "clock.arrow.circlepath")
+                Label("과거 기록 수정 모드", systemImage: ABASymbol.editHistory)
                     .font(.caption.bold())
                     .foregroundStyle(.orange)
             }
@@ -426,20 +420,22 @@ struct TargetSessionCard: View {
             }
 
             if let session {
-                Button(session.completed ? "완료 취소" : "기록 완료") {
+                Button {
                     requestCompletionToggle()
+                } label: {
+                    Label(
+                        session.completed ? "완료 취소" : "기록 완료",
+                        systemImage: session.completed ? ABASymbol.reopen : ABASymbol.completed
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 3)
                 }
                 .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .controlSize(.large)
                 .disabled(!session.completed && attemptedCount == 0)
             }
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(.quaternary, lineWidth: 1)
-        }
+        .abaSurface()
         .sheet(isPresented: $showingNote) {
             SessionNoteView(session: ensureSession()) {
                 onDataChanged()
@@ -475,9 +471,20 @@ struct TargetSessionCard: View {
 
     @ViewBuilder
     private var bulkButtons: some View {
-        Button("+ 전체") { requestBulk(.correct) }.buttonStyle(.bordered)
-        Button("- 전체") { requestBulk(.prompted) }.buttonStyle(.bordered)
-        Button("NA 전체") { requestBulk(.notApplicable) }.buttonStyle(.bordered)
+        Button { requestBulk(.correct) } label: {
+            Label("+ 전체", systemImage: ABASymbol.correct)
+        }
+        .buttonStyle(.bordered)
+
+        Button { requestBulk(.prompted) } label: {
+            Label("- 전체", systemImage: ABASymbol.prompted)
+        }
+        .buttonStyle(.bordered)
+
+        Button { requestBulk(.notApplicable) } label: {
+            Label("NA 전체", systemImage: ABASymbol.reset)
+        }
+        .buttonStyle(.bordered)
     }
 
     @ViewBuilder
@@ -492,7 +499,7 @@ struct TargetSessionCard: View {
         Button {
             showingNote = true
         } label: {
-            Label("메모", systemImage: "note.text")
+            Label("메모", systemImage: ABASymbol.note)
         }
         .buttonStyle(.bordered)
 
@@ -500,7 +507,7 @@ struct TargetSessionCard: View {
             Button {
                 undoLastMutation()
             } label: {
-                Label("실행 취소", systemImage: "arrow.uturn.backward")
+                Label("실행 취소", systemImage: ABASymbol.undo)
             }
             .buttonStyle(.bordered)
         }
@@ -514,7 +521,7 @@ struct TargetSessionCard: View {
                     }
                 }
             } label: {
-                Label("상태", systemImage: "ellipsis.circle")
+                Label("상태", systemImage: ABASymbol.more)
             }
             .buttonStyle(.bordered)
         }
@@ -559,9 +566,11 @@ struct TargetSessionCard: View {
     }
 
     private var sessionStatusBadge: some View {
-        Text(sessionStatusText)
-            .font(.caption.bold())
-            .foregroundStyle(sessionStatusColor)
+        ABAStatusPill(
+            title: sessionStatusText,
+            systemImage: sessionStatusIcon,
+            tint: sessionStatusColor
+        )
     }
 
     @ViewBuilder
@@ -598,6 +607,15 @@ struct TargetSessionCard: View {
         if session?.completed == true { return .green }
         if attemptedCount > 0 { return .orange }
         return .secondary
+    }
+
+    private var sessionStatusIcon: String {
+        if session?.completed == true { return ABASymbol.completed }
+        if attemptedCount > 0 { return ABASymbol.inProgress }
+        if let session, !session.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return ABASymbol.note
+        }
+        return ABASymbol.empty
     }
 
     private var bulkLabel: String {
@@ -752,6 +770,7 @@ private struct MiniProgressChart: View {
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
         .accessibilityLabel("최근 \(entries.count)회 경과 그래프")
+        .accessibilityValue("최근 정반응률 \(Int(entries.last?.accuracy.rounded() ?? 0))퍼센트, 습득 기준 \(Int(criterion.rounded()))퍼센트")
     }
 }
 
@@ -763,6 +782,8 @@ private struct TrialResponseButton: View {
 
     @State private var longPressTriggered = false
     @State private var feedbackTrigger = 0
+    @ScaledMetric(relativeTo: .title2) private var minimumHeight: CGFloat = 64
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     var body: some View {
         Button {
@@ -773,13 +794,22 @@ private struct TrialResponseButton: View {
             feedbackTrigger += 1
             action()
         } label: {
-            Text(response.rawValue)
-                .font(.title2.bold())
+            VStack(spacing: 2) {
+                Text(response.rawValue)
+                    .font(.title2.bold())
+                Text(response.compactLabel)
+                    .font(.caption2.weight(.medium))
+            }
                 .frame(maxWidth: .infinity)
-                .frame(minHeight: 60)
+                .frame(minHeight: minimumHeight)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(TrialButtonStyle(response: response))
+        .buttonStyle(
+            TrialButtonStyle(
+                response: response,
+                increasedContrast: colorSchemeContrast == .increased
+            )
+        )
         .sensoryFeedback(.selection, trigger: feedbackTrigger)
         .onLongPressGesture(minimumDuration: 0.55) {
             longPressTriggered = true
@@ -789,11 +819,16 @@ private struct TrialResponseButton: View {
         .accessibilityLabel("Trial \(trialNumber), \(response.accessibilityLabel)")
         .accessibilityValue(response.rawValue)
         .accessibilityHint("탭하여 NA, 정반응, 촉구반응 순서로 변경합니다. 길게 누르면 NA로 초기화합니다.")
+        .accessibilityAction(named: "NA로 초기화") {
+            feedbackTrigger += 1
+            resetAction()
+        }
     }
 }
 
 private struct TrialButtonStyle: ButtonStyle {
     let response: TrialResponse
+    let increasedContrast: Bool
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -801,17 +836,18 @@ private struct TrialButtonStyle: ButtonStyle {
             .background(background.opacity(configuration.isPressed ? 0.65 : 1))
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(border, lineWidth: 1.5)
+                    .stroke(border, lineWidth: increasedContrast ? 2.5 : 1.5)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .compositingGroup()
+            .clipShape(.rect(cornerRadius: 12))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
     }
 
     private var background: Color {
         switch response {
         case .notApplicable: return Color(uiColor: .secondarySystemBackground)
-        case .correct: return Color.green.opacity(0.16)
-        case .prompted: return Color.orange.opacity(0.16)
+        case .correct: return Color.green.opacity(increasedContrast ? 0.25 : 0.16)
+        case .prompted: return Color.orange.opacity(increasedContrast ? 0.25 : 0.16)
         }
     }
 
@@ -845,6 +881,17 @@ private struct StatBadge: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(.thinMaterial, in: Capsule())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private extension TrialResponse {
+    var compactLabel: String {
+        switch self {
+        case .notApplicable: return "미기록"
+        case .correct: return "정반응"
+        case .prompted: return "촉구"
+        }
     }
 }
 

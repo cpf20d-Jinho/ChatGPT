@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct RootView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -13,59 +14,63 @@ struct RootView: View {
                 RegularRootView(children: children)
             }
         }
+        .tint(ABAVisualStyle.brand)
     }
 }
 
 private struct CompactRootView: View {
     let children: [ChildProfile]
+    @State private var selection: AppDestination = .today
 
     var body: some View {
-        TabView {
-            NavigationStack {
-                ChildrenListView(children: children)
-            }
-            .tabItem { Label("아동", systemImage: "person.2") }
-
+        TabView(selection: $selection) {
             NavigationStack {
                 TodayOverviewView(children: children)
             }
-            .tabItem { Label("오늘", systemImage: "checkmark.circle") }
+            .tabItem { Label(AppDestination.today.title, systemImage: AppDestination.today.systemImage) }
+            .tag(AppDestination.today)
+
+            NavigationStack {
+                ChildrenListView(children: children)
+            }
+            .tabItem { Label(AppDestination.children.title, systemImage: AppDestination.children.systemImage) }
+            .tag(AppDestination.children)
 
             NavigationStack {
                 HistoryCalendarView(children: children)
             }
-            .tabItem { Label("기록", systemImage: "calendar") }
+            .tabItem { Label(AppDestination.history.title, systemImage: AppDestination.history.systemImage) }
+            .tag(AppDestination.history)
 
             NavigationStack {
                 ReportHomeView(children: children)
             }
-            .tabItem { Label("보고서", systemImage: "chart.xyaxis.line") }
+            .tabItem { Label(AppDestination.reports.title, systemImage: AppDestination.reports.systemImage) }
+            .tag(AppDestination.reports)
         }
     }
 }
 
 private struct RegularRootView: View {
     let children: [ChildProfile]
-    @State private var selection: SidebarDestination? = .children
+    @State private var selection: AppDestination? = .today
 
     var body: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 Section("워크스페이스") {
-                    Label("아동", systemImage: "person.2")
-                        .tag(SidebarDestination.children)
-                    Label("오늘", systemImage: "checkmark.circle")
-                        .tag(SidebarDestination.today)
-                    Label("기록 캘린더", systemImage: "calendar")
-                        .tag(SidebarDestination.history)
-                    Label("보고서", systemImage: "chart.xyaxis.line")
-                        .tag(SidebarDestination.reports)
+                    ForEach(AppDestination.allCases) { destination in
+                        Label(destination.title, systemImage: destination.systemImage)
+                            .tag(destination)
+                    }
                 }
             }
+            .listStyle(.sidebar)
             .navigationTitle("ABA Progress")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         } detail: {
             NavigationStack {
-                switch selection ?? .children {
+                switch selection ?? .today {
                 case .children:
                     ChildrenListView(children: children)
                 case .today:
@@ -77,14 +82,35 @@ private struct RegularRootView: View {
                 }
             }
         }
+        .navigationSplitViewStyle(.balanced)
     }
 }
 
-private enum SidebarDestination: Hashable {
-    case children
+private enum AppDestination: String, CaseIterable, Identifiable {
     case today
+    case children
     case history
     case reports
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .today: return "오늘"
+        case .children: return "아동"
+        case .history: return "기록"
+        case .reports: return "보고서"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .today: return ABASymbol.today
+        case .children: return ABASymbol.children
+        case .history: return ABASymbol.history
+        case .reports: return ABASymbol.report
+        }
+    }
 }
 
 struct ChildrenListView: View {
@@ -92,18 +118,27 @@ struct ChildrenListView: View {
     let children: [ChildProfile]
     @State private var showingAddChild = false
     @State private var childPendingDeletion: ChildProfile?
+    @State private var searchText = ""
+
+    private var displayedChildren: [ChildProfile] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return children }
+        return children.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
 
     var body: some View {
         List {
             if children.isEmpty {
                 ContentUnavailableView(
                     "등록된 아동이 없습니다",
-                    systemImage: "person.crop.circle.badge.plus",
+                    systemImage: ABASymbol.addChild,
                     description: Text("아동을 추가한 뒤 프로그램과 실시간 Trial 기록을 시작하세요.")
                 )
+            } else if displayedChildren.isEmpty {
+                ContentUnavailableView.search(text: searchText)
             } else {
                 Section {
-                    ForEach(children) { child in
+                    ForEach(displayedChildren) { child in
                         NavigationLink {
                             ChildDetailView(child: child)
                         } label: {
@@ -115,12 +150,13 @@ struct ChildrenListView: View {
             }
         }
         .navigationTitle("아동")
+        .searchable(text: $searchText, prompt: "아동 이름 검색")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     showingAddChild = true
                 } label: {
-                    Label("아동 추가", systemImage: "plus")
+                    Label("아동 추가", systemImage: ABASymbol.add)
                 }
             }
         }
@@ -143,8 +179,8 @@ struct ChildrenListView: View {
     }
 
     private func deleteChildren(at offsets: IndexSet) {
-        guard let index = offsets.first, children.indices.contains(index) else { return }
-        childPendingDeletion = children[index]
+        guard let index = offsets.first, displayedChildren.indices.contains(index) else { return }
+        childPendingDeletion = displayedChildren[index]
     }
 
     private func confirmChildDeletion() {
@@ -164,9 +200,10 @@ private struct ChildSummaryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "person.crop.circle.fill")
+            Image(systemName: ABASymbol.child)
                 .font(.title2)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(child.name).font(.headline)
@@ -181,6 +218,7 @@ private struct ChildSummaryRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -194,7 +232,7 @@ struct TodayOverviewView: View {
                 if children.isEmpty {
                     ContentUnavailableView(
                         "오늘 기록할 아동이 없습니다",
-                        systemImage: "calendar.badge.plus",
+                        systemImage: ABASymbol.startSession,
                         description: Text("먼저 아동을 등록하세요.")
                     )
                     .padding(.top, 40)
@@ -208,6 +246,7 @@ struct TodayOverviewView: View {
             .frame(maxWidth: 820)
             .frame(maxWidth: .infinity)
         }
+        .background(ABAVisualStyle.groupedBackground)
         .navigationTitle("오늘")
     }
 }
@@ -259,7 +298,11 @@ private struct TodayChildCard: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                NavigationLink("열기") { ChildDetailView(child: child) }
+                NavigationLink {
+                    ChildDetailView(child: child)
+                } label: {
+                    Label("아동 열기", systemImage: ABASymbol.open)
+                }
                     .buttonStyle(.bordered)
             }
 
@@ -267,8 +310,8 @@ private struct TodayChildCard: View {
                 columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
                 spacing: 12
             ) {
-                MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: "checkmark.circle")
-                MetricTile(title: "평균 정반응률", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: "percent")
+                MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: ABASymbol.today)
+                MetricTile(title: "평균 정반응률", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: ABASymbol.accuracy)
             }
 
             if !programs.isEmpty {
@@ -285,8 +328,8 @@ private struct TodayChildCard: View {
                 }
             }
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+        .abaSurface()
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -304,7 +347,8 @@ private struct MetricTile: View {
         }
         .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
         .padding(12)
-        .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(ABAVisualStyle.tertiarySurface, in: .rect(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -338,24 +382,34 @@ private struct TodayProgramStatusCompact: View {
         return "미기록"
     }
 
+    private var statusIcon: String {
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return ABASymbol.completed }
+        if inProgressCount > 0 || completedCount > 0 { return ABASymbol.inProgress }
+        if activeTargets.isEmpty { return ABASymbol.warning }
+        return ABASymbol.empty
+    }
+
+    private var statusTint: Color {
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return .green }
+        if inProgressCount > 0 || completedCount > 0 { return .orange }
+        return .secondary
+    }
+
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: completedCount == activeTargets.count && !activeTargets.isEmpty ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(completedCount == activeTargets.count && !activeTargets.isEmpty ? .green : .secondary)
             Text(program.name)
             Spacer()
             if let level = program.currentLevel {
                 Text(level.label).font(.caption.bold()).foregroundStyle(.secondary)
             }
-            VStack(alignment: .trailing, spacing: 2) {
+            VStack(alignment: .trailing, spacing: 4) {
                 Text("\(completedCount)/\(activeTargets.count)")
                     .font(.subheadline.monospacedDigit())
-                Text(statusText)
-                    .font(.caption2)
+                ABAStatusPill(title: statusText, systemImage: statusIcon, tint: statusTint)
             }
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 9)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -367,7 +421,7 @@ struct ReportHomeView: View {
             if children.isEmpty {
                 ContentUnavailableView(
                     "보고서 대상이 없습니다",
-                    systemImage: "chart.xyaxis.line",
+                    systemImage: ABASymbol.report,
                     description: Text("아동과 기록을 추가하면 사용자 지정 기간 보고서를 만들 수 있습니다.")
                 )
             } else {
@@ -430,5 +484,108 @@ struct AddChildView: View {
                 }
             }
         }
+    }
+}
+
+/// Semantic SF Symbols shared by every screen. Keep names compatible with iOS 17.
+enum ABASymbol {
+    static let today = "checkmark.circle"
+    static let children = "person.2"
+    static let history = "calendar"
+    static let report = "chart.xyaxis.line"
+    static let add = "plus"
+    static let addChild = "person.crop.circle.badge.plus"
+    static let child = "person.crop.circle.fill"
+    static let startSession = "calendar.badge.plus"
+    static let open = "arrow.right"
+    static let accuracy = "percent"
+    static let completed = "checkmark.circle.fill"
+    static let inProgress = "clock.fill"
+    static let empty = "circle.dashed"
+    static let warning = "exclamationmark.circle"
+    static let review = "exclamationmark.triangle.fill"
+    static let targets = "checklist"
+    static let program = "list.bullet.rectangle"
+    static let settings = "slider.horizontal.3"
+    static let trial = "hand.tap"
+    static let editHistory = "clock.arrow.circlepath"
+    static let reopen = "arrow.uturn.backward.circle"
+    static let correct = "checkmark"
+    static let prompted = "hand.raised"
+    static let reset = "arrow.counterclockwise"
+    static let note = "note.text"
+    static let undo = "arrow.uturn.backward"
+    static let more = "ellipsis.circle"
+    static let previous = "chevron.left"
+    static let next = "chevron.right"
+    static let noRecords = "calendar.badge.exclamationmark"
+    static let search = "magnifyingglass"
+    static let delete = "trash"
+    static let pdf = "doc.richtext"
+    static let share = "square.and.arrow.up"
+    static let active = "play.circle.fill"
+    static let mastered = "checkmark.seal.fill"
+    static let discontinued = "pause.circle.fill"
+}
+
+enum ABAVisualStyle {
+    // Pink is reserved for navigation/actions; clinical green/orange remain semantic.
+    static let brand = Color(uiColor: UIColor { traits in
+        if traits.userInterfaceStyle == .dark {
+            return UIColor(red: 1.0, green: 0.54, blue: 0.72, alpha: 1)
+        }
+        return UIColor(red: 0.70, green: 0.12, blue: 0.36, alpha: 1)
+    })
+
+    static let cornerRadius: CGFloat = 16
+    static let contentMaxWidth: CGFloat = 980
+    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
+    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
+    static let separator = Color(uiColor: .separator).opacity(0.18)
+}
+
+private struct ABASurfaceModifier: ViewModifier {
+    let padding: CGFloat
+    let background: Color
+
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .background(background, in: .rect(cornerRadius: ABAVisualStyle.cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: ABAVisualStyle.cornerRadius)
+                    .strokeBorder(ABAVisualStyle.separator, lineWidth: 0.5)
+            }
+    }
+}
+
+extension View {
+    func abaSurface(
+        padding: CGFloat = 16,
+        background: Color = ABAVisualStyle.secondarySurface
+    ) -> some View {
+        modifier(ABASurfaceModifier(padding: padding, background: background))
+    }
+}
+
+struct ABAStatusPill: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(tint.opacity(contrast == .increased ? 0.22 : 0.12), in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(tint.opacity(contrast == .increased ? 1 : 0), lineWidth: 1)
+            }
+            .accessibilityElement(children: .combine)
     }
 }

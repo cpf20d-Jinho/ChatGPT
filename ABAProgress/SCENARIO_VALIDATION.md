@@ -1,8 +1,8 @@
-# ABAProgress v0.6 치료 현장 시나리오 검증
+# ABAProgress v0.7 치료 현장 시나리오 검증
 
 검증 범위: 치료사의 실시간 Trial 기록, 중단/재개, 오류 입력 복구, 날짜별 기록 검토, 과거 데이터 수정, Level 자동 판정, 보고서 데이터 무결성.
 
-> 현재 Linux 환경에서는 iOS/iPadOS Simulator를 실행할 수 없으므로, 본 검증은 코드 경로 분석 + 순수 Swift 시뮬레이션 테스트 + SwiftUI Expert 기준 정적 UX audit로 수행했습니다. 실제 터치 감각/화면 렌더링/앱 백그라운드 복원은 iPad Swift Playgrounds에서 최종 확인해야 합니다.
+> v0.6에서 코드 경로 분석 + 순수 Swift 시뮬레이션 테스트 + SwiftUI Expert 기준 정적 UX audit를 수행했습니다. v0.7은 임상·데이터 로직을 변경하지 않고 Apple HIG 기반 화면과 접근성만 개선했습니다. GitHub Actions에서 v0.7 Xcode 프로젝트의 iOS Simulator 대상 빌드와 임상 규칙 시나리오가 통과했습니다. 실제 터치 감각/화면 렌더링/앱 백그라운드 복원은 Xcode 또는 iPad Swift Playgrounds에서 최종 확인해야 합니다.
 
 ## 1. 치료 중 실시간 기록 시나리오
 

@@ -1,0 +1,83 @@
+name: ABAProgress iOS CI
+
+on:
+  push:
+    branches:
+      - main
+      - codex/**
+    paths:
+      - ABAProgress/**
+      - .github/workflows/abaprogress-ci.yml
+  pull_request:
+    branches:
+      - main
+      - codex/abaprogress-brand-report-v0.8
+    paths:
+      - ABAProgress/**
+      - .github/workflows/abaprogress-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: abaprogress-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and clinical rules
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build Universal iOS app for Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ABAProgress/XcodeProject/ABAProgress.xcodeproj \
+            -scheme ABAProgress \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/ABAProgressDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build \
+            | tee "$RUNNER_TEMP/abaprogress-xcodebuild.log"
+
+      - name: Run clinical scenario checks
+        run: swift ABAProgress/QA/scenario_tests.swift
+
+      - name: Check production numeric-only serializer
+        run: |
+          swiftc ABAProgress/XcodeProject/ABAProgress/Services/ReportAIClient.swift ABAProgress/QA/report-privacy-tests.swift -o "$RUNNER_TEMP/report-privacy-tests"
+          "$RUNNER_TEMP/report-privacy-tests"
+
+      - name: Report template and AI boundary checks (synthetic data only)
+        run: |
+          node --test ABAProgress/QA/report-ai.test.mjs
+          node ABAProgress/QA/report-template.test.cjs
+
+      - name: Render synthetic report preview
+        run: |
+          npm install --prefix "$RUNNER_TEMP/aba-report-tools" playwright
+          mkdir -p "$RUNNER_TEMP/aba-report-preview"
+          NODE_PATH="$RUNNER_TEMP/aba-report-tools/node_modules" \
+          REPORT_QA_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+          REPORT_QA_OUTPUT="$RUNNER_TEMP/aba-report-preview" \
+          node ABAProgress/QA/report-template.test.cjs --render
+
+      - name: Upload synthetic report preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-report-preview
+          path: ${{ runner.temp }}/aba-report-preview/
+          retention-days: 3

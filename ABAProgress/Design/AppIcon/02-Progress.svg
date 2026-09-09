@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<title>Three ascending progress marks</title>
+<g fill="#FFE4EF">
+  <rect x="406" y="730" width="52" height="28" rx="14"/>
+  <rect x="486" y="710" width="52" height="48" rx="20"/>
+  <rect x="566" y="686" width="52" height="72" rx="22"/>
+</g>
+</svg>

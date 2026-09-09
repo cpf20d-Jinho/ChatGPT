@@ -53,85 +53,86 @@ struct ChildDetailView: View {
 
     var body: some View {
         List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(child.name)
-                            .font(.title2.bold())
-                        if let birthDate = child.birthDate {
-                            Text("생년월일 \(birthDate.formatted(date: .numeric, time: .omitted))")
-                                .foregroundStyle(.secondary)
-                        }
-                        if !child.memo.isEmpty {
-                            Text(child.memo)
-                                .foregroundStyle(.secondary)
-                        }
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(child.name)
+                        .font(.title2.bold())
+                    if let birthDate = child.birthDate {
+                        Text("생년월일 \(birthDate.formatted(date: .numeric, time: .omitted))")
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 6)
-                }
-
-                Section("오늘 현황") {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 24) {
-                            todayCompletionMetric
-                            Divider()
-                            todayAccuracyMetric
-                        }
-                        VStack(alignment: .leading, spacing: 12) {
-                            todayCompletionMetric
-                            Divider()
-                            todayAccuracyMetric
-                        }
-                    }
-                    .padding(.vertical, 6)
-
-                    if !programs.isEmpty {
-                        ForEach(programs) { program in
-                            NavigationLink {
-                                ProgramDetailView(child: child, program: program)
-                            } label: {
-                                TodayProgramStatusRow(program: program, today: today)
-                            }
-                        }
+                    if !child.memo.isEmpty {
+                        Text(child.memo)
+                            .foregroundStyle(.secondary)
                     }
                 }
+                .padding(.vertical, 6)
+                .accessibilityElement(children: .combine)
+            }
 
-                Section("프로그램") {
-                    if programs.isEmpty {
-                        ContentUnavailableView(
-                            "등록된 프로그램이 없습니다",
-                            systemImage: "list.bullet.rectangle",
-                            description: Text("아동에게 사용할 프로그램을 자유롭게 추가하세요.")
-                        )
-                    } else {
-                        ForEach(programs) { program in
-                            NavigationLink {
-                                ProgramDetailView(child: child, program: program)
-                            } label: {
-                                ProgramRow(program: program)
-                            }
-                        }
-                        .onDelete(perform: deletePrograms)
+            Section("오늘 현황") {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 24) {
+                        todayCompletionMetric
+                        Divider()
+                        todayAccuracyMetric
+                    }
+                    VStack(alignment: .leading, spacing: 12) {
+                        todayCompletionMetric
+                        Divider()
+                        todayAccuracyMetric
                     }
                 }
+                .padding(.vertical, 6)
 
-                Section("보고서") {
-                    NavigationLink {
-                        ReportView(child: child)
-                    } label: {
-                        Label("사용자 지정 기간 경과 보고서", systemImage: "chart.xyaxis.line")
+                if !programs.isEmpty {
+                    ForEach(programs) { program in
+                        NavigationLink {
+                            ProgramDetailView(child: child, program: program)
+                        } label: {
+                            TodayProgramStatusRow(program: program, today: today)
+                        }
                     }
                 }
             }
+
+            Section("프로그램") {
+                if programs.isEmpty {
+                    ContentUnavailableView(
+                        "등록된 프로그램이 없습니다",
+                        systemImage: ABASymbol.program,
+                        description: Text("아동에게 사용할 프로그램을 자유롭게 추가하세요.")
+                    )
+                } else {
+                    ForEach(programs) { program in
+                        NavigationLink {
+                            ProgramDetailView(child: child, program: program)
+                        } label: {
+                            ProgramRow(program: program)
+                        }
+                    }
+                    .onDelete(perform: deletePrograms)
+                }
+            }
+
+            Section("보고서") {
+                NavigationLink {
+                    ReportView(child: child)
+                } label: {
+                    Label("사용자 지정 기간 경과 보고서", systemImage: ABASymbol.report)
+                }
+            }
+        }
         .navigationTitle(child.name)
         .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingAddProgram = true
-                    } label: {
-                        Label("프로그램 추가", systemImage: "plus")
-                    }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingAddProgram = true
+                } label: {
+                    Label("프로그램 추가", systemImage: ABASymbol.add)
                 }
             }
+        }
         .sheet(isPresented: $showingAddProgram) {
             AddProgramView(child: child)
         }
@@ -217,10 +218,20 @@ private struct TodayProgramStatusRow: View {
         !activeTargets.isEmpty && completedCount == activeTargets.count
     }
 
+    private var statusTitle: String {
+        if isComplete { return "완료" }
+        if completedCount > 0 { return "진행 중" }
+        return "미기록"
+    }
+
+    private var statusIcon: String {
+        if isComplete { return ABASymbol.completed }
+        if completedCount > 0 { return ABASymbol.inProgress }
+        return ABASymbol.empty
+    }
+
     var body: some View {
         HStack {
-            Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isComplete ? .green : .secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(program.name)
                 Text("과제 \(completedCount)/\(activeTargets.count) 완료")
@@ -235,7 +246,13 @@ private struct TodayProgramStatusRow: View {
                     .padding(.vertical, 3)
                     .background(.thinMaterial, in: Capsule())
             }
+            ABAStatusPill(
+                title: statusTitle,
+                systemImage: statusIcon,
+                tint: isComplete ? .green : (completedCount > 0 ? .orange : .secondary)
+            )
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -265,6 +282,7 @@ private struct ProgramRow: View {
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }
 

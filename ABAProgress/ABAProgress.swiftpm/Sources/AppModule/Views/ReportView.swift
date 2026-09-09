@@ -35,26 +35,41 @@ struct ReportView: View {
                 controls
 
                 if incompleteSessionCount > 0 {
-                    Label("선택 기간에 미완료 Session이 \(incompleteSessionCount)개 있습니다. 미완료 기록은 보고서 통계와 그래프에서 제외됩니다.", systemImage: "exclamationmark.circle")
+                    Label("선택 기간에 미완료 Session이 \(incompleteSessionCount)개 있습니다. 미완료 기록은 보고서 통계와 그래프에서 제외됩니다.", systemImage: ABASymbol.warning)
                         .font(.footnote)
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                        .abaSurface(background: Color.orange.opacity(0.08))
                 }
 
-                ForEach(selectedPrograms) { program in
-                    ProgramReportSection(program: program, startDate: startDate, endDate: endDate)
+                if programs.isEmpty {
+                    ContentUnavailableView(
+                        "보고서에 포함할 프로그램이 없습니다",
+                        systemImage: ABASymbol.report,
+                        description: Text("아동에게 프로그램과 완료된 치료 기록을 추가하세요.")
+                    )
+                } else if selectedPrograms.isEmpty {
+                    ContentUnavailableView(
+                        "프로그램을 선택하세요",
+                        systemImage: ABASymbol.targets,
+                        description: Text("한 개 이상의 프로그램을 선택하면 경과 그래프를 확인할 수 있습니다.")
+                    )
+                } else {
+                    ForEach(selectedPrograms) { program in
+                        ProgramReportSection(program: program, startDate: startDate, endDate: endDate)
+                    }
                 }
 
                 if !selectedPrograms.isEmpty {
-                    exportSection
+                    ReportComposerView(child: child, startDate: startDate, endDate: endDate, programs: selectedPrograms)
+                        .id("\(child.id)-\(ReportDocument.date(startDate))-\(ReportDocument.date(endDate))")
                 }
             }
             .padding()
-            .frame(maxWidth: 980)
+            .frame(maxWidth: ABAVisualStyle.contentMaxWidth)
             .frame(maxWidth: .infinity)
         }
+        .background(ABAVisualStyle.groupedBackground)
         .navigationTitle("경과 보고서")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -107,11 +122,11 @@ struct ReportView: View {
                     ))
                     .toggleStyle(.button)
                     .frame(maxWidth: .infinity)
+                    .accessibilityHint("보고서에 이 프로그램을 포함하거나 제외합니다.")
                 }
             }
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .abaSurface()
     }
 
     private var exportSection: some View {
@@ -128,20 +143,24 @@ struct ReportView: View {
                     exportError = error.localizedDescription
                 }
             } label: {
-                Label("PDF 생성", systemImage: "doc.richtext")
+                Label("PDF 생성", systemImage: ABASymbol.pdf)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 3)
             }
             .buttonStyle(.borderedProminent)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .controlSize(.large)
 
             if let shareURL {
                 ShareLink(item: shareURL) {
-                    Label("PDF 공유 / 저장", systemImage: "square.and.arrow.up")
+                    Label("PDF 공유 / 저장", systemImage: ABASymbol.share)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 3)
                 }
                 .buttonStyle(.bordered)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .controlSize(.large)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .abaSurface(background: Color(uiColor: .systemBackground))
     }
 }
 
@@ -167,7 +186,7 @@ private struct ProgramReportSection: View {
                 .font(.title3.bold())
 
             if !levelReviewIssues.isEmpty {
-                Label("레벨 판정 검토 필요", systemImage: "exclamationmark.triangle.fill")
+                Label("레벨 판정 검토 필요", systemImage: ABASymbol.review)
                     .font(.footnote.bold())
                     .foregroundStyle(.orange)
             }
@@ -181,11 +200,7 @@ private struct ProgramReportSection: View {
                 }
             }
         }
-        .padding()
-        .background(.background, in: RoundedRectangle(cornerRadius: 18))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18).stroke(.quaternary)
-        }
+        .abaSurface(background: Color(uiColor: .systemBackground))
     }
 
     private func chartEntries(for target: TherapyTarget) -> [ReportPoint] {
@@ -226,6 +241,22 @@ private struct TargetReportCard: View {
         return values
     }
 
+    private var statusIcon: String {
+        switch target.status {
+        case .active: return ABASymbol.active
+        case .mastered: return ABASymbol.mastered
+        case .discontinued: return ABASymbol.discontinued
+        }
+    }
+
+    private var statusTint: Color {
+        switch target.status {
+        case .active: return .blue
+        case .mastered: return .green
+        case .discontinued: return .secondary
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -236,11 +267,11 @@ private struct TargetReportCard: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text(target.status.rawValue)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(.thinMaterial, in: Capsule())
+                ABAStatusPill(
+                    title: target.status.rawValue,
+                    systemImage: statusIcon,
+                    tint: statusTint
+                )
             }
 
             Chart(entries) { point in
@@ -277,11 +308,13 @@ private struct TargetReportCard: View {
                     AxisValueLabel()
                 }
             }
+            .chartPlotStyle { plotArea in
+                plotArea.background(ABAVisualStyle.tertiarySurface.opacity(0.55))
+            }
             .frame(height: 240)
             .accessibilityLabel("\(target.name) 경과 그래프")
             .accessibilityValue("세션 \(entries.count)회, 평균 정반응률 \(average.formatted(.number.precision(.fractionLength(0...1)))) 퍼센트")
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        .abaSurface(padding: 14)
     }
 }

@@ -1,17 +1,19 @@
 {
   "product": "ABAProgress",
-  "version": "0.6.0",
-  "buildTimeKST": "2026-09-07T16:30:48+09:00",
-  "buildHash": "5c3fddaa0d",
-  "sourceSHA256": "5c3fddaa0d085d27bbd896e50bf0306414384568e8189239051431f50c9449d5",
-  "previousBuild": "v0.5_UX_Refined",
+  "version": "0.8.1",
+  "buildTimeKST": "2026-09-08T19:23:19+09:00",
+  "buildHash": "a85949c192",
+  "sourceSHA256": "a85949c1927ffb26dfa4bafb6caf1b227e9faea394bca186c0fe300d1456dd7f",
+  "previousBuild": "v0.8.0_bf9456242f",
   "validation": {
-    "swiftParse": "PASS",
-    "swiftPlaygroundsParse": "PASS",
-    "pureSwiftScenarioTests": "PASS",
-    "scenarioTestCount": 12,
-    "swiftUIExpertStaticAudit": "PASS",
-    "iosRuntimeTest": "PENDING_DEVICE"
+    "reportServerTests": "PASS_12_SYNTHETIC",
+    "syntheticReportTemplate": "PASS",
+    "sourceParity": "PASS",
+    "iOSBuild": "PENDING_GITHUB_ACTIONS",
+    "clinicalScenarios": "PENDING_GITHUB_ACTIONS",
+    "iosRuntimeTest": "NOT_RUN",
+    "liveAPI": "NOT_RUN_MISSING_GROQ_KEY",
+    "iosPDFPagination": "PENDING"
   },
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -20,5 +22,5 @@
       "iPad"
     ]
   },
-  "notes": "Source SHA is computed over source/docs/QA files before BUILD_INFO.json and SHA256SUMS.txt are added."
+  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results."
 }
