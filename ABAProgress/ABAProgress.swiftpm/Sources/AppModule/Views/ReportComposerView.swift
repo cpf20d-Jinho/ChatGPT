@@ -210,6 +210,7 @@ struct ReportComposerView: View {
             Text(title).font(.subheadline.weight(.medium))
             TextField(title, text: value, axis: .vertical)
                 .lineLimit(2...12).textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier(title)
                 .disabled(!loaded)
         }
     }
