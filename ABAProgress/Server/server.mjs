@@ -86,8 +86,9 @@ export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
  });
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- if(process.env.NODE_ENV==="production"&&!process.env.REPORT_USERS_FILE)throw Error("Production requires REPORT_USERS_FILE with per-user expiring token digests");
- const users=process.env.REPORT_USERS_FILE?JSON.parse(readFileSync(process.env.REPORT_USERS_FILE,"utf8")):undefined;
+ if(process.env.NODE_ENV==="production"&&!process.env.REPORT_USERS_FILE&&!process.env.REPORT_USERS_JSON)throw Error("Production requires per-user expiring token digests");
+ const users=process.env.REPORT_USERS_FILE?JSON.parse(readFileSync(process.env.REPORT_USERS_FILE,"utf8")):
+  process.env.REPORT_USERS_JSON?JSON.parse(process.env.REPORT_USERS_JSON):undefined;
  const service=server({token:process.env.REPORT_SERVER_TOKEN,users});
  service.requestTimeout=15000;service.headersTimeout=10000;
  service.listen(Number(process.env.PORT??8787),process.env.LISTEN_HOST??"127.0.0.1",()=>console.log("Report service ready; TLS ingress required for external access."));

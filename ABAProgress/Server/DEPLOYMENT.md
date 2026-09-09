@@ -6,6 +6,16 @@
 2. 사용자마다 암호학적으로 무작위인 32바이트 이상의 토큰을 발급하고 안전한 채널로 전달한다. 토큰 자체는 GitHub에 올리지 않는다.
 3. 비밀 파일 `users.json`에 아래 형식으로 토큰 SHA-256과 만료일을 저장한다. `REPORT_USERS_FILE` 환경변수를 해당 파일 경로로 지정한다. `NODE_ENV=production`에서는 공용 토큰만으로 시작할 수 없다.
 
+Render처럼 비밀 환경변수를 사용하는 호스트는 같은 JSON을 `REPORT_USERS_JSON`에 설정할 수 있다. 파일 설정이 있으면 파일이 우선한다. 현재 연결된 Render 계정에서 조회된 `My Workspace`의 선택 확인 후 아래 설정으로 생성한다. 조회만 했으며 아직 서비스를 만들지 않았다.
+
+- 서비스: `abaprogress-reports`, Node, Free, Singapore
+- 저장소: `https://github.com/cpf20d-Jinho/ChatGPT`
+- 브랜치: `codex/abaprogress-release-readiness-v0.9`
+- 빌드: `node --check ABAProgress/Server/server.mjs`
+- 시작: `node ABAProgress/Server/server.mjs`
+- 환경: `NODE_VERSION=22`, `NODE_ENV=production`, `LISTEN_HOST=0.0.0.0`, `REPORT_USERS_JSON` 비밀값
+- Groq 키는 서버 환경에 저장하지 않는다. 앱의 사용자별 키를 요청에만 사용한다.
+
 ```json
 [{"digest":"<token SHA-256 hex>","expiresAt":"<ISO-8601 UTC expiration>"}]
 ```

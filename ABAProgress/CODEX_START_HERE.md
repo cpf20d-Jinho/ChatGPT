@@ -1,6 +1,6 @@
 # Codex Start Here
 
-This folder is a complete handoff of ABAProgress v0.8.0.
+This folder is a complete handoff of ABAProgress v0.9.0.
 
 ## First task
 Use the **Build iOS Apps** plugin / Xcode runtime if available and bring this project to a reproducibly runnable state on iPhone and iPad simulators.

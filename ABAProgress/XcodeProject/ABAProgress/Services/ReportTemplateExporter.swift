@@ -135,14 +135,15 @@ private final class ReportPageRenderer: UIPrintPageRenderer {
     }
 
     override func drawHeaderForPage(at pageIndex: Int, in headerRect: CGRect) {
-        draw(institution, in: headerRect, color: UIColor(red: 0.91, green: 0.40, blue: 0.55, alpha: 1), size: 9, alignment: .center)
+        draw(institution, in: CGRect(x: printableRect.minX, y: 18, width: printableRect.width, height: 16),
+             color: UIColor(red: 0.91, green: 0.40, blue: 0.55, alpha: 1), size: 9, alignment: .center)
     }
 
     override func drawFooterForPage(at pageIndex: Int, in footerRect: CGRect) {
-        draw(copyright, in: CGRect(x: footerRect.minX, y: footerRect.minY, width: footerRect.width - 68, height: footerRect.height),
+        draw(copyright, in: CGRect(x: printableRect.minX, y: 815, width: printableRect.width - 68, height: 14),
              color: .lightGray, size: 6.5, alignment: .center)
         draw("Page \(pageIndex + 1) / \(numberOfPages)",
-             in: CGRect(x: footerRect.maxX - 65, y: footerRect.minY, width: 65, height: footerRect.height),
+             in: CGRect(x: printableRect.maxX - 65, y: 815, width: 65, height: 14),
              color: .gray, size: 7, alignment: .right)
     }
 

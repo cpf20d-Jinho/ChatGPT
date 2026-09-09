@@ -442,6 +442,11 @@ struct ReportHomeView: View {
             }
         }
         .navigationTitle("보고서")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink("개인정보 안내") { ReportPrivacyView() }
+            }
+        }
     }
 }
 

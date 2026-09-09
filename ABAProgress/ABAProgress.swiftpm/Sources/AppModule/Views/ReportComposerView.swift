@@ -263,6 +263,21 @@ private struct ReportConsentRequest: Identifiable {
     let groqKey: String
 }
 
+struct ReportPrivacyView: View {
+    var body: some View {
+        Form {
+            Section("기기 내 보관") {
+                Text("아동 프로필·치료 기록·수동 작성 보고서는 앱의 기기 저장소에 보관합니다. AI 기능을 사용하지 않아도 직접 보고서를 작성할 수 있습니다. PDF를 공유하면 선택한 공유 대상에게 보고서 내용이 전달됩니다.")
+            }
+            Section("AI 전송 안내") { Text(ReportConsentSheet.privacyNotice) }
+            Section("제공자 정책") {
+                Link("Groq 데이터 처리 정책", destination: URL(string: "https://console.groq.com/docs/your-data")!)
+            }
+        }
+        .navigationTitle("개인정보 안내")
+    }
+}
+
 private struct ReportConsentSheet: View {
     let request: ReportConsentRequest
     let onConfirm: () -> Void

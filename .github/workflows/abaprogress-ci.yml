@@ -84,6 +84,15 @@ jobs:
           swiftc ABAProgress/XcodeProject/ABAProgress/Services/ReportAIClient.swift ABAProgress/QA/report-privacy-tests.swift -o "$RUNNER_TEMP/report-privacy-tests"
           "$RUNNER_TEMP/report-privacy-tests"
 
+      - name: Check actual report calculations and privacy boundary
+        run: |
+          swiftc -target "$(uname -m)-apple-macos14.0" \
+            ABAProgress/XcodeProject/ABAProgress/Models/Models.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/ReportDocument.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/ReportAIClient.swift \
+            ABAProgress/QA/report-calculation-tests.swift -o "$RUNNER_TEMP/report-calculation-tests"
+          "$RUNNER_TEMP/report-calculation-tests"
+
       - name: Report template and AI boundary checks (synthetic data only)
         run: |
           node --test ABAProgress/QA/report-ai.test.mjs
