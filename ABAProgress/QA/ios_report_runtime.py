@@ -15,7 +15,13 @@ data = json.loads(run('xcrun', 'simctl', 'list', '-j'))
 runtimes = [r for r in data['runtimes'] if r.get('isAvailable') and 'iOS' in r['name'] and int(r['version'].split('.')[0]) >= 26]
 runtime = max(runtimes, key=lambda r: tuple(map(int, r['version'].split('.'))))['identifier']
 for family in ['iPhone', 'iPad']:
-    device_type = next(d['identifier'] for d in reversed(data['devicetypes']) if family in d['name'] and ('SE' not in d['name']))
+    # Use a device already provisioned for this runtime, rather than an old type
+    # from the global catalog (which also contains unsupported iPhone 6s types).
+    available = [d for d in data['devices'].get(runtime, []) if d.get('isAvailable') and family in d['name']]
+    if not available:
+        raise RuntimeError('No compatible ' + family + ' in installed runtime')
+    template = available[0]
+    device_type = next(d['identifier'] for d in data['devicetypes'] if d['name'] == template['name'])
     device = run('xcrun', 'simctl', 'create', 'ABA Report QA ' + family, device_type, runtime)
     try:
         run('xcrun', 'simctl', 'boot', device)

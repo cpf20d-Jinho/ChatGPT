@@ -231,9 +231,27 @@ struct ReportComposerView: View {
                     return
                 }
                 aiFingerprint = snapshot.fingerprint
-                aiResult = result
+                // Restore meaningful labels locally, after the numeric-only response has arrived.
+                let labels = snapshot.goals.flatMap { goal in
+                    Set(goal.points.map(\.level)).sorted().map { "\(goal.name) · L\($0)" }
+                }
+                aiResult = ReportAIResult(currentStatus: localLabels(result.currentStatus, labels),
+                                          majorChanges: localLabels(result.majorChanges, labels),
+                                          warnings: result.warnings.map { localLabels($0, labels) })
             } catch { self.error = error.localizedDescription }
         }
+    }
+
+    private func localLabels(_ text: String, _ labels: [String]) -> String {
+        guard let regex = try? NSRegularExpression(pattern: "계열\\s*(\\d+)(?!\\d)") else { return text }
+        var output = text
+        let original = text as NSString
+        for match in regex.matches(in: text, range: NSRange(location: 0, length: original.length)).reversed() {
+            guard let number = Int(original.substring(with: match.range(at: 1))), labels.indices.contains(number - 1),
+                  let range = Range(match.range, in: output) else { continue }
+            output.replaceSubrange(range, with: labels[number - 1])
+        }
+        return output
     }
 }
 
@@ -258,6 +276,8 @@ private struct ReportConsentSheet: View {
 목적은 학습 반응 데이터에 근거한 현황과 주요 변화의 초안 작성입니다. 진단·치료 효과·행동 원인을 판단하지 않습니다. 치료사 소견 이후는 직접 작성하며 초안은 사용자가 검토·적용합니다.
 
 연결에는 서버 접속 토큰과 Groq 키가 사용됩니다. 앱은 키를 Keychain에 저장하며, 제공된 서버 코드는 요청 본문과 키를 저장하거나 로그하지 않습니다. 운영 프록시와 Groq의 보존·처리 정책은 별도로 적용됩니다.
+
+Groq는 사용량 메타데이터를 보관합니다. 일반 추론 입력·출력은 기본적으로 보관하지 않지만 장애 조사·오남용 대응 시 최대 30일 보관할 수 있습니다. 보관되는 고객 데이터의 위치는 미국이며, 계정의 데이터 제어 설정에 따라 달라집니다.
 
 매 요청마다 동의를 확인합니다. 취소해도 기록·수동 보고서 작성은 사용할 수 있습니다. 취소 시 학습 데이터와 Groq 키를 보내지 않습니다. 전송 이후에는 이미 처리된 정보를 소급하여 회수할 수 없습니다.
 """
