@@ -8,6 +8,7 @@ file = project.main_group.new_file(File.expand_path('ABAProgress/QA/DemoUITests.
 target.source_build_phase.add_file_reference(file)
 target.build_configurations.each do |c|
  c.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.abaprogress.demo-tests'
+ c.build_settings['PRODUCT_NAME'] = 'DemoUITests'
  c.build_settings['TEST_TARGET_NAME'] = 'ABAProgress'
  c.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
  c.build_settings['SWIFT_VERSION'] = '5.0'

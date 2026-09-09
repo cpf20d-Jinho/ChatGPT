@@ -9,7 +9,7 @@
 - iPhone/iPad 시뮬레이터에서 실제 보고서 PDF를 생성하고 합성 기본 양식 및 긴 문장 누락을 검사한다.
 
 ## 아직 운영자가 제공해야 하는 설정
-1. HTTPS 서버 호스트와 해당 호스팅 계정 연결. `Server/DEPLOYMENT.md` 참고.
+1. Render 무료 서버 배포와 인증 health 확인 완료: https://abaprogress-reports.onrender.com. 사용자별 서버 접속 토큰은 비공개로 전달한다. `Server/DEPLOYMENT.md` 참고.
 2. 공개된 적 없는 새 Groq 키. 키를 문서·PR·대화에 붙이지 말고 앱 또는 비밀 설정에 등록한다.
 3. Apple Developer Team 및 등록 가능한 Bundle ID 확인. 코드 기본값은 Swift Playgrounds와 동일한 `com.abaprogress.universal`이며 등록·소유를 주장하지 않는다.
 4. 개인정보 처리 책임자/연락처, 공개 방침 URL, 지원 URL. 앱의 전송 안내는 구현되어 있지만 운영자 미정인 상태에서 완성된 법적 방침으로 게시하지 않는다.
@@ -23,7 +23,7 @@
 CI의 아카이브는 코드·리소스·SDK 검사이며 설치용 IPA나 Apple 제출 성공을 의미하지 않는다. Mac에서 Xcode 26+로 프로젝트를 열고 Signing & Capabilities의 Team을 지정한다. 운영 호스트를 `INFOPLIST_KEY_ABAReportServerHost`에 설정하고 Product > Archive > Validate App > Distribute App 순서로 진행한다. 인증서와 프로비저닝은 선택한 Apple 계정에서 발급한다.
 
 ## 검증 범위 및 남은 사항
-실제 호스팅 연결, 새로운 키를 이용한 Groq 호출, 서명된 IPA 검증은 환경 설정 후 수행한다. PDF 원본의 정확한 STO 정의·완료 목표 생애주기·기관 로고·특정 글꼴은 확정되지 않았다. 수치 계산 가정은 REPORT_TEMPLATE_SPEC.md를 확인한다. 기록 백업·복원과 전체 임상 흐름 실사용 검사는 출시 전 별도 필요하다.
+실제 호스팅의 HTTPS 인증 및 잘못된 요청 차단은 검증했다. 새로운 키를 이용한 Groq 호출과 서명된 IPA 검증은 아직 필요하다. PDF 원본의 정확한 STO 정의·완료 목표 생애주기·기관 로고·특정 글꼴은 확정되지 않았다. 수치 계산 가정은 REPORT_TEMPLATE_SPEC.md를 확인한다. 기록 백업·복원과 전체 임상 흐름 실사용 검사는 출시 전 별도 필요하다.
 
 근거 확인(2026-09-09):
 - https://developer.apple.com/news/upcoming-requirements/

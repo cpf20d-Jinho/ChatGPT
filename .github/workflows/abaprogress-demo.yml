@@ -2,7 +2,7 @@ name: ABAProgress usage video
 on:
   push:
     branches: [codex/abaprogress-release-readiness-v0.9]
-    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, .github/workflows/abaprogress-demo.yml]
+    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, .github/workflows/abaprogress-demo.yml]
   workflow_dispatch:
 permissions:
   contents: read
