@@ -4,54 +4,41 @@ import {timingSafeEqual} from "node:crypto";
 import {fileURLToPath} from "node:url";
 
 const guide=readFileSync(new URL("./GUIDE_SCRIPT.md",import.meta.url),"utf8");
+// This contract contains no user-supplied strings or real-world identifiers.
 export function validatePayload(p){
- if(!p||p.templateVersion!=="geomdan-interim-v1"||!Array.isArray(p.goals)||p.goals.length<1||p.goals.length>100)throw Error("Invalid goals");
- if(typeof p.confirmedObservations!=="string"||p.confirmedObservations.length>10000)throw Error("Invalid observations");
- for(const g of p.goals){
-  if(typeof g.name!=="string"||g.name.length>300||typeof g.domain!=="string"||g.domain.length>100||typeof g.group!=="string"||g.group.length>100)throw Error("Invalid labels");
-  if(!Array.isArray(g.points)||g.points.length<1||g.points.length>2000)throw Error("Invalid points");
-  for(const x of g.points)if(!/^\d{4}-\d{2}-\d{2}$/.test(x.date)||!Number.isFinite(x.value)||x.value<0||x.value>100||!Number.isInteger(x.level)||x.level<1||x.level>100)throw Error("Invalid observation");
-  if(!Array.isArray(g.masteredLevels)||g.masteredLevels.some(l=>!g.points.some(x=>x.level===l)))throw Error("Invalid mastery");
-  if(g.criteria!==undefined && (!g.criteria || typeof g.criteria!=="object" || Array.isArray(g.criteria) || Object.entries(g.criteria).some(([level,value])=>!g.points.some(x=>String(x.level)===level)||!Number.isFinite(value)||value<0||value>100)))throw Error("Invalid criteria");
- }
- // Whitelist only the fields needed for drafting. Never forward a full child/document object.
- const goals=p.goals.map(g=>({name:g.name,domain:g.domain,
-  points:g.points.map(x=>({date:x.date,value:x.value,level:x.level})),
-  criteria:g.criteria??{},masteredLevels:[...new Set(g.masteredLevels)]}));
- const grouped=Object.create(null);
- const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
- let stoCount=0,masteredCount=0;
- for(const g of goals){
-  const levels=[...new Set(g.points.map(x=>x.level))];stoCount+=levels.length;masteredCount+=g.masteredLevels.length;
-  for(const level of levels){const s=g.points.filter(x=>x.level===level).sort((a,b)=>a.date.localeCompare(b.date));(grouped[g.domain]??=[]).push(s);}
- }
- const domains=Object.entries(grouped).map(([name,series])=>({name,stoCount:series.length,
-  initialMean:mean(series.map(s=>mean(s.slice(0,3).map(p=>p.value)))),
-  recentMean:mean(series.map(s=>mean(s.slice(-3).map(p=>p.value))))}));
- if(stoCount!==p.stoCount||masteredCount!==p.masteredCount)throw Error("Counts do not match evidence");
- return {templateVersion:p.templateVersion,stoCount,masteredCount,domains,goals,confirmedObservations:p.confirmedObservations};
+ if(!p||Object.keys(p).sort().join(',')!=="series,version"||p.version!==1||!Array.isArray(p.series)||p.series.length<1||p.series.length>100)throw Error("Invalid numeric payload");
+ let total=0;
+ const series=p.series.map((values,index)=>{
+  if(!Array.isArray(values)||values.length<1||values.length>2000||values.some(v=>typeof v!=="number"||!Number.isFinite(v)||v<0||v>100))throw Error("Invalid values");
+  total+=values.length;if(total>10000)throw Error("Too many values");
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const first=mean(values.slice(0,3)),recent=mean(values.slice(-3));
+  return {series:index+1,count:values.length,firstMean:first,recentMean:recent,changePercentagePoints:recent-first,minimum:Math.min(...values),maximum:Math.max(...values),overlappingWindows:values.length<6};
+ });
+ return {version:1,series};
 }
-export function requestBody(payload,model){
- return {model,store:false,instructions:guide,
-  input:[{role:"user",content:JSON.stringify(validatePayload(payload))}],
-  text:{format:{type:"json_schema",name:"aba_report_narrative",strict:true,schema:{
+export const MODEL="openai/gpt-oss-120b";
+export function requestBody(payload){
+ return {model:MODEL,max_completion_tokens:3072,reasoning_effort:"low",
+  messages:[{role:"system",content:guide},{role:"user",content:JSON.stringify(validatePayload(payload))}],
+  response_format:{type:"json_schema",json_schema:{name:"aba_numeric_interpretation",strict:true,schema:{
    type:"object",additionalProperties:false,
    properties:{currentStatus:{type:"string"},majorChanges:{type:"string"},warnings:{type:"array",items:{type:"string"}}},
    required:["currentStatus","majorChanges","warnings"]
   }}}};
 }
 export function parseResponse(r){
- if(r.status!=="completed")throw Error("Incomplete response");
- const parts=(r.output??[]).flatMap(x=>x.content??[]);
- if(parts.some(x=>x.type==="refusal"))throw Error("Refused response");
- const out=JSON.parse(parts.filter(x=>x.type==="output_text").map(x=>x.text).join(""));
+ const choice=r?.choices?.[0];
+ if(choice?.finish_reason!=="stop"||choice.message?.refusal||choice.message?.tool_calls)throw Error("Incomplete or refused response");
+ const out=JSON.parse(choice.message.content);
+ if(!out||Object.keys(out).sort().join(",")!=="currentStatus,majorChanges,warnings")throw Error("Unexpected fields");
  if(typeof out.currentStatus!=="string"||typeof out.majorChanges!=="string"||!Array.isArray(out.warnings)||
-  out.warnings.some(x=>typeof x!=="string")||!out.currentStatus||!out.majorChanges||
+  out.warnings.length>20||out.warnings.some(x=>typeof x!=="string"||x.length>2000)||!out.currentStatus.trim()||!out.majorChanges.trim()||
   out.currentStatus.length>12000||out.majorChanges.length>12000)throw Error("Invalid response");
  return out;
 }
-export function server({apiKey,model,token,fetchImpl=fetch}){
- if(!apiKey||!model||!token||token.length<32)throw Error("Set OPENAI_API_KEY, OPENAI_MODEL and REPORT_SERVER_TOKEN (32+ chars) on server only");
+export function server({token,fetchImpl=fetch}){
+ if(!token||token.length<32)throw Error("Set REPORT_SERVER_TOKEN (32+ chars) on server only");
  let busy=false;
  return createServer(async(req,res)=>{
   res.setHeader("Cache-Control","no-store");res.setHeader("Content-Type","application/json");
@@ -62,13 +49,23 @@ export function server({apiKey,model,token,fetchImpl=fetch}){
   busy=true;
   try{
    let size=0;const chunks=[];
-   for await(const chunk of req){size+=chunk.length;if(size>256000)throw Error("Payload limit");chunks.push(chunk);}
+   for await(const chunk of req){size+=chunk.length;if(size>256000){res.writeHead(413);res.end('{"error":"payload_too_large"}');return;}chunks.push(chunk);}
    let body;
-   try {body=requestBody(JSON.parse(Buffer.concat(chunks).toString()),model);}
+   try {body=requestBody(JSON.parse(Buffer.concat(chunks).toString()));}
    catch {res.writeHead(400);res.end('{"error":"invalid_payload"}');return;}
-   const r=await fetchImpl("https://api.openai.com/v1/responses",{method:"POST",
-    headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
+   const userKey=req.headers["x-groq-api-key"];
+   if(typeof userKey!=="string"||!/^gsk_[A-Za-z0-9_-]{20,}$/.test(userKey)){res.writeHead(422);res.end('{"error":"groq_key_required"}');return;}
+   const r=await fetchImpl("https://api.groq.com/openai/v1/chat/completions",{method:"POST",
+    headers:{"Authorization":"Bearer "+userKey,"Content-Type":"application/json"},
     body:JSON.stringify(body),signal:AbortSignal.timeout(75000)});
+   // One call only: never retry automatically or switch providers/models/plans.
+   if(r.status===429){
+    const retry=r.headers?.get("retry-after");
+    if(retry&&/^\d{1,6}$/.test(retry))res.setHeader("Retry-After",retry);
+    res.writeHead(429);res.end('{"error":"provider_rate_limit"}');return;
+   }
+   if(r.status===401||r.status===403){res.writeHead(503);res.end('{"error":"provider_configuration"}');return;}
+   if(r.status===413){res.writeHead(413);res.end('{"error":"payload_too_large"}');return;}
    if(!r.ok)throw Error("Upstream error");
    const result=parseResponse(await r.json());
    res.writeHead(200);res.end(JSON.stringify(result));
@@ -79,6 +76,6 @@ export function server({apiKey,model,token,fetchImpl=fetch}){
  });
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const service=server({apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL,token:process.env.REPORT_SERVER_TOKEN});
+ const service=server({token:process.env.REPORT_SERVER_TOKEN});
  service.listen(Number(process.env.PORT??8787),"127.0.0.1",()=>console.log("Report service listening on loopback; place behind authenticated TLS ingress."));
 }

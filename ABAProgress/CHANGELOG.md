@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v0.8.1 — Groq BYOK numeric-only interpretation
+- Groq GPT-OSS 120B strict JSON with numeric summaries only; exclude dates, labels, notes and identifiers.
+- Store each user's key in the iOS Keychain and forward it per request without server persistence.
+- Link to Groq Console for the required one-time key creation; Groq does not provide third-party OAuth.
+- Explicit quota/configuration errors; no automatic retry or paid fallback.
+- 12 synthetic server/HTTP tests pass; live API pending key provisioning.
+
 ## v0.8 — Symbols, Rose Icon, Interim Report
 - 화면별 SF Symbols를 공통 의미 기반 정의로 통합하고 대비 대응 상태 표시 강화
 - 핑크 강조색, 독자적인 ABA 벡터 원본과 iOS 앱 아이콘 리소스 추가

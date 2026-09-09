@@ -1,27 +1,59 @@
-# 보고서 AI 서버 — 배포 전 구성 필요
+# Groq 숫자 해석 서버 (v0.8.1)
 
-이 디렉터리는 로컬 서버 구현이며 배포 완료된 서비스가 아니다. 실제 아동 데이터로 OpenAI API를 호출하지 않았다.
+모델은 Groq에서 제공하는 `openai/gpt-oss-120b`다. 앱과 서버는 이름·날짜·프로그램명·메모를 제외하는 기존 숫자 전송 경계를 유지한다.
 
-## 설정
-Node.js 20 이상에서 실행한다. 서버 환경에 OPENAI_API_KEY, OPENAI_MODEL, REPORT_SERVER_TOKEN(무작위 32자 이상)을 설정한다.
-모델은 Structured Outputs와 Responses API를 지원하고 사용 계정에서 접근 가능한 모델로 운영자가 명시한다. 코드에 특정 최신 모델/가격을 추정해 고정하지 않는다.
+## 사용자 연결
+
+Groq는 현재 제3자 앱용 OAuth나 “Groq로 로그인” API를 제공하지 않는다. 모든 API 요청은 API 키로 인증된다. 따라서 ABAProgress가 사용자의 Groq 로그인 후 키를 자동으로 가져오는 기능은 구현할 수 없다.
+
+지원하는 흐름은 다음과 같다.
+
+1. 사용자가 앱의 링크로 Groq Console에 로그인한다.
+2. 본인 프로젝트에서 API 키를 만들고 앱에 최초 한 번 붙여넣는다.
+3. 앱은 키를 iOS Keychain의 `WhenUnlockedThisDeviceOnly` 접근 등급으로 저장한다.
+4. 이후 보고서 요청 때 앱이 키를 HTTPS 서버에 자동으로 전달한다.
+5. 서버는 키를 저장·로그하지 않고 해당 Groq 요청 한 번에만 사용한다.
+
+키를 앱 설정이나 보고서 데이터에 평문으로 저장하지 않는다. 기기 백업으로 이동하지 않으며 앱을 다시 설치하거나 다른 기기를 사용하면 다시 등록해야 한다. 연결 해제와 키 폐기는 Groq Console에서 수행한다.
+
+## 전송 데이터
+
+앱은 프로그램의 단계별 측정값을 날짜순으로 정렬한 숫자 배열만 ABAProgress 서버로 보낸다. 서버는 버전 숫자와 0~100 숫자 배열 외의 필드를 거부한다. Groq에는 원시 배열 대신 계열 번호, 관측 개수, 처음/마지막 최대 3회 평균, 평균 차이, 최솟값, 최댓값, 비교 구간 중복 여부만 전달한다.
+
+모델은 수치 변화만 한국어로 설명한다. 진단, 치료 효과, 인과관계, 중재 권고, 숙달 판단을 생성하지 않는다. 결과는 사용자가 검토한 후 두 보고서 항목에 적용한다.
+
+숫자 요약만으로 완전한 익명성을 보장하지는 않는다. Groq의 현재 정책 및 기관 정책을 실제 배포 전에 확인한다. [Groq 데이터 정책](https://console.groq.com/docs/your-data)
+
+## 서버 설정
+
+Node.js 20 이상에서 무작위 32자 이상의 `REPORT_SERVER_TOKEN`을 환경변수로 설정하고 다음을 실행한다.
+
+```sh
 node ABAProgress/Server/server.mjs
-기본 리슨 주소는 127.0.0.1:8787, 경로는 POST /report/narrative이다.
-외부 접근은 운영자가 관리하는 HTTPS 리버스 프록시·기관 인증·요청 제한 뒤에서만 허용한다.
-iOS 앱에는 해당 HTTPS 주소와 보고서 서버용 접속 토큰만 입력한다. OpenAI API 키를 앱·GitHub·PDF에 넣지 않는다.
-공용 서비스로 운영할 경우 고정 토큰 대신 사용자별 인증/권한, 토큰 만료/회전, 속도 제한, 비용 상한을 추가해야 한다.
+```
 
-## 데이터 처리
-아동명·생년월일·기관명·서명·치료사 소견은 요청 구조에 포함하지 않는다.
-프로그램명과 확인된 관찰 기록의 자유 텍스트는 사용자가 전송 미리보기에서 비식별화해야 한다.
-호출은 명시적 전송 확인 후에만 시작한다. AI 결과는 미리보기로 보관하며 사용자가 적용하기 전 기존 문구를 바꾸지 않는다.
-원본 데이터/기간/프로그램 선택이 변경되면 생성 중 결과를 거부한다.
-store:false를 사용하지만 이는 제공자의 모든 로그/보존이 0임을 뜻하지 않는다. 운영 전에 계약·기관 정책·동의와 제공자 데이터 보존 조건을 확인한다.
-페이로드·API 키·제공자 오류 본문을 로그에 기록하지 않는다.
+기본 주소는 `127.0.0.1:8787`, 경로는 `POST /report/narrative`다. 인증과 사용자별 요청 제한이 적용된 HTTPS 프록시 뒤에 배치해야 한다. 앱은 `Authorization`에 ABAProgress 접속 토큰, `X-Groq-API-Key`에 사용자의 키를 전송한다. 서버가 Groq로 전달하기 전 키 형식을 검증한다.
+
+배포 시 Xcode 빌드 설정의 `INFOPLIST_KEY_ABAReportServerHost`를 실제 HTTPS 서버 호스트로 바꿔야 한다. 현재 값 `reports.example.invalid`는 의도적으로 연결되지 않는 자리표시자다. 앱은 이 호스트와 정확히 일치하는 주소에만 Groq 키를 보낸다. 리버스 프록시에서도 `X-Groq-API-Key`를 접근 로그와 오류 추적에서 반드시 마스킹한다.
+
+현재 `REPORT_SERVER_TOKEN`은 공용 배포용 사용자 인증 체계가 아니다. 여러 사용자가 실제로 이용하기 전 다음 작업이 필요하다.
+
+- ABAProgress 사용자 로그인과 만료되는 사용자별 서버 토큰
+- 서버 측 사용자별·IP별 속도 제한 및 동시 요청 제어
+- 키·요청 본문·제공자 오류를 남기지 않는 로그 정책
+- TLS, 감사 기록, 계정 폐기 및 접근 차단
+
+## 무료 한도
+
+무료 한도는 각 사용자의 Groq 조직에 적용된다. 한도를 넘으면 429를 반환하고 앱은 자동 재시도하거나 유료 모델로 전환하지 않는다. [Groq 한도](https://console.groq.com/docs/rate-limits)
 
 ## 검증
+
+```sh
 node --test ABAProgress/QA/report-ai.test.mjs
 node ABAProgress/QA/report-template.test.cjs
+```
 
-현재 테스트는 합성 데이터로 수행한 단위/템플릿 검사다. 실제 API 품질 평가는 별도 필요하다.
-GUIDE_SCRIPT.md가 서버의 실제 instructions로 로드된다. 양식 예시와 같은 문단 구성을 따르되 임상 사실과 숫자는 새 아동의 근거만 사용한다.
+합성 데이터와 모의 Groq 응답으로 숫자 전송 경계, 사용자별 키 전달, 인증·한도·응답 실패를 검사한다. 실제 키를 사용한 API 품질은 아직 검증하지 않았다.
+
+[Groq 보안 안내](https://console.groq.com/docs/production-readiness/security-onboarding) · [API 키](https://console.groq.com/keys) · [구조화 출력](https://console.groq.com/docs/structured-outputs)

@@ -1,23 +1,19 @@
 {
   "product": "ABAProgress",
-  "version": "0.8.0",
-  "buildTimeKST": "2026-09-08T16:44:17+09:00",
-  "buildHash": "61ecce1ffa",
-  "sourceSHA256": "61ecce1ffa2bacb872a08a3534d8eb6772749a02dbc7a89d211863bd907fe6c8",
-  "previousBuild": "v0.7_Apple_HIG",
+  "version": "0.8.1",
+  "buildTimeKST": "2026-09-08T19:23:19+09:00",
+  "buildHash": "a85949c192",
+  "sourceSHA256": "a85949c1927ffb26dfa4bafb6caf1b227e9faea394bca186c0fe300d1456dd7f",
+  "previousBuild": "v0.8.0_bf9456242f",
   "validation": {
-    "swiftParse": "PASS_GITHUB_ACTIONS_XCODEBUILD",
-    "swiftPlaygroundsParse": "PENDING_RUNTIME_VALIDATION",
-    "pureSwiftScenarioTests": "PASS_V0.6_LOGIC_UNCHANGED",
-    "scenarioTestCount": 12,
-    "swiftUIExpertStaticAudit": "PASS",
+    "reportServerTests": "PASS_12_SYNTHETIC",
+    "syntheticReportTemplate": "PASS",
     "sourceParity": "PASS",
-    "iosRuntimeTest": "PENDING_SIMULATOR_INTERACTION",
-    "reportServerTests": "PASS_7",
-    "syntheticReportPreview": "PASS_HTML_ONLY",
-    "liveAPI": "NOT_RUN",
-    "iosPDFPagination": "PENDING",
-    "validatedImplementationCommit": "65b35cf4337eb7370d75c6ae829ecfc148c6d733"
+    "iOSBuild": "PENDING_GITHUB_ACTIONS",
+    "clinicalScenarios": "PENDING_GITHUB_ACTIONS",
+    "iosRuntimeTest": "NOT_RUN",
+    "liveAPI": "NOT_RUN_MISSING_GROQ_KEY",
+    "iosPDFPagination": "PENDING"
   },
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -26,5 +22,5 @@
       "iPad"
     ]
   },
-  "notes": "Source SHA excludes metadata files. Prior implementation build and clinical tests passed in run 34179188414. Final follow-up build must pass on PR. Actual iOS interaction/printing and live API remain unverified."
+  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results."
 }
