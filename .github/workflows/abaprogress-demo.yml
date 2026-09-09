@@ -1,0 +1,24 @@
+name: ABAProgress usage video
+on:
+  push:
+    branches: [codex/abaprogress-release-readiness-v0.9]
+    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, .github/workflows/abaprogress-demo.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  record:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 ABAProgress/QA/select_xcode.py
+      - run: gem install --user-install xcodeproj --no-document
+      - run: ruby ABAProgress/QA/setup_demo_target.rb
+      - run: python3 ABAProgress/QA/record_demo.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ABAProgress-usage-video
+          path: ${{ runner.temp }}/aba-demo/
+          retention-days: 7

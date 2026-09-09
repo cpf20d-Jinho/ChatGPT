@@ -69,6 +69,7 @@ struct ReportView: View {
             .frame(maxWidth: ABAVisualStyle.contentMaxWidth)
             .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(ABAVisualStyle.groupedBackground)
         .navigationTitle("경과 보고서")
         .navigationBarTitleDisplayMode(.inline)

@@ -1,6 +1,8 @@
 # 서버 연결 절차 — v0.9
 
-아직 운영 서버에 배포하지 않았다. 호스팅 계정, HTTPS 호스트, 새 Groq 키가 필요하다. 공개 PR에 노출되었던 키를 재사용하지 않는다.
+2026-09-09 My Workspace의 Singapore 무료 Node 서비스에 배포했다. HTTPS 인증 health 확인은 통과했으며, 새 Groq 키를 통한 제공자 응답 검증은 아직 필요하다.
+
+서버: https://abaprogress-reports.onrender.com · Render 서비스: srv-dagldhqjnfac73e3asm0 공개 PR에 노출되었던 키를 재사용하지 않는다.
 
 1. Node 22 또는 이 폴더의 Dockerfile을 지원하는 호스트에 배포한다. 외부 요청은 유효한 인증서의 HTTPS 프록시만 허용한다.
 2. 사용자마다 암호학적으로 무작위인 32바이트 이상의 토큰을 발급하고 안전한 채널로 전달한다. 토큰 자체는 GitHub에 올리지 않는다.
