@@ -14,7 +14,8 @@ struct ReportComposerView: View {
     @State private var aiResult: ReportAIResult?
     @State private var aiFingerprint = ""
     @State private var isBusy = false
-    @State private var showConsent = false
+    @State private var consentRequest: ReportConsentRequest?
+    @State private var connectionStatus: String?
     @State private var shareURL: URL?
     @State private var reviewed = false
 
@@ -55,9 +56,9 @@ struct ReportComposerView: View {
                 }
             }
             field("도전적 행동 변화 · 직접 작성", $draft.behavior)
-            DisclosureGroup("AI에 제공할 확인된 관찰 기록") {
-                field("관찰 사실만 입력 · 이름 등 개인정보 제외", $draft.confirmedObservations)
-                Text("원인·기능·촉구 수준은 측정값으로 추측하지 않습니다. 필요할 때만 확인된 관찰을 입력하세요.")
+            DisclosureGroup("참고용 관찰 기록 · 기기에만 보관") {
+                field("직접 작성 참고 메모 · AI 전송 제외", $draft.confirmedObservations)
+                Text("이 메모는 AI에 전송되지 않습니다. AI는 학습 반응 수치만 설명하며 원인·기능·촉구 수준을 추측하지 않습니다.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             field("종합 현황 · AI 초안 또는 직접 작성", $draft.currentStatus)
@@ -101,6 +102,7 @@ struct ReportComposerView: View {
             do {
                 draft = try ReportDraftStore.load(childID: child.id, start: startDate, end: endDate)
                 groqKey = ReportAIClient.savedGroqKey()
+                endpoint = ReportAIClient.configuredEndpoint
                 loaded = true
             } catch {
                 self.error = "저장된 보고서를 읽지 못했습니다. 기존 파일을 보호하기 위해 편집 저장을 중단합니다. \(error.localizedDescription)"
@@ -117,11 +119,11 @@ struct ReportComposerView: View {
             reviewed = false
             shareURL = nil
         }
-        .confirmationDialog("숫자 요약을 Groq로 전송할까요?", isPresented: $showConsent) {
-            Button("전송 내용 확인 완료 · AI 초안 요청") { generate() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("전송할 수치 배열을 확인하세요. 서버는 배열별 개수·초기/최근 평균·변화량·최솟값·최댓값만 Groq에 보냅니다. 이름·날짜·프로그램명·메모는 보내지 않습니다.")
+        .sheet(item: $consentRequest) { request in
+            ReportConsentSheet(request: request) {
+                consentRequest = nil
+                generate(request)
+            }
         }
     }
 
@@ -149,19 +151,40 @@ struct ReportComposerView: View {
                 } catch { self.error = error.localizedDescription }
             }
             .disabled(!groqKey.hasPrefix("gsk_") || groqKey.count < 24)
-            Text("키는 이 기기의 Keychain에만 저장되며 서버는 보관하지 않습니다. Groq는 제3자 앱용 로그인 연결을 제공하지 않아 최초 키 생성·붙여넣기는 필요합니다.")
+            Button("이 기기에 저장한 Groq 키 삭제", role: .destructive) {
+                do { try ReportAIClient.deleteGroqKey(); groqKey = ""; error = nil }
+                catch { self.error = error.localizedDescription }
+            }
+            Text("키는 이 기기의 Keychain에 저장합니다. 삭제는 기기에서 키를 지우며, 발급된 키 자체를 폐기하려면 Groq Console을 이용하세요.")
                 .font(.caption).foregroundStyle(.secondary)
-            TextField("HTTPS 보고서 서버 주소", text: $endpoint)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
+            Text(endpoint.isEmpty ? "운영 서버 설정이 필요합니다." : "연결 서버: \(endpoint)")
+                .font(.footnote).textSelection(.enabled)
             SecureField("보고서 서버 접속 토큰 (Groq 키 아님)", text: $token)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
+            Button("서버 연결 확인 · 학습 데이터 전송 없음") {
+                isBusy = true
+                Task { @MainActor in
+                    defer { isBusy = false }
+                    do {
+                        try await ReportAIClient.checkConnection(endpoint: endpoint, token: token)
+                        connectionStatus = "서버 인증·통신 확인 완료. Groq 호출은 아직 수행하지 않았습니다."
+                    } catch { connectionStatus = error.localizedDescription }
+                }
+            }.disabled(isBusy || endpoint.isEmpty || token.isEmpty)
+            if let connectionStatus { Text(connectionStatus).font(.footnote) }
+            DisclosureGroup("개인정보 처리 및 AI 전송 안내") {
+                Text(ReportConsentSheet.privacyNotice).font(.footnote).textSelection(.enabled)
+                Link("Groq 데이터 처리 정책", destination: URL(string: "https://console.groq.com/docs/your-data")!)
+            }
             DisclosureGroup("전송할 데이터 검토") {
                 Text(payloadPreview).font(.caption.monospaced()).textSelection(.enabled)
             }
             DisclosureGroup("계열 번호 대응표 · 기기에만 표시") {
                 Text(seriesLegend).font(.footnote).textSelection(.enabled)
             }
-            Button("현황 · 주요 변화 초안 요청") { showConsent = true }
+            Button("현황 · 주요 변화 초안 요청") {
+                consentRequest = ReportConsentRequest(document: document, endpoint: endpoint, token: token, groqKey: groqKey)
+            }
                 .disabled(isBusy || !loaded || endpoint.isEmpty || token.isEmpty || groqKey.isEmpty || document.goals.isEmpty)
             if let result = aiResult {
                 Text("AI 초안 · 검토 전").font(.headline)
@@ -191,14 +214,18 @@ struct ReportComposerView: View {
         }
     }
 
-    private func generate() {
-        let snapshot = document
+    private func generate(_ consent: ReportConsentRequest) {
+        let snapshot = consent.document
+        guard snapshot.fingerprint == document.fingerprint else {
+            error = "동의 화면을 연 뒤 자료가 변경되었습니다. 전송 내용을 다시 확인하세요."
+            return
+        }
         let payload = ReportAIPayload(document: snapshot)
         isBusy = true
         Task { @MainActor in
             defer { isBusy = false }
             do {
-                let result = try await ReportAIClient.generate(payload: payload, endpoint: endpoint, token: token, groqKey: groqKey)
+                let result = try await ReportAIClient.generate(payload: payload, endpoint: consent.endpoint, token: consent.token, groqKey: consent.groqKey)
                 guard snapshot.fingerprint == document.fingerprint else {
                     error = "생성 중 데이터가 변경되었습니다. 초안을 다시 요청하세요."
                     return
@@ -206,6 +233,56 @@ struct ReportComposerView: View {
                 aiFingerprint = snapshot.fingerprint
                 aiResult = result
             } catch { self.error = error.localizedDescription }
+        }
+    }
+}
+
+private struct ReportConsentRequest: Identifiable {
+    let id = UUID()
+    let document: ReportDocument
+    let endpoint: String
+    let token: String
+    let groqKey: String
+}
+
+private struct ReportConsentSheet: View {
+    let request: ReportConsentRequest
+    let onConfirm: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var agreed = false
+    static let privacyNotice = """
+아동명·생년월일·기관명·프로그램명·날짜·메모·치료사 소견·서명은 AI 전송에서 제외합니다. 이름을 가린 문서나 PDF도 전송하지 않습니다.
+
+학습별·단계별 반응률 배열만 보고서 서버에 보내고, 서버는 번호·관측 수·초기/최근 평균·차이·범위·비교 구간 중복 여부만 Groq에 전달합니다. 숫자만으로 완전한 익명성을 보장하지는 않습니다.
+
+목적은 학습 반응 데이터에 근거한 현황과 주요 변화의 초안 작성입니다. 진단·치료 효과·행동 원인을 판단하지 않습니다. 치료사 소견 이후는 직접 작성하며 초안은 사용자가 검토·적용합니다.
+
+연결에는 서버 접속 토큰과 Groq 키가 사용됩니다. 앱은 키를 Keychain에 저장하며, 제공된 서버 코드는 요청 본문과 키를 저장하거나 로그하지 않습니다. 운영 프록시와 Groq의 보존·처리 정책은 별도로 적용됩니다.
+
+매 요청마다 동의를 확인합니다. 취소해도 기록·수동 보고서 작성은 사용할 수 있습니다. 취소 시 학습 데이터와 Groq 키를 보내지 않습니다. 전송 이후에는 이미 처리된 정보를 소급하여 회수할 수 없습니다.
+"""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("수신처 및 목적") {
+                    Text("보고서 서버: \(request.endpoint)")
+                    Text("AI 처리자: Groq · 학습 반응 수치 보고서 초안")
+                }
+                Section("전송 제외 및 처리 안내") { Text(Self.privacyNotice).font(.footnote) }
+                Section("이번 요청의 실제 전송 데이터") {
+                    let encoder = JSONEncoder()
+                    Text((try? String(data: encoder.encode(ReportAIPayload(document: request.document)), encoding: .utf8)) ?? "데이터 확인 실패")
+                        .font(.caption.monospaced()).textSelection(.enabled)
+                }
+                Section {
+                    Toggle("전송 범위와 수신처를 확인했으며 이번 요청에 동의합니다", isOn: $agreed)
+                    Button("동의하고 초안 작성", action: onConfirm).disabled(!agreed)
+                    Button("동의하지 않고 취소", role: .cancel) { dismiss() }
+                }
+            }
+            .navigationTitle("AI 데이터 전송 동의")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } } }
         }
     }
 }

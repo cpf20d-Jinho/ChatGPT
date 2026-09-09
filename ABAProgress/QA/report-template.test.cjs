@@ -24,6 +24,14 @@ assert(element.innerHTML.includes('stroke-dasharray="4 3"'));
 doc.childName='<script>alert("x")</script>';vm.runInContext("renderReport(fixture)",ctx);
 assert(!element.innerHTML.includes('<script>alert'));doc.childName="가상 아동";
 console.log("PASS: 22 STO / 13 graphs / 16 sections / escaped text / SVG charts");
+if(process.argv.includes("--fixture")){
+ const {writeFileSync}=require("node:fs");
+ doc.draft.nextGoals="검증끝";
+ const stress=JSON.parse(JSON.stringify(doc));
+ stress.draft.therapistOpinion=Array.from({length:100},(_,i)=>`${i+1}. 긴 한국어 문단의 페이지 나눔과 누락을 확인하는 합성 데이터입니다.`).join("\n");
+ stress.draft.nextGoals="검증끝";
+ writeFileSync(process.argv[process.argv.indexOf("--fixture")+1],JSON.stringify([doc,stress]));
+}
 if(process.argv.includes("--render")){
  (async()=>{
   const {chromium}=require("playwright");

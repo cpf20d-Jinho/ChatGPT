@@ -1,11 +1,15 @@
 import Foundation
 import UIKit
 import WebKit
+#if DEBUG
+import PDFKit
+#endif
 
 @MainActor
 final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
     private let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 687, height: 980))
     private var navigation: CheckedContinuation<Void, Error>?
+    private var loadTimeout: Task<Void, Never>?
 
     static func export(_ document: ReportDocument) async throws -> URL {
         let job = ReportTemplateExporter()
@@ -26,6 +30,14 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
         try await withCheckedThrowingContinuation { continuation in
             navigation = continuation
             webView.loadHTMLString(html, baseURL: nil)
+            loadTimeout = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(20))
+                guard !Task.isCancelled, let self else { return }
+                self.navigation?.resume(throwing: NSError(domain: "Report", code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "보고서 양식 로딩 시간이 초과되었습니다."]))
+                self.navigation = nil
+                self.webView.stopLoading()
+            }
         }
         let data = try JSONEncoder().encode(document)
         let object = try JSONSerialization.jsonObject(with: data)
@@ -37,6 +49,9 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
                                           copyright: document.draft.copyright)
         renderer.addPrintFormatter(webView.viewPrintFormatter(), startingAtPageAt: 0)
         renderer.prepare(forDrawingPages: NSRange(location: 0, length: renderer.numberOfPages))
+        guard renderer.numberOfPages > 0 else {
+            throw NSError(domain: "Report", code: 3, userInfo: [NSLocalizedDescriptionKey: "인쇄할 보고서 페이지가 없습니다."])
+        }
         let output = NSMutableData()
         UIGraphicsBeginPDFContextToData(output, renderer.paperRect, nil)
         for index in 0..<renderer.numberOfPages {
@@ -52,20 +67,57 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        loadTimeout?.cancel()
         self.navigation?.resume()
         self.navigation = nil
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        loadTimeout?.cancel()
         self.navigation?.resume(throwing: error)
         self.navigation = nil
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        loadTimeout?.cancel()
         self.navigation?.resume(throwing: error)
         self.navigation = nil
     }
 }
+
+#if DEBUG
+extension ReportTemplateExporter {
+    // Only enabled by an explicit simulator environment flag. Never included in Release.
+    static func runSyntheticVerification() async {
+        let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let output = root.appendingPathComponent("qa-output", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+            let input = try Data(contentsOf: root.appendingPathComponent("qa-input.json"))
+            let documents = try JSONDecoder().decode([ReportDocument].self, from: input)
+            var results: [[String: Any]] = []
+            for (index, document) in documents.enumerated() {
+                let generated = try await export(document)
+                let destination = output.appendingPathComponent("report-\(index).pdf")
+                try? FileManager.default.removeItem(at: destination)
+                try FileManager.default.copyItem(at: generated, to: destination)
+                guard let pdf = PDFDocument(url: destination), let content = pdf.string,
+                      content.contains(document.childName), content.contains("검증끝"), pdf.pageCount >= 16 else {
+                    throw NSError(domain: "ReportQA", code: 1, userInfo: [NSLocalizedDescriptionKey: "PDF text or page verification failed"])
+                }
+                if index == 0 && pdf.pageCount != 16 {
+                    throw NSError(domain: "ReportQA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Baseline page count: \(pdf.pageCount), expected 16"])
+                }
+                results.append(["fixture": index, "pages": pdf.pageCount, "textVerified": true])
+            }
+            try JSONSerialization.data(withJSONObject: results, options: [.prettyPrinted])
+                .write(to: output.appendingPathComponent("success.json"))
+        } catch {
+            try? error.localizedDescription.write(to: output.appendingPathComponent("failure.txt"), atomically: true, encoding: .utf8)
+        }
+    }
+}
+#endif
 
 @MainActor
 private final class ReportPageRenderer: UIPrintPageRenderer {

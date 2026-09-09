@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v0.9 — Consent, server connection and release verification
+- Request-specific consent and numeric-only transmission; never transmit child identity, dates, labels, notes or PDFs.
+- Authenticated health check, redirect rejection, Keychain update/delete, expiring per-user tokens and rate limits.
+- Xcode 26+/SDK 26+ Release archive gate, Universal orientations and privacy manifest.
+- Actual iOS simulator PDF verification using synthetic baseline and long narrative fixtures.
+- Production hosting, new provider key and Apple distribution signing still require operator configuration.
+
 ## v0.8.1 — Groq BYOK numeric-only interpretation
 - Groq GPT-OSS 120B strict JSON with numeric summaries only; exclude dates, labels, notes and identifiers.
 - Store each user's key in the iOS Keychain and forward it per request without server persistence.

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
 import {validatePayload,requestBody,parseResponse,server} from "../Server/server.mjs";
 const fixture=()=>({version:1,series:[[20,60]]});
 const prose={currentStatus:"계열 1 최근 평균 40",majorChanges:"비교 구간이 겹칩니다.",warnings:[]};
@@ -16,8 +17,8 @@ async function withServer(fetchImpl,run){
  const service=server({token:"t".repeat(32),fetchImpl});
  await new Promise(resolve=>service.listen(0,"127.0.0.1",resolve));
  const url=`http://127.0.0.1:${service.address().port}/report/narrative`;
- const send=(body=fixture(),auth="Bearer "+"t".repeat(32),key="gsk_"+"k".repeat(32))=>fetch(url,{method:"POST",headers:{Authorization:auth,"X-Groq-API-Key":key},body:JSON.stringify(body)});
- try{await run(send);}finally{service.closeAllConnections();await new Promise(resolve=>service.close(resolve));}
+ const send=(body=fixture(),auth="Bearer "+"t".repeat(32),key="gsk_"+"k".repeat(32),consent="numeric-v1")=>fetch(url,{method:"POST",headers:{Authorization:auth,"X-Groq-API-Key":key,"X-ABA-Consent":consent},body:JSON.stringify(body)});
+ try{await run(send,url);}finally{service.closeAllConnections();await new Promise(resolve=>service.close(resolve));}
 }
 test("HTTP success uses Groq once with a per-request key and numeric summaries",async()=>{
  let calls=0;
@@ -43,4 +44,27 @@ test("provider credentials and unavailable response are sanitized",async()=>{
 });
 test("truncated and network failures leave no draft",async()=>{
  for(const upstream of [async()=>{throw Error("secret");},async()=>Response.json({choices:[{finish_reason:"length"}]})])await withServer(upstream,async send=>{const r=await send();assert.equal(r.status,502);assert.deepEqual(await r.json(),{error:"generation_failed"});});
+});
+test("no consent never calls provider; health sends no clinical data or provider key",async()=>{
+ await withServer(async()=>assert.fail("No provider call expected"),async(send,url)=>{
+  assert.equal((await send(undefined,undefined,undefined,"")).status,428);
+  const r=await fetch(url.replace("narrative","health"),{headers:{Authorization:"Bearer "+"t".repeat(32)}});
+  assert.equal(r.status,200);assert.equal((await r.json()).providerVerified,false);
+ });
+});
+test("per-user rate limit",async()=>{
+ await withServer(async()=>Response.json(completion()),async send=>{
+  for(let i=0;i<10;i++)assert.equal((await send()).status,200);
+  assert.equal((await send()).status,429);
+ });
+});
+test("expired user token fails and a valid distinct user can check health",async()=>{
+ const digest=t=>createHash("sha256").update(t).digest("hex");
+ const service=server({users:[{digest:digest("expired"),expiresAt:"2020-01-01T00:00:00Z"},{digest:digest("valid"),expiresAt:"2099-01-01T00:00:00Z"}],fetchImpl:async()=>assert.fail("No provider request")});
+ await new Promise(resolve=>service.listen(0,"127.0.0.1",resolve));
+ try{
+  const url=`http://127.0.0.1:${service.address().port}/report/health`;
+  assert.equal((await fetch(url,{headers:{Authorization:"Bearer expired"}})).status,401);
+  assert.equal((await fetch(url,{headers:{Authorization:"Bearer valid"}})).status,200);
+ }finally{service.closeAllConnections();await new Promise(resolve=>service.close(resolve));}
 });

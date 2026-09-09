@@ -39,6 +39,9 @@ jobs:
           xcodebuild -version
           swift --version
 
+      - name: Select App Store compatible Xcode and SDK
+        run: python3 ABAProgress/QA/select_xcode.py
+
       - name: Build Universal iOS app for Simulator
         run: |
           set -o pipefail
@@ -52,6 +55,26 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build \
             | tee "$RUNNER_TEMP/abaprogress-xcodebuild.log"
+
+      - name: Archive Release for iOS devices (unsigned validation)
+        run: |
+          set -o pipefail
+          xcodebuild -project ABAProgress/XcodeProject/ABAProgress.xcodeproj \
+            -scheme ABAProgress -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/ABAProgress.xcarchive" CODE_SIGNING_ALLOWED=NO archive \
+            > "$RUNNER_TEMP/abaprogress-release.log" 2>&1 || { tail -100 "$RUNNER_TEMP/abaprogress-release.log"; exit 1; }
+          python3 ABAProgress/QA/verify_archive.py "$RUNNER_TEMP/ABAProgress.xcarchive"
+
+      - name: Generate and inspect actual iOS report PDFs
+        run: python3 ABAProgress/QA/ios_report_runtime.py
+
+      - name: Upload synthetic iOS PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-report-verification
+          path: ${{ runner.temp }}/aba-ios-report-qa/
+          retention-days: 3
 
       - name: Run clinical scenario checks
         run: swift ABAProgress/QA/scenario_tests.swift

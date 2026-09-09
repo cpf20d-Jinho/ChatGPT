@@ -23,6 +23,13 @@ struct ABAProgressApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .task {
+                    #if DEBUG
+                    if ProcessInfo.processInfo.environment["ABA_REPORT_QA"] == "1" {
+                        await ReportTemplateExporter.runSyntheticVerification()
+                    }
+                    #endif
+                }
         }
         .modelContainer(container)
     }
