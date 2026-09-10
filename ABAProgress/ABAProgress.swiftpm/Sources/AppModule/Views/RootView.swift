@@ -118,6 +118,7 @@ struct ChildrenListView: View {
     let children: [ChildProfile]
     @State private var showingAddChild = false
     @State private var childPendingDeletion: ChildProfile?
+    @State private var deletionError: String?
     @State private var searchText = ""
 
     private var displayedChildren: [ChildProfile] {
@@ -174,8 +175,11 @@ struct ChildrenListView: View {
             Button("삭제", role: .destructive) { confirmChildDeletion() }
             Button("취소", role: .cancel) { childPendingDeletion = nil }
         } message: {
-            Text("이 작업은 해당 아동의 프로그램, Level, Session, Trial 기록을 모두 삭제합니다.")
+            Text("아동의 프로그램·수업 기록과 저장된 보고서 초안을 삭제합니다. 이미 공유·저장한 PDF와 기기 백업은 별도로 관리해야 합니다.")
         }
+        .alert("삭제 확인", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
+            Button("확인") { deletionError = nil }
+        } message: { Text(deletionError ?? "") }
     }
 
     private func deleteChildren(at offsets: IndexSet) {
@@ -185,9 +189,19 @@ struct ChildrenListView: View {
 
     private func confirmChildDeletion() {
         guard let childPendingDeletion else { return }
+        let childID = childPendingDeletion.id
         modelContext.delete(childPendingDeletion)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            deletionError = "아동 기록을 삭제하지 못했습니다. 다시 시도하세요."
+            self.childPendingDeletion = nil
+            return
+        }
         self.childPendingDeletion = nil
-        try? modelContext.save()
+        do { try ReportDraftStore.remove(childID: childID) }
+        catch { deletionError = "아동 기록은 삭제했지만 보고서 초안 정리에 실패했습니다. 기기 내 보고서 데이터 정리가 필요합니다." }
     }
 }
 

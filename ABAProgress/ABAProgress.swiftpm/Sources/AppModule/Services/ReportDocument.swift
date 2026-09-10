@@ -171,6 +171,16 @@ struct ReportDocument: Codable {
 }
 
 enum ReportDraftStore {
+    static func remove(childID: UUID, directory: URL? = nil) throws {
+        let root = try directory ?? FileManager.default.url(for: .applicationSupportDirectory,
+            in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("ReportDrafts", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: root.path) else { return }
+        for file in try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) {
+            guard file.pathExtension == "json", file.lastPathComponent.hasPrefix(childID.uuidString + "-") else { continue }
+            try FileManager.default.removeItem(at: file)
+        }
+    }
+
     static func url(childID: UUID, start: Date, end: Date) throws -> URL {
         let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                                appropriateFor: nil, create: true)

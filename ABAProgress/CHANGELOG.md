@@ -1,3 +1,10 @@
+# 0.9.1 · 출시 준비
+
+- 오늘 프로그램 행 전체 터치 및 Trial 접근성 식별자 개선.
+- 아동 삭제 시 해당 보고서 초안 정리와 실패 알림.
+- App Store 등록 문구·심사 안내·개인정보 방침 초안·서명 Archive 절차 준비.
+- UI 흐름 검증은 최종 CI 결과를 참조. Apple 서명과 새 Groq 키 검증은 아직 필요.
+
 # CHANGELOG
 
 ## v0.9 — Consent, server connection and release verification

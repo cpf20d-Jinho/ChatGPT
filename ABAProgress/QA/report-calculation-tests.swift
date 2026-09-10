@@ -3,6 +3,16 @@ import SwiftData
 
 @main struct ReportCalculationChecks {
     static func main() throws {
+        let scratch = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: scratch) }
+        let deletedID = UUID(), otherID = UUID()
+        let deleted = scratch.appendingPathComponent("\(deletedID)-2026-01-01.json")
+        let kept = scratch.appendingPathComponent("\(otherID)-2026-01-01.json")
+        try Data("{}".utf8).write(to: deleted); try Data("{}".utf8).write(to: kept)
+        try ReportDraftStore.remove(childID: deletedID, directory: scratch)
+        precondition(!FileManager.default.fileExists(atPath: deleted.path))
+        precondition(FileManager.default.fileExists(atPath: kept.path), "Deleting one child must preserve other drafts")
         let calendar = Calendar.current
         func day(_ n: Int) -> Date { calendar.date(from: DateComponents(year: 2026, month: 1, day: n))! }
         func session(_ n: Int, _ responses: [TrialResponse], completed: Bool = true) -> TherapySession {
