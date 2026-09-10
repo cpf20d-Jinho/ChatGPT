@@ -18,6 +18,7 @@ struct ReportComposerView: View {
     @State private var connectionStatus: String?
     @State private var shareURL: URL?
     @State private var reviewed = false
+    @FocusState private var focusedField: String?
 
     private var document: ReportDocument {
         ReportDocument.build(child: child, start: startDate, end: endDate, programs: programs, draft: draft)
@@ -98,6 +99,12 @@ struct ReportComposerView: View {
             if let error { Text(error).font(.footnote).foregroundStyle(.red) }
         }
         .abaSurface()
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("입력 완료") { focusedField = nil }
+            }
+        }
         .task {
             do {
                 draft = try ReportDraftStore.load(childID: child.id, start: startDate, end: endDate)
@@ -211,6 +218,7 @@ struct ReportComposerView: View {
             TextField(title, text: value, axis: .vertical)
                 .lineLimit(2...12).textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier(title)
+                .focused($focusedField, equals: title)
                 .disabled(!loaded)
         }
     }

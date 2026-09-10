@@ -11,7 +11,11 @@ final class DemoUITests: XCTestCase {
         func reveal(_ element: XCUIElement) {
             for _ in 0..<24 {
                 if element.exists && element.isHittable { return }
-                app.swipeUp(velocity: .slow)
+                let top = app.navigationBars.firstMatch.frame.maxY + 12
+                let above = element.exists && element.frame.height > 0 && element.frame.maxY <= top
+                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.35 : 0.58))
+                let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.58 : 0.35))
+                start.press(forDuration: 0.1, thenDragTo: end)
             }
             print(app.debugDescription)
             XCTFail("Missing UI element: \(element)")
@@ -38,7 +42,9 @@ final class DemoUITests: XCTestCase {
         func write(_ title: String, _ text: String) {
             let field = app.textFields[title]
             reveal(field); field.tap(); field.typeText(text)
-            app.swipeUp(velocity: .slow); pause()
+            let done = app.buttons["입력 완료"]
+            XCTAssertTrue(done.waitForExistence(timeout: 5))
+            done.tap(); pause()
         }
         write("종합 현황 · AI 초안 또는 직접 작성", "가상 데이터 시연입니다. 손뼉 치기의 정반응률은 초기 40%에서 최근 80%로 변화했습니다.")
         write("이번 기간의 강점과 주요 변화 · AI 초안 또는 직접 작성", "기록일별 정반응률이 점진적으로 증가했습니다. 이 문장은 치료사가 직접 작성한 시연 문구입니다.")
