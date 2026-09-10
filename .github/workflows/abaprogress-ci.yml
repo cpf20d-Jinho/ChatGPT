@@ -90,12 +90,14 @@ jobs:
             ABAProgress/XcodeProject/ABAProgress/Models/Models.swift \
             ABAProgress/XcodeProject/ABAProgress/Services/ReportDocument.swift \
             ABAProgress/XcodeProject/ABAProgress/Services/ReportAIClient.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/ReportWebEditing.swift \
             ABAProgress/QA/report-calculation-tests.swift -o "$RUNNER_TEMP/report-calculation-tests"
           "$RUNNER_TEMP/report-calculation-tests"
 
       - name: Report template and AI boundary checks (synthetic data only)
         run: |
           node --test ABAProgress/QA/report-ai.test.mjs
+          node --test ABAProgress/QA/report-editor.test.mjs
           node ABAProgress/QA/report-template.test.cjs
 
       - name: Render synthetic report preview
@@ -106,6 +108,10 @@ jobs:
           REPORT_QA_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
           REPORT_QA_OUTPUT="$RUNNER_TEMP/aba-report-preview" \
           node ABAProgress/QA/report-template.test.cjs --render
+          NODE_PATH="$RUNNER_TEMP/aba-report-tools/node_modules" \
+          REPORT_QA_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+          REPORT_QA_OUTPUT="$RUNNER_TEMP/aba-report-preview" \
+          node ABAProgress/QA/report-editor-browser.cjs
 
       - name: Upload synthetic report preview
         uses: actions/upload-artifact@v4

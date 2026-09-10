@@ -18,6 +18,8 @@ struct ReportComposerView: View {
     @State private var connectionStatus: String?
     @State private var shareURL: URL?
     @State private var reviewed = false
+    @State private var webEditorPresented = false
+    @State private var webSession: ReportWebSession?
     @FocusState private var focusedField: String?
 
     private var document: ReportDocument {
@@ -32,9 +34,7 @@ struct ReportComposerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("중간보고서 기본 양식", systemImage: ABASymbol.pdf).font(.title3.bold())
-            Text("STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동·보고기간별로 기기에 자동 저장됩니다.")
-                .font(.footnote).foregroundStyle(.secondary)
+            ABASectionHeading(title: "중간보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동·보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
             DisclosureGroup("표지 · 기관 · 서명 정보") {
                 field("기관명", $draft.institution)
                 field("담당 치료사", $draft.therapist)
@@ -59,17 +59,20 @@ struct ReportComposerView: View {
             field("도전적 행동 변화 · 직접 작성", $draft.behavior)
             DisclosureGroup("참고용 관찰 기록 · 기기에만 보관") {
                 field("직접 작성 참고 메모 · AI 전송 제외", $draft.confirmedObservations)
-                Text("이 메모는 AI에 전송되지 않습니다. AI는 학습 반응 수치만 설명하며 원인·기능·촉구 수준을 추측하지 않습니다.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
             field("종합 현황 · AI 초안 또는 직접 작성", $draft.currentStatus)
             field("이번 기간의 강점과 주요 변화 · AI 초안 또는 직접 작성", $draft.majorChanges)
             aiControls
             Divider()
-            Text("이하 항목은 AI가 작성하거나 덮어쓰지 않습니다.").font(.footnote).foregroundStyle(.secondary)
+            ABASectionHeading(title: "치료사 작성", help: "아래 소견·가정 안내·다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
             field("치료사 종합 소견", $draft.therapistOpinion)
             field("가정에서 함께 하기", $draft.homePractice)
             field("다음 목표", $draft.nextGoals)
+            Button { webEditorPresented = true } label: {
+                Label(webSession == nil ? "보고서 웹 편집" : "웹 수정본 가져오기", systemImage: "rectangle.and.pencil.and.ellipsis")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered).controlSize(.large).disabled(!loaded || isBusy)
             Toggle("집계 기준·그래프·서술 내용을 검토했습니다", isOn: $reviewed)
             Button {
                 let snapshot = document
@@ -132,6 +135,11 @@ struct ReportComposerView: View {
                 generate(request)
             }
         }
+        .sheet(isPresented: $webEditorPresented) {
+            ReportWebEditorView(draft: $draft, session: $webSession, fingerprint: document.fingerprint, endpoint: endpoint, token: $token) { updated in
+                try ReportDraftStore.save(updated, childID: child.id, start: startDate, end: endDate)
+            }
+        }
     }
 
     private var seriesLegend: String {
@@ -144,9 +152,9 @@ struct ReportComposerView: View {
     }
 
     private var aiControls: some View {
-        DisclosureGroup("AI 초안 작성 · 서버 연결 필요") {
-            Text("Groq의 GPT-OSS 120B가 번호로 구분한 수치 요약만 해석합니다. 최초 한 번 본인의 API 키를 등록하면 이후 요청에 자동으로 사용됩니다.")
-                .font(.footnote).foregroundStyle(.secondary)
+        DisclosureGroup("AI 초안 작성") {
+            VStack(alignment: .leading, spacing: 16) {
+            ABASectionHeading(title: "AI 연결", help: "Groq의 GPT-OSS 120B가 번호로 구분한 수치 요약만 해석합니다. 본인의 Groq 키와 보고서 서버 접속 토큰이 필요합니다. 요청할 때마다 실제 전송 내용을 확인하고 동의합니다.")
             Link("Groq 계정 로그인 · API 키 만들기", destination: URL(string: "https://console.groq.com/keys")!)
             SecureField("본인의 Groq API 키 (gsk_…)", text: $groqKey)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -162,13 +170,10 @@ struct ReportComposerView: View {
                 do { try ReportAIClient.deleteGroqKey(); groqKey = ""; error = nil }
                 catch { self.error = error.localizedDescription }
             }
-            Text("키는 이 기기의 Keychain에 저장합니다. 삭제는 기기에서 키를 지우며, 발급된 키 자체를 폐기하려면 Groq Console을 이용하세요.")
-                .font(.caption).foregroundStyle(.secondary)
-            Text(endpoint.isEmpty ? "운영 서버 설정이 필요합니다." : "연결 서버: \(endpoint)")
-                .font(.footnote).textSelection(.enabled)
+            ABASectionHeading(title: "서버 연결", help: "\(endpoint.isEmpty ? "운영 서버 설정이 필요합니다." : endpoint)\n\nGroq 키는 이 기기의 Keychain에 저장합니다. 키 삭제는 기기에서만 적용되며 키 자체의 폐기는 Groq Console에서 진행하세요. 연결 확인은 학습 데이터와 Groq 키를 전송하지 않습니다.")
             SecureField("보고서 서버 접속 토큰 (Groq 키 아님)", text: $token)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-            Button("서버 연결 확인 · 학습 데이터 전송 없음") {
+            Button("서버 연결 확인") {
                 isBusy = true
                 Task { @MainActor in
                     defer { isBusy = false }
@@ -209,18 +214,28 @@ struct ReportComposerView: View {
                     aiResult = nil
                 }
             }
+            }.padding(.top, 12).frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
     private func field(_ title: String, _ value: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.subheadline.weight(.medium))
-            TextField(title, text: value, axis: .vertical)
+        let parts = title.components(separatedBy: " · ")
+        let label = parts[0] == "이번 기간의 강점과 주요 변화" ? "강점과 주요 변화" : parts[0]
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(label).font(.subheadline.weight(.medium)).frame(maxWidth: .infinity, alignment: .leading)
+                if parts.count > 1 {
+                    ABAHelpButton(title: label, message: title.contains("AI 전송 제외") ? "기기에만 보관하는 참고 메모입니다. AI와 웹 편집에 전송하지 않습니다." : parts.dropFirst().joined(separator: " · "))
+                }
+            }
+            TextField("내용 입력", text: value, axis: .vertical)
                 .lineLimit(2...12).textFieldStyle(.roundedBorder)
+                .accessibilityLabel(label)
                 .accessibilityIdentifier(title)
                 .focused($focusedField, equals: title)
                 .disabled(!loaded)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func generate(_ consent: ReportConsentRequest) {
@@ -279,6 +294,7 @@ struct ReportPrivacyView: View {
                 Text("아동 프로필·치료 기록·수동 작성 보고서는 앱의 기기 저장소에 보관합니다. AI 기능을 사용하지 않아도 직접 보고서를 작성할 수 있습니다. PDF를 공유하면 선택한 공유 대상에게 보고서 내용이 전달됩니다.")
             }
             Section("AI 전송 안내") { Text(ReportConsentSheet.privacyNotice) }
+            Section("선택적 보고서 웹 편집") { Text(ReportWebEditing.notice) }
             Section("제공자 정책") {
                 Link("Groq 데이터 처리 정책", destination: URL(string: "https://console.groq.com/docs/your-data")!)
             }

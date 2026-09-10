@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import CryptoKit
 
 @main struct ReportCalculationChecks {
     static func main() throws {
@@ -50,6 +51,28 @@ import SwiftData
         precondition(fields["series"] as? [[Double]] == [[90,80]])
         let restricted = ReportDocument.build(child: child, start: day(3), end: day(3), programs: [program], draft: draft)
         precondition(restricted.goals[0].points.count == 1 && restricted.goals[0].points[0].value == 80)
+        draft.institution = "PRIVATE_INSTITUTION"
+        draft.therapist = "PRIVATE_THERAPIST"
+        draft.currentStatus = "가상 보고서"
+        let editable = ReportEditableText(draft)
+        let editableJSON = String(decoding: try JSONEncoder().encode(editable), as: UTF8.self)
+        precondition(!editableJSON.contains("PRIVATE"), "Web text excludes profile, cover and local observations")
+        let key = SymmetricKey(size: .bits256)
+        let sealed = try ReportWebEditing.seal(editable, key: key)
+        let reopened = try ReportWebEditing.open(sealed, key: key)
+        precondition(reopened == editable)
+        var remote = editable; remote.currentStatus = "웹 수정본"
+        let applied = remote.applying(to: draft)
+        precondition(applied.currentStatus == "웹 수정본" && applied.institution == draft.institution && applied.confirmedObservations == draft.confirmedObservations)
+        do {
+            _ = try ReportWebEditing.open(sealed, key: SymmetricKey(size: .bits256))
+            fatalError("Wrong key must fail")
+        } catch {}
+        let invalid = try AES.GCM.seal(Data("{\"childName\":\"blocked\"}".utf8), using: key).combined!.base64EncodedString()
+        do { _ = try ReportWebEditing.open(invalid, key: key); fatalError("Extra fields must fail") } catch {}
+        let webSession = ReportWebSession(id: String(repeating: "a", count: 32), capability: String(repeating: "b", count: 64), key: key, expiresAt: Date(), baseURL: URL(string: "https://example.invalid/report")!, original: editable, fingerprint: "local-only")
+        precondition(webSession.link.query == nil && webSession.link.fragment != nil)
+        print("PASS: encrypted web edit boundary, wrong-key rejection, strict field whitelist and local profile preservation")
         print("PASS: actual models and report builder: NA, incomplete sessions, date range, every-target mastery, stale review and identity-free serializer")
     }
 }

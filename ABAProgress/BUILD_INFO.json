@@ -1,11 +1,19 @@
 {
   "product": "ABAProgress",
-  "version": "0.9.1",
-  "buildTimeKST": "2026-09-10T14:15:32+09:00",
-  "buildHash": "d8fa7b1ff6",
-  "sourceSHA256": "d8fa7b1ff6658292abab2991339a9e32b0b77f9ae1ffc19dbfa49ca0af8c16ed",
-  "previousBuild": "v0.8.1_7f6dbc4e88",
-  "validation": {
+  "version": "0.10.0",
+  "buildTimeKST": "2026-09-10T20:19:19+09:00",
+  "buildHash": "4660dbafff",
+  "sourceSHA256": "4660dbafffde735ca8c4768ceb18c4ea00c4a28ef1ecde38b59c6f5a63287a6c",
+  "previousBuild": "v0.9.1_b9d0ded59d",
+  "compatibility": {
+    "minimumOS": "iOS/iPadOS 17.0",
+    "deviceFamilies": [
+      "iPhone",
+      "iPad"
+    ]
+  },
+  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results.",
+  "previousValidation": {
     "reportServerTests": "PASS_15_SYNTHETIC",
     "syntheticReportTemplate": "PASS",
     "sourceParity": "PASS",
@@ -25,12 +33,16 @@
     "demoPDF": "PASS_10_PAGES_FIVE_RECORDED_DATES_40_TO_80_PERCENT_MANUAL_NARRATIVE",
     "demoVideo": "REAL_SIMULATOR_RECORDING_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION"
   },
-  "compatibility": {
-    "minimumOS": "iOS/iPadOS 17.0",
-    "deviceFamilies": [
-      "iPhone",
-      "iPad"
-    ]
-  },
-  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results."
+  "validation": {
+    "reportServerTests": "PASS_17_SYNTHETIC",
+    "sourceParity": "PASS",
+    "iOSBuild": "PENDING_CI",
+    "releaseArchive": "PENDING_CI",
+    "iosPDFPagination": "PENDING_CI",
+    "clinicalScenarios": "PENDING_CI",
+    "webBrowser": "PENDING_CI",
+    "uiLayout": "PENDING_FOUR_SIMULATORS",
+    "liveAPI": "NOT_RUN_NEW_GROQ_KEY_REQUIRED",
+    "distributionSigning": "NOT_EXECUTED"
+  }
 }

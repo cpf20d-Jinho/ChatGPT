@@ -589,6 +589,48 @@ extension View {
     }
 }
 
+/// Consistent, accessible help. Important consent and error states remain visible.
+struct ABAHelpButton: View {
+    let title: String
+    let message: String
+    @State private var presented = false
+    var body: some View {
+        Button { presented = true } label: {
+            Image(systemName: "questionmark.circle")
+                .font(.body)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel("\(title) 도움말")
+        .accessibilityIdentifier("help-\(title)")
+        .popover(isPresented: $presented) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top) {
+                        Text(title).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                        Button("닫기") { presented = false }.frame(minHeight: 44)
+                    }
+                    Text(message).fixedSize(horizontal: false, vertical: true)
+                }.padding(24)
+            }
+            .frame(idealWidth: 360, idealHeight: 280)
+            .presentationDetents([.medium, .large])
+        }
+    }
+}
+
+struct ABASectionHeading: View {
+    let title: String
+    let help: String
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(title).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+            ABAHelpButton(title: title, message: help)
+        }
+    }
+}
+
 struct ABAStatusPill: View {
     @Environment(\.colorSchemeContrast) private var contrast
     let title: String

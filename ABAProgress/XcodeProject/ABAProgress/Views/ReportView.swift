@@ -96,19 +96,12 @@ struct ReportView: View {
             Text(child.name)
                 .font(.title2.bold())
 
-            ViewThatFits(in: .horizontal) {
-                HStack {
-                    DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
-                    DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
-                }
-                VStack(alignment: .leading, spacing: 10) {
-                    DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
-                    DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
-                }
+            VStack(alignment: .leading, spacing: 12) {
+                DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
             }
 
-            Text("프로그램 선택")
-                .font(.headline)
+            ABASectionHeading(title: "프로그램 선택", help: "선택한 프로그램의 완료된 치료 기록을 지정 기간에 맞춰 집계합니다. 그래프에는 실제 기록일만 표시합니다. 프로그램을 누르면 보고서 포함 여부가 바뀝니다.")
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 150), spacing: 8)],
                 spacing: 8

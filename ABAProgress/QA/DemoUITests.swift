@@ -1,6 +1,50 @@
 import XCTest
 
 final class DemoUITests: XCTestCase {
+    @MainActor func testHelpAndWebConsent() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["ABA_DEMO"] = "1"
+        app.launchArguments = ["-AppleLanguages", "(ko)", "-AppleLocale", "ko_KR"]
+        if UIDevice.current.userInterfaceIdiom == .pad { XCUIDevice.shared.orientation = .landscapeLeft }
+        app.launch()
+        func reveal(_ element: XCUIElement) {
+            for _ in 0..<28 {
+                if element.exists && element.isHittable { return }
+                let above = element.exists && element.frame.maxY < app.navigationBars.firstMatch.frame.maxY + 12
+                let a = app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: above ? 0.35 : 0.65))
+                let b = app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: above ? 0.65 : 0.35))
+                a.press(forDuration: 0.1, thenDragTo: b)
+            }
+            print(app.debugDescription); XCTFail("Missing \(element)")
+        }
+        func shot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        if app.tabBars.buttons["보고서"].exists { app.tabBars.buttons["보고서"].tap() }
+        else { app.staticTexts["보고서"].firstMatch.tap() }
+        let child = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch
+        XCTAssertTrue(child.waitForExistence(timeout: 10)); child.tap()
+        let help = app.buttons["help-프로그램 선택"]
+        reveal(help); shot("Report aligned controls"); help.tap()
+        XCTAssertTrue(app.buttons["닫기"].waitForExistence(timeout: 5)); shot("Accessible help")
+        app.buttons["닫기"].tap()
+        let field = app.textFields["종합 현황 · AI 초안 또는 직접 작성"]
+        reveal(field); shot("Report aligned narrative fields")
+        XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .portrait : .landscapeLeft
+        shot("Report alternate orientation")
+        XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .landscapeLeft : .portrait
+        let web = app.buttons["보고서 웹 편집"]
+        reveal(web); web.tap()
+        let agree = app.switches["전송 범위와 링크 접근 권한을 확인했으며 동의합니다"]
+        reveal(agree)
+        XCTAssertEqual(agree.value as? String, "0")
+        XCTAssertFalse(app.buttons["동의하고 편집 링크 만들기"].isEnabled)
+        shot("Web editing explicit consent default off")
+        app.buttons["닫기"].firstMatch.tap()
+    }
+
     @MainActor func testReportWalkthrough() throws {
         continueAfterFailure = false
         let app = XCUIApplication()

@@ -161,13 +161,7 @@ struct ProgramDetailView: View {
                 }
             }
 
-            Label {
-                Text("탭: NA → + → -  ·  길게 누르기: NA 초기화  ·  자동 저장")
-            } icon: {
-                Image(systemName: ABASymbol.trial)
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+            ABASectionHeading(title: "반응 기록", help: "버튼을 누르면 NA → + → − → NA 순서로 바뀝니다. +는 독립 정반응, −는 촉구반응입니다. NA는 미실시·미기록이며 정반응률 계산에서 제외합니다. 길게 누르면 NA로 초기화합니다. 변경 내용은 자동 저장됩니다.")
         }
         .abaSurface()
     }
@@ -188,9 +182,7 @@ struct ProgramDetailView: View {
                 Text(currentLevel?.label ?? "레벨 없음")
                     .font(.title3.bold())
                 Spacer()
-                Text("프로그램 레벨")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                ABAHelpButton(title: "레벨 종료 기준", message: "현재 레벨의 모든 진행 과제가 설정한 정반응률을 같은 기록일에 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다. 설정한 연속 기록일 기준을 충족하면 현재 레벨을 종료하고 다음 레벨을 자동 생성합니다.")
             }
 
             if let level = currentLevel {
@@ -214,9 +206,6 @@ struct ProgramDetailView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-                Text("기준 충족 시 현재 레벨을 자동 종료하고 다음 레벨 L\(level.levelNumber + 1)을 자동 생성합니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .abaSurface(background: Color(uiColor: .systemBackground))
@@ -549,10 +538,11 @@ struct TargetSessionCard: View {
                 }
             }
             if !target.targetDescription.isEmpty {
-                Text(target.targetDescription)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Text("과제 안내").font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                    ABAHelpButton(title: target.name, message: target.targetDescription)
+                }
             }
         }
     }

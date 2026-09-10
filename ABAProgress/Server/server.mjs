@@ -2,6 +2,7 @@ import {createServer} from "node:http";
 import {readFileSync} from "node:fs";
 import {timingSafeEqual,createHash} from "node:crypto";
 import {fileURLToPath} from "node:url";
+import {reportEditor} from "./report-editor.mjs";
 
 const guide=readFileSync(new URL("./GUIDE_SCRIPT.md",import.meta.url),"utf8");
 // This contract contains no user-supplied strings or real-world identifiers.
@@ -41,12 +42,14 @@ export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
  const accounts=users??(token?.length>=32?[{digest:createHash("sha256").update(token).digest("hex"),expiresAt:"2099-01-01T00:00:00Z"}]:[]);
  if(!accounts.length||accounts.some(a=>!/^\w{64}$/.test(a.digest)||!/^[a-f0-9]+$/.test(a.digest)||!Number.isFinite(Date.parse(a.expiresAt))))throw Error("Configure user token digests and expiration");
  const windows=new Map();
+ const editor=reportEditor({now});
  let busy=false;
- return createServer(async(req,res)=>{
+ const service=createServer(async(req,res)=>{
   res.setHeader("Cache-Control","no-store");res.setHeader("Content-Type","application/json");
   const auth=req.headers.authorization??"";
   const received=createHash("sha256").update(auth.startsWith("Bearer ")?auth.slice(7):"").digest();
   const account=accounts.find(a=>Date.parse(a.expiresAt)>now()&&timingSafeEqual(received,Buffer.from(a.digest,"hex")));
+  if(await editor.handle(req,res,account)) return;
   if(!account){res.writeHead(401);res.end('{"error":"unauthorized"}');return;}
   if(req.method==="GET"&&req.url==="/report/health"){res.end(JSON.stringify({status:"ok",contract:"numeric-v1",provider:"groq",providerVerified:false}));return;}
   if(req.method!=="POST"||req.url!=="/report/narrative"){res.writeHead(404);res.end('{"error":"not_found"}');return;}
@@ -84,6 +87,8 @@ export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
    res.writeHead(502);res.end('{"error":"generation_failed"}');
   }finally{busy=false;}
  });
+ service.on('close',()=>editor.close());
+ return service;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
  if(process.env.NODE_ENV==="production"&&!process.env.REPORT_USERS_FILE&&!process.env.REPORT_USERS_JSON)throw Error("Production requires per-user expiring token digests");

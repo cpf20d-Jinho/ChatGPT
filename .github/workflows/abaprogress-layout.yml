@@ -1,0 +1,27 @@
+name: ABAProgress report layout
+on:
+  push:
+    branches: [codex/abaprogress-release-readiness-v0.9]
+    paths: [ABAProgress/XcodeProject/ABAProgress/Views/**, ABAProgress/QA/ui_layout_runtime.py, ABAProgress/QA/DemoUITests.swift, .github/workflows/abaprogress-layout.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: abaprogress-layout-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  layout:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 ABAProgress/QA/select_xcode.py
+      - run: gem install --user-install xcodeproj --no-document
+      - run: ruby ABAProgress/QA/setup_demo_target.rb
+      - run: python3 ABAProgress/QA/ui_layout_runtime.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ABAProgress-report-layout
+          path: ${{ runner.temp }}/aba-layout/
+          retention-days: 3

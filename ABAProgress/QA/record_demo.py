@@ -17,7 +17,7 @@ try:
  with (out/'build.log').open('w') as log: subprocess.run(common+['build-for-testing'],stdout=log,stderr=subprocess.STDOUT,check=True)
  rec=subprocess.Popen(['xcrun','simctl','io',device,'recordVideo','--codec=h264',str(out/'ABAProgress-demo.mp4')])
  with (out/'test.log').open('w') as log:
-  result=subprocess.run(common+['test-without-building','-parallel-testing-enabled','NO','-resultBundlePath',str(out/'demo.xcresult')],stdout=log,stderr=subprocess.STDOUT)
+  result=subprocess.run(common+['test-without-building','-only-testing:DemoUITests/DemoUITests/testReportWalkthrough','-parallel-testing-enabled','NO','-resultBundlePath',str(out/'demo.xcresult')],stdout=log,stderr=subprocess.STDOUT)
  rec.send_signal(signal.SIGINT);rec.wait(timeout=30);rec=None
  container=Path(run('xcrun','simctl','get_app_container',device,'com.abaprogress.universal','data'))
  for p in container.rglob('*.pdf'): shutil.copy2(p,out/p.name)

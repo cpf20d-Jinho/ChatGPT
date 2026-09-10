@@ -1,4 +1,6 @@
-# v0.9.1 출시 준비
+# v0.10.0 출시 준비
+
+보고서 웹 편집은 기존 무료 서버를 사용하는 선택적 암호화 임시 전달 기능이다. 영구 저장이나 동기화 서비스가 아니다. `Server/REPORT_WEB_EDITING.md`와 개인정보 방침의 새 전송 범위를 제출 자료에 반영한다. 새 코드 검증과 v0.9.1의 이전 통과 기록은 BUILD_INFO에서 구분한다.
 
 ## 이번 변경
 - 요청별 기본 미동의 화면. 수신처·목적·실제 수치 배열·제외 항목을 표시하고 체크 후 전송한다. 취소하면 AI 요청하지 않는다.
@@ -17,7 +19,7 @@
 ## 개인정보 공개 검토
 반응 수치를 이름 없는 번호로 보내더라도 인증 토큰과 제공자 계정이 연결되므로 완전 익명을 주장하지 않는다. PrivacyInfo.xcprivacy는 건강 관련 데이터의 앱 기능 목적 처리를 보수적으로 선언한다. 직접 사용한 required-reason API는 현재 없으며, 종속성 추가/Archive Privacy Report 검토 시 수정한다. 서버/프록시/Groq의 실제 보존 설정을 App Store 개인정보 공개와 공개 방침에 일치시켜야 한다.
 
-시스템 HTTPS 및 Keychain만 사용하는 현재 구현 기준으로 비면제 암호화를 사용하지 않음으로 설정했다. 향후 자체 암호화 추가 시 수출 규정 질문을 다시 검토한다.
+시스템 HTTPS·Keychain에 더해 Apple CryptoKit의 AES-GCM을 사용한다. 자체 암호 알고리즘이나 외부 암호 라이브러리를 앱에 포함하지 않는다. Apple의 운영체제 제공 암호화 안내를 근거로 현재 설정을 유지하되 최종 제출 시 실제 바이너리와 배포 국가에 맞춰 수출 규정 질문을 확인한다. [Apple 안내](https://developer.apple.com/help/app-store-connect/manage-app-information/determine-and-upload-app-encryption-documentation/)
 
 ## 배포 빌드
 CI의 아카이브는 코드·리소스·SDK 검사이며 설치용 IPA나 Apple 제출 성공을 의미하지 않는다. Mac에서 Xcode 26+로 프로젝트를 열고 Signing & Capabilities의 Team을 지정한다. 운영 호스트를 `INFOPLIST_KEY_ABAReportServerHost`에 설정하고 Product > Archive > Validate App > Distribute App 순서로 진행한다. 인증서와 프로비저닝은 선택한 Apple 계정에서 발급한다.
