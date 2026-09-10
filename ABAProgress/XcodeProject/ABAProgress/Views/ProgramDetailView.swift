@@ -816,6 +816,7 @@ private struct TrialResponseButton: View {
             feedbackTrigger += 1
             resetAction()
         }
+        .accessibilityIdentifier("trial-\(trialNumber)")
         .accessibilityLabel("Trial \(trialNumber), \(response.accessibilityLabel)")
         .accessibilityValue(response.rawValue)
         .accessibilityHint("탭하여 NA, 정반응, 촉구반응 순서로 변경합니다. 길게 누르면 NA로 초기화합니다.")

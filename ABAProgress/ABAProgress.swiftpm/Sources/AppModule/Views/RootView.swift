@@ -321,6 +321,7 @@ private struct TodayChildCard: View {
                             ProgramDetailView(child: child, program: program)
                         } label: {
                             TodayProgramStatusCompact(program: program, today: today)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         if index < programs.count - 1 { Divider() }

@@ -13,15 +13,16 @@ final class DemoUITests: XCTestCase {
                 if element.exists && element.isHittable { return }
                 app.swipeUp(velocity: .slow)
             }
+            print(app.debugDescription)
             XCTFail("Missing UI element: \(element)")
         }
         func tap(_ e: XCUIElement) { reveal(e); e.tap(); pause() }
         pause()
         tap(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "소근육 모방")).firstMatch)
-        let trial = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Trial 1,")).firstMatch
+        let trial = app.buttons["trial-1"]
         reveal(trial)
         for i in 1...8 {
-            let b = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Trial \(i),")).firstMatch
+            let b = app.buttons["trial-\(i)"]
             reveal(b); b.tap(); Thread.sleep(forTimeInterval: 0.4)
         }
         pause()
