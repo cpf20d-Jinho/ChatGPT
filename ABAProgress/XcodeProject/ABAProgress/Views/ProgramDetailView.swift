@@ -940,13 +940,13 @@ private struct AddTargetView: View {
 
                 Section("기록") {
                     Stepper("최대 시행 횟수: \(maxTrials)", value: $maxTrials, in: 1...10)
-                    Text("기록 방식: NA → + → -")
-                        .foregroundStyle(.secondary)
+                    ABASectionHeading(title: "기록 방식", help: "NA → + → − 순서로 눌러 기록합니다. +는 독립 정반응, −는 촉구반응입니다. NA는 정반응률 계산에서 제외됩니다.")
                 }
 
                 Section("레벨 종료 기준") {
-                    Text("과제별 개별 습득 기준 대신 \(level.label)의 공통 기준을 사용합니다. 현재 기준은 연속 기록일 \(level.requiredDays)일 동안 모든 과제가 \(Int(level.criterionPercent))% 이상입니다.")
-                        .foregroundStyle(.secondary)
+                    LabeledContent("정반응률", value: "\(Int(level.criterionPercent))%")
+                    LabeledContent("연속 기록일", value: "\(level.requiredDays)일")
+                    ABASectionHeading(title: "판정 방법", help: "과제별 개별 기준 대신 \(level.label)의 공통 기준을 사용합니다. 같은 레벨의 모든 진행 과제가 같은 기록일에 기준을 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다.")
                 }
             }
             .navigationTitle("과제 추가")
@@ -988,9 +988,7 @@ private struct LevelSettingsView: View {
                 }
 
                 Section {
-                    Text("현재 레벨에서 모든 진행 과제가 같은 기록일에 80% 이상을 달성하고, 그 상태가 설정한 일수만큼 연속되면 레벨이 자동 종료됩니다. 이후 다음 레벨이 자동 생성됩니다.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    ABASectionHeading(title: "레벨 종료 안내", help: "현재 레벨에서 모든 진행 과제가 같은 기록일에 기준 정반응률을 달성하고, 그 상태가 설정한 기록일 수만큼 연속되면 레벨이 자동 종료됩니다. 이후 다음 레벨이 자동 생성됩니다.")
                 }
             }
             .navigationTitle("레벨 설정")

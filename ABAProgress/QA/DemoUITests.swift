@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 
 final class DemoUITests: XCTestCase {
     @MainActor func testHelpAndWebConsent() throws {

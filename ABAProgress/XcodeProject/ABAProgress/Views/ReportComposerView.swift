@@ -228,6 +228,7 @@ struct ReportComposerView: View {
                     ABAHelpButton(title: label, message: title.contains("AI 전송 제외") ? "기기에만 보관하는 참고 메모입니다. AI와 웹 편집에 전송하지 않습니다." : parts.dropFirst().joined(separator: " · "))
                 }
             }
+            .frame(minHeight: 44)
             TextField("내용 입력", text: value, axis: .vertical)
                 .lineLimit(2...12).textFieldStyle(.roundedBorder)
                 .accessibilityLabel(label)

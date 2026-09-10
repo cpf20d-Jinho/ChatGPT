@@ -29,6 +29,7 @@ struct ReportWebEditorView: View {
                     }
                 } else {
                     Section("서버 접속") {
+                        LabeledContent("수신 서버", value: URL(string: endpoint)?.host ?? "설정 필요")
                         SecureField("보고서 서버 접속 토큰", text: $token)
                             .textInputAutocapitalization(.never).autocorrectionDisabled().privacySensitive()
                     }

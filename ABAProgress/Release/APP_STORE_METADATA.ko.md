@@ -13,6 +13,8 @@ ABA 경과관리는 치료사가 아동별 프로그램과 과제 수행을 기�
 • 기록이 있는 날짜를 중심으로 정반응률 그래프를 확인합니다.
 • 완료된 기록으로 사용자 지정 기간의 보고서를 작성하고 PDF로 공유합니다.
 • 치료사 소견, 가정 연계, 다음 목표를 직접 작성합니다.
+• 필요한 설명은 동그라미 물음표 도움말에서 확인합니다.
+• 선택적으로 보고서의 서술 항목을 웹에서 수정하고 앱에서 검토해 반영합니다. 서버 접속 정보와 별도 동의가 필요하며, 편집본은 암호화된 임시본으로 최대 30분 보관됩니다. 서버 중지·재시작 시 더 일찍 사라질 수 있습니다.
 
 기본 기록과 수동 보고서는 기기에서 사용할 수 있습니다. 선택적인 AI 초안 기능은 별도의 서버 접속 정보와 Groq API 키가 필요합니다. 요청마다 전송 내용을 확인하고 동의한 경우 학습 반응 수치를 이용해 현황·주요 변화의 초안을 작성합니다. 아동명·생년월일·프로그램명·메모·서명과 PDF는 AI에 보내지 않습니다.
 
@@ -32,3 +34,5 @@ ABA Progress is a record-keeping app for adult practitioners, available on iPhon
 Optional narrative drafting uses a report server and Groq. Every request requires explicit consent. The app transmits numeric response-rate arrays only; the server sends aggregate statistics to Groq. Names, dates of birth, program names, notes, signatures and PDFs are excluded. AI output is limited to current status and major changes and must be reviewed before application. Later clinical narrative fields remain manual.
 
 Review path: Children > Add child > Add program > Add target > record trials > Complete > Reports > select child and date range > write narrative > confirm review > Generate PDF > Share. Provide working review credentials privately if the AI feature remains enabled in the submitted build.
+
+Optional web editing: Reports > Report web editing > review the six text fields and recipient > explicitly consent > create a temporary link > edit in a trusted browser > save > return to the app > review and apply > end the link > review and regenerate PDF. This uses only the report-server credential, not an AI key. Profile, raw treatment records, graphs, cover and signatures are not editable through this link. Text is AES-GCM encrypted with a key kept in the link fragment, with up to 30 minutes of in-memory relay storage; restart may erase it earlier. This feature is not a cloud backup. Free-form text is not automatically anonymized. Provide review credentials privately, never in the public repository.
