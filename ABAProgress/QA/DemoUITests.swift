@@ -25,6 +25,10 @@ final class DemoUITests: XCTestCase {
             let b = app.buttons["trial-\(i)"]
             reveal(b); b.tap(); Thread.sleep(forTimeInterval: 0.4)
         }
+        for i in 9...10 {
+            let b = app.buttons["trial-\(i)"]
+            reveal(b); b.tap(); b.tap()
+        }
         pause()
         tap(app.buttons["기록 완료"])
         if app.buttons["완료 처리"].waitForExistence(timeout: 2) { tap(app.buttons["완료 처리"]) }
