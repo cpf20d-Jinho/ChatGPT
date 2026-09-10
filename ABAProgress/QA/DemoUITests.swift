@@ -36,7 +36,7 @@ final class DemoUITests: XCTestCase {
         tap(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch)
         pause()
         func write(_ title: String, _ text: String) {
-            let field = app.descendants(matching: .any).matching(identifier: title).firstMatch
+            let field = app.textFields[title]
             reveal(field); field.tap(); field.typeText(text)
             app.swipeUp(velocity: .slow); pause()
         }
