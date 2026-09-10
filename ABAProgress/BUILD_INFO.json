@@ -1,9 +1,9 @@
 {
   "product": "ABAProgress",
   "version": "0.10.0",
-  "buildTimeKST": "2026-09-10T20:24:16+09:00",
-  "buildHash": "81e8ef1c60",
-  "sourceSHA256": "81e8ef1c609b6b40de8d54813ac8505ad244c3f469bde46aa9f09359f12e8833",
+  "buildTimeKST": "2026-09-10T23:18:33+09:00",
+  "buildHash": "cf0f6b4d14",
+  "sourceSHA256": "cf0f6b4d143c88d19d7fc1ae24fa908dc3e8208d4d4456a6b81cdd041c126b3b",
   "previousBuild": "v0.9.1_b9d0ded59d",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -36,13 +36,20 @@
   "validation": {
     "reportServerTests": "PASS_17_SYNTHETIC",
     "sourceParity": "PASS",
-    "iOSBuild": "PENDING_CI",
-    "releaseArchive": "PENDING_CI",
-    "iosPDFPagination": "PENDING_CI",
-    "clinicalScenarios": "PENDING_CI",
-    "webBrowser": "PENDING_CI",
-    "uiLayout": "PENDING_FOUR_SIMULATORS",
+    "iOSBuild": "PASS_RUN_34471215697",
+    "releaseArchive": "PASS_UNSIGNED_XCODE_26_PLUS_RUN_34471215697",
+    "iosPDFPagination": "PASS_IPHONE_IPAD_16_BASELINE_18_LONG_RUN_34471215697",
+    "clinicalScenarios": "PASS_12_RUN_34471215697",
+    "webBrowser": "PASS_CHROME_EDIT_ENCRYPT_CONFLICT_REVOKE_MOBILE_RUN_34471215697",
+    "uiLayout": "PASS_FOUR_SIMULATORS_LARGE_TYPE_ROTATION_HELP_CONSENT_RUN_34471212046",
     "liveAPI": "NOT_RUN_NEW_GROQ_KEY_REQUIRED",
-    "distributionSigning": "NOT_EXECUTED"
+    "distributionSigning": "NOT_EXECUTED",
+    "validatedSourceCommit": "6257d287db6a8f6957f84893debbfd4b5129912d",
+    "actualReportCalculationTests": "PASS_RUN_34471215697",
+    "webCryptography": "PASS_CRYPTOKIT_WHITELIST_WRONG_KEY_APPLY_RUN_34471215697",
+    "uiWalkthrough": "PASS_RECORD_TO_PDF_SHARE_RUN_34471212091",
+    "visualReview": "PASS_SYNTHETIC_IPHONE_IPAD_SCREENSHOTS_2026_09_10",
+    "renderDeployment": "LIVE_DEP_dah975m1egvs73d4hle0_SERVER_COMMIT_a4605082",
+    "liveWebEditing": "PASS_SYNTHETIC_HTTPS_CONSENT_CREATE_READ_UPDATE_CONFLICT_DELETE_2026_09_10"
   }
 }

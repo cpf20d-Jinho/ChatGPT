@@ -35,3 +35,11 @@ CI의 아카이브는 코드·리소스·SDK 검사이며 설치용 IPA나 Apple
 
 ## 제출 자료
 `Release/APP_STORE_METADATA.ko.md`, `Release/PRIVACY_POLICY_DRAFT.ko.md`, `Release/TESTFLIGHT_CHECKLIST.md`를 참조한다. 서명 IPA용 수동 GitHub workflow는 준비됐지만 인증서가 없어 실제 실행 검증은 하지 않았다.
+
+## v0.10.0 검증 완료 (2026-09-10)
+검증 소스는 `6257d287db6a8f6957f84893debbfd4b5129912d`이다. 이후 검증 기록 갱신은 문서·메타데이터만 변경한다.
+- [iOS CI 34471215697](https://github.com/cpf20d-Jinho/ChatGPT/actions/runs/34471215697): 시뮬레이터 빌드, 미서명 Release 아카이브, iPhone/iPad PDF 기본 16쪽·긴 문장 18쪽, 임상 시나리오 12개, 실제 모델 계산·CryptoKit 검증, 서버 17개 검사 및 실제 Chrome 편집 검사 통과.
+- [기기별 화면 검사 34471212046](https://github.com/cpf20d-Jinho/ChatGPT/actions/runs/34471212046): iPhone SE 3세대(접근성 큰 글씨), iPhone 17 Pro, iPad Pro 11/13인치(M5). 도움말, 입력란, 회전, 기본 미동의와 비활성 생성 버튼을 검사하고 촬영 화면을 검토했다.
+- [사용 흐름 34471212091](https://github.com/cpf20d-Jinho/ChatGPT/actions/runs/34471212091): 합성 아동 기록부터 보고서 작성·PDF 생성·공유 시트까지 통과. 실제 외부 제출은 하지 않았다.
+- Render 배포 `dep-dah975m1egvs73d4hle0` 정상 운영. 배포 서버 소스 `a4605082`와 위 검증 소스의 서버 실행 파일은 동일하다. 실제 HTTPS에서 합성 암호문 생성·읽기·수정·충돌 거부·삭제를 확인하고 임시 방을 삭제했다.
+- 네이티브 동의 UI/암호화, 브라우저, 실제 HTTPS는 각각 검증했다. 실기기에서 앱과 브라우저를 오가는 전체 연결 검증, 실제 AI 품질 검증 및 배포 서명은 별도 남아 있다.
