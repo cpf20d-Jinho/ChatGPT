@@ -1,10 +1,10 @@
 {
   "product": "ABAProgress",
-  "version": "0.10.0",
-  "buildTimeKST": "2026-09-10T23:18:33+09:00",
-  "buildHash": "cf0f6b4d14",
-  "sourceSHA256": "cf0f6b4d143c88d19d7fc1ae24fa908dc3e8208d4d4456a6b81cdd041c126b3b",
-  "previousBuild": "v0.9.1_b9d0ded59d",
+  "version": "0.11.0",
+  "buildTimeKST": "2026-09-11T08:09:03+09:00",
+  "buildHash": "52d372dfc8",
+  "sourceSHA256": "52d372dfc8456f7f912264d05a7769982a97ddbc91176eb5b996823e402a426b",
+  "previousBuild": "v0.10.0_cf0f6b4d14",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
     "deviceFamilies": [

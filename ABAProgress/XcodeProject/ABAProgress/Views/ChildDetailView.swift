@@ -6,7 +6,9 @@ struct ChildDetailView: View {
     let child: ChildProfile
 
     @State private var showingAddProgram = false
+    @State private var showingEditChild = false
     @State private var programPendingDeletion: TherapyProgram?
+    @State private var saveError: String?
 
     private var programs: [TherapyProgram] {
         child.programs.sorted { $0.createdAt < $1.createdAt }
@@ -85,15 +87,6 @@ struct ChildDetailView: View {
                 }
                 .padding(.vertical, 6)
 
-                if !programs.isEmpty {
-                    ForEach(programs) { program in
-                        NavigationLink {
-                            ProgramDetailView(child: child, program: program)
-                        } label: {
-                            TodayProgramStatusRow(program: program, today: today)
-                        }
-                    }
-                }
             }
 
             Section("프로그램") {
@@ -108,7 +101,7 @@ struct ChildDetailView: View {
                         NavigationLink {
                             ProgramDetailView(child: child, program: program)
                         } label: {
-                            ProgramRow(program: program)
+                            TodayProgramStatusRow(program: program, today: today)
                         }
                     }
                     .onDelete(perform: deletePrograms)
@@ -125,7 +118,12 @@ struct ChildDetailView: View {
         }
         .navigationTitle(child.name)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showingEditChild = true
+                } label: {
+                    Label("아동 정보 수정", systemImage: "pencil")
+                }
                 Button {
                     showingAddProgram = true
                 } label: {
@@ -135,6 +133,9 @@ struct ChildDetailView: View {
         }
         .sheet(isPresented: $showingAddProgram) {
             AddProgramView(child: child)
+        }
+        .sheet(isPresented: $showingEditChild) {
+            EditChildView(child: child)
         }
         .confirmationDialog(
             "프로그램과 모든 기록을 삭제하시겠습니까?",
@@ -148,6 +149,15 @@ struct ChildDetailView: View {
             Button("취소", role: .cancel) { programPendingDeletion = nil }
         } message: {
             Text("이 작업은 프로그램의 모든 Level, 과제, Session, Trial 기록을 삭제합니다.")
+        }
+        .alert("저장 실패", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("다시 시도") { confirmProgramDeletion() }
+            Button("취소", role: .cancel) { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
         }
     }
 
@@ -166,7 +176,7 @@ struct ChildDetailView: View {
     @ViewBuilder
     private var todayAccuracyMetric: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("평균 정반응률")
+            Text("오늘 입력 평균")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if let todayAverageAccuracy {
@@ -190,8 +200,13 @@ struct ChildDetailView: View {
     private func confirmProgramDeletion() {
         guard let programPendingDeletion else { return }
         modelContext.delete(programPendingDeletion)
-        self.programPendingDeletion = nil
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+            self.programPendingDeletion = nil
+        } catch {
+            modelContext.rollback()
+            saveError = "프로그램을 삭제하지 못했습니다. 기록은 그대로 보존되었습니다."
+        }
     }
 }
 
@@ -295,6 +310,7 @@ private struct AddProgramView: View {
     @State private var name = ""
     @State private var category = ""
     @State private var description = ""
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -318,12 +334,85 @@ private struct AddProgramView: View {
                             programDescription: description
                         )
                         child.programs.append(program)
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            modelContext.rollback()
+                            saveError = "프로그램을 저장하지 못했습니다. 입력 내용은 화면에 남아 있습니다."
+                        }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
+        }
+    }
+}
+
+private struct EditChildView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let child: ChildProfile
+
+    @State private var name: String
+    @State private var useBirthDate: Bool
+    @State private var birthDate: Date
+    @State private var memo: String
+    @State private var saveError: String?
+
+    init(child: ChildProfile) {
+        self.child = child
+        _name = State(initialValue: child.name)
+        _useBirthDate = State(initialValue: child.birthDate != nil)
+        _birthDate = State(initialValue: child.birthDate ?? Date())
+        _memo = State(initialValue: child.memo)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("기본 정보") {
+                    TextField("이름", text: $name)
+                    Toggle("생년월일 입력", isOn: $useBirthDate)
+                    if useBirthDate {
+                        DatePicker("생년월일", selection: $birthDate, in: ...Date(), displayedComponents: .date)
+                    }
+                    TextField("메모", text: $memo, axis: .vertical)
+                }
+            }
+            .navigationTitle("아동 정보 수정")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { save() }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
+        }
+    }
+
+    private func save() {
+        child.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        child.birthDate = useBirthDate ? birthDate : nil
+        child.memo = memo
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveError = "아동 정보를 저장하지 못했습니다. 기존 정보는 보존되었습니다."
         }
     }
 }

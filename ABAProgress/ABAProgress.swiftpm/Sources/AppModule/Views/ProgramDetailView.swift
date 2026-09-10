@@ -11,8 +11,11 @@ struct ProgramDetailView: View {
     @State private var selectedDate = Calendar.current.startOfDay(for: Date())
     @State private var showingAddTarget = false
     @State private var showingLevelSettings = false
+    @State private var showingEditProgram = false
+    @State private var showingLevelReview = false
     @State private var showClosedTargets = false
     @State private var reviewRefreshVersion = 0
+    @State private var notice: (title: String, message: String)?
 
     private var currentLevel: ProgramLevel? { program.currentLevel }
 
@@ -41,6 +44,16 @@ struct ProgramDetailView: View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 header
+                if let notice {
+                    ABAInlineNotice(
+                        title: notice.title,
+                        message: notice.message,
+                        systemImage: notice.title.contains("실패") ? ABASymbol.warning : ABASymbol.completed,
+                        tint: notice.title.contains("실패") ? .red : .green,
+                        retryTitle: notice.title.contains("실패") ? "다시 저장" : nil,
+                        retry: notice.title.contains("실패") ? savePendingChanges : nil
+                    )
+                }
                 levelHeader
                 if !levelReviewIssues.isEmpty { levelReviewBanner }
 
@@ -98,10 +111,19 @@ struct ProgramDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    showingLevelSettings = true
+                Menu {
+                    Button {
+                        showingEditProgram = true
+                    } label: {
+                        Label("프로그램 정보 수정", systemImage: "pencil")
+                    }
+                    Button {
+                        showingLevelSettings = true
+                    } label: {
+                        Label("레벨 설정", systemImage: ABASymbol.settings)
+                    }
                 } label: {
-                    Label("레벨 설정", systemImage: ABASymbol.settings)
+                    Label("프로그램 관리", systemImage: ABASymbol.settings)
                 }
 
                 Button {
@@ -120,6 +142,15 @@ struct ProgramDetailView: View {
         }
         .sheet(isPresented: $showingLevelSettings) {
             LevelSettingsView(program: program)
+        }
+        .sheet(isPresented: $showingEditProgram) {
+            EditProgramView(program: program)
+        }
+        .sheet(isPresented: $showingLevelReview) {
+            LevelReviewView(program: program, issues: levelReviewIssues) {
+                showingLevelReview = false
+                showingLevelSettings = true
+            }
         }
     }
 
@@ -214,7 +245,7 @@ struct ProgramDetailView: View {
     private func ensureInitialLevel() {
         guard program.levels.isEmpty else { return }
         program.levels.append(ProgramLevel(levelNumber: 1))
-        try? modelContext.save()
+        savePendingChanges()
     }
 
     private var levelReviewBanner: some View {
@@ -226,22 +257,33 @@ struct ProgramDetailView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("완료된 레벨은 자동으로 되돌리지 않습니다. 원본 기록과 완료 기준을 확인한 뒤 필요한 경우 레벨 설정을 수정하세요.")
+            Text("완료된 레벨과 이후 기록은 자동으로 되돌리지 않습니다. 검토 화면에서 근거 기록과 기준을 확인하세요.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Button("판정 검토") { showingLevelReview = true }
+                .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .abaSurface(background: Color.orange.opacity(0.08))
     }
 
     private func evaluateCurrentLevel() {
-        _ = LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext)
+        do {
+            switch try LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext) {
+            case .unchanged:
+                break
+            case let .advanced(from, to):
+                notice = ("L\(from) 완료 · L\(to) 시작", "새 레벨은 정반응률을 0회 기록 상태에서 다시 집계합니다. 과제 추가 버튼으로 L\(to)의 첫 과제를 등록하세요.")
+            }
+        } catch {
+            notice = ("레벨 저장 실패", "판정 변경을 저장하지 못해 이전 상태로 되돌렸습니다.")
+        }
         reviewRefreshVersion += 1
     }
 
     private func refreshLevelIntegrity() {
         reviewRefreshVersion += 1
-        try? modelContext.save()
+        savePendingChanges()
     }
 
     private func reintroduceTarget(_ source: TherapyTarget) {
@@ -255,7 +297,17 @@ struct ProgramDetailView: View {
             levelNumber: currentLevel.levelNumber
         )
         program.targets.append(copy)
-        try? modelContext.save()
+        savePendingChanges()
+    }
+
+    private func savePendingChanges() {
+        do {
+            try modelContext.save()
+            if notice?.title.contains("실패") == true { notice = nil }
+        } catch {
+            modelContext.rollback()
+            notice = ("저장 실패", "변경 내용을 저장하지 못해 마지막 저장 상태로 되돌렸습니다.")
+        }
     }
 }
 
@@ -276,8 +328,10 @@ struct TargetSessionCard: View {
     let onDataChanged: () -> Void
 
     @State private var showingNote = false
+    @State private var showingEditTarget = false
     @State private var showingCompletionConfirmation = false
     @State private var lastMutation: SessionMutationSnapshot?
+    @State private var saveError: String?
 
     init(
         target: TherapyTarget,
@@ -338,6 +392,16 @@ struct TargetSessionCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if let saveError {
+                ABAInlineNotice(
+                    title: "자동 저장 실패",
+                    message: saveError,
+                    systemImage: ABASymbol.warning,
+                    tint: .red,
+                    retryTitle: "다시 저장",
+                    retry: retrySave
+                )
+            }
             if historicalEditMode {
                 Label("과거 기록 수정 모드", systemImage: ABASymbol.editHistory)
                     .font(.caption.bold())
@@ -430,6 +494,9 @@ struct TargetSessionCard: View {
                 onDataChanged()
             }
         }
+        .sheet(isPresented: $showingEditTarget) {
+            EditTargetView(target: target)
+        }
         .confirmationDialog(
             "모든 Trial을 \(bulkLabel)로 변경하시겠습니까?",
             isPresented: $showingBulkConfirmation,
@@ -502,11 +569,18 @@ struct TargetSessionCard: View {
         }
 
         if !historicalEditMode {
+            Button {
+                showingEditTarget = true
+            } label: {
+                Label("과제 수정", systemImage: "pencil")
+            }
+            .buttonStyle(.bordered)
+
             Menu {
                 ForEach(TargetStatus.allCases) { status in
                     Button(status.rawValue) {
                         target.status = status
-                        try? modelContext.save()
+                        persistChanges()
                     }
                 }
             } label: {
@@ -650,7 +724,6 @@ struct TargetSessionCard: View {
             newSession.trials.append(TrialRecord(trialNumber: number))
         }
         target.sessions.append(newSession)
-        try? modelContext.save()
         return newSession
     }
 
@@ -722,8 +795,29 @@ struct TargetSessionCard: View {
 
     private func markSessionChanged(_ session: TherapySession) {
         session.updatedAt = Date()
-        try? modelContext.save()
-        onDataChanged()
+        persistChanges()
+    }
+
+    private func persistChanges() {
+        do {
+            try modelContext.save()
+            saveError = nil
+            onDataChanged()
+        } catch {
+            modelContext.rollback()
+            lastMutation = nil
+            saveError = "입력은 저장되지 않았고 마지막 저장 상태로 복구했습니다. 저장 공간과 기기 상태를 확인한 뒤 다시 입력하거나 재시도하세요."
+        }
+    }
+
+    private func retrySave() {
+        do {
+            try modelContext.save()
+            saveError = nil
+            onDataChanged()
+        } catch {
+            saveError = "아직 저장할 수 없습니다. 기록은 마지막으로 성공한 저장 상태에 있습니다."
+        }
     }
 }
 
@@ -889,33 +983,51 @@ private extension TrialResponse {
 private struct SessionNoteView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Bindable var session: TherapySession
+    let session: TherapySession
     let onSaved: () -> Void
 
-    @State private var initialNote = ""
+    @State private var note: String
+    @State private var saveError: String?
+
+    init(session: TherapySession, onSaved: @escaping () -> Void) {
+        self.session = session
+        self.onSaved = onSaved
+        _note = State(initialValue: session.note)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("세션 메모", text: $session.note, axis: .vertical)
+                TextField("세션 메모", text: $note, axis: .vertical)
                     .lineLimit(4...10)
             }
             .navigationTitle("세션 메모")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("완료") { dismiss() }
+                    Button("저장") { save() }
                 }
             }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
         }
-        .onAppear { initialNote = session.note }
-        .onDisappear { saveIfNeeded() }
     }
 
-    private func saveIfNeeded() {
-        guard session.note != initialNote else { return }
+    private func save() {
+        guard session.note != note else { dismiss(); return }
+        session.note = note
         session.updatedAt = Date()
-        try? modelContext.save()
-        onSaved()
+        do {
+            try modelContext.save()
+            onSaved()
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveError = "메모를 저장하지 못했습니다. 작성한 내용은 이 화면에 남아 있습니다."
+        }
     }
 }
 
@@ -928,6 +1040,7 @@ private struct AddTargetView: View {
     @State private var name = ""
     @State private var description = ""
     @State private var maxTrials = 10
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -965,12 +1078,23 @@ private struct AddTargetView: View {
                             levelNumber: level.levelNumber
                         )
                         program.targets.append(target)
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            modelContext.rollback()
+                            saveError = "과제를 저장하지 못했습니다. 입력 내용은 화면에 남아 있습니다."
+                        }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
         }
     }
 }
@@ -979,6 +1103,7 @@ private struct LevelSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let program: TherapyProgram
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -995,11 +1120,22 @@ private struct LevelSettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") {
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            modelContext.rollback()
+                            saveError = "레벨 설정을 저장하지 못했습니다. 이전 설정으로 복구했습니다."
+                        }
                     }
                 }
             }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
         }
     }
 }
@@ -1021,5 +1157,136 @@ private struct LevelSettingsSection: View {
             }
         }
         .disabled(level.status == .completed)
+    }
+}
+
+private struct EditProgramView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let program: TherapyProgram
+    @State private var name: String
+    @State private var category: String
+    @State private var description: String
+    @State private var saveError: String?
+
+    init(program: TherapyProgram) {
+        self.program = program
+        _name = State(initialValue: program.name)
+        _category = State(initialValue: program.category)
+        _description = State(initialValue: program.programDescription)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("프로그램 정보") {
+                    TextField("프로그램명", text: $name)
+                    TextField("영역", text: $category)
+                    TextField("설명", text: $description, axis: .vertical)
+                }
+            }
+            .navigationTitle("프로그램 수정")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { save() }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil }, set: { if !$0 { saveError = nil } }
+            )) { Button("확인", role: .cancel) { saveError = nil } }
+            message: { Text(saveError ?? "") }
+        }
+    }
+
+    private func save() {
+        program.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        program.category = category
+        program.programDescription = description
+        do { try modelContext.save(); dismiss() }
+        catch { modelContext.rollback(); saveError = "프로그램 정보를 저장하지 못했습니다. 기존 정보는 보존되었습니다." }
+    }
+}
+
+private struct EditTargetView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let target: TherapyTarget
+    @State private var name: String
+    @State private var description: String
+    @State private var maxTrials: Int
+    @State private var saveError: String?
+
+    init(target: TherapyTarget) {
+        self.target = target
+        _name = State(initialValue: target.name)
+        _description = State(initialValue: target.targetDescription)
+        _maxTrials = State(initialValue: target.maxTrials)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("과제 정보") {
+                    TextField("과제명", text: $name)
+                    TextField("설명", text: $description, axis: .vertical)
+                    Stepper("앞으로 사용할 시행 횟수: \(maxTrials)", value: $maxTrials, in: 1...10)
+                }
+                Section {
+                    Text("시행 횟수 변경은 새 Session부터 적용됩니다. 기존 Session의 Trial 수와 정반응률은 바뀌지 않습니다.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("과제 수정")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { save() }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil }, set: { if !$0 { saveError = nil } }
+            )) { Button("확인", role: .cancel) { saveError = nil } }
+            message: { Text(saveError ?? "") }
+        }
+    }
+
+    private func save() {
+        target.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        target.targetDescription = description
+        target.maxTrials = maxTrials
+        do { try modelContext.save(); dismiss() }
+        catch { modelContext.rollback(); saveError = "과제 정보를 저장하지 못했습니다. 기존 정보는 보존되었습니다." }
+    }
+}
+
+private struct LevelReviewView: View {
+    @Environment(\.dismiss) private var dismiss
+    let program: TherapyProgram
+    let issues: [String]
+    let openSettings: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("확인된 차이") {
+                    ForEach(issues, id: \.self) { issue in
+                        Label(issue, systemImage: ABASymbol.review)
+                    }
+                }
+                Section("안전한 처리") {
+                    Text("과거 기록 수정 전의 완료 상태와 이후 레벨은 유지됩니다. 앱이 뒤 레벨을 삭제하거나 자동으로 과거 판정을 되돌리지 않습니다.")
+                    Button("레벨 기준 보기", action: openSettings)
+                }
+                Section("권장 확인") {
+                    Text("완료일 전 기록, 해당 레벨의 모든 과제, 연속 기록일 수와 정반응률 기준을 차례로 확인하세요.")
+                }
+            }
+            .navigationTitle("레벨 판정 검토")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("닫기") { dismiss() } } }
+        }
     }
 }

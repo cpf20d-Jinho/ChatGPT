@@ -1,6 +1,15 @@
 import SwiftUI
 
+private enum ReportComposerStep: String, CaseIterable, Identifiable {
+    case details = "1 기본"
+    case narratives = "2 서술"
+    case review = "3 검토"
+    var id: Self { self }
+}
+
 struct ReportComposerView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let child: ChildProfile
     let startDate: Date
     let endDate: Date
@@ -20,6 +29,9 @@ struct ReportComposerView: View {
     @State private var reviewed = false
     @State private var webEditorPresented = false
     @State private var webSession: ReportWebSession?
+    @State private var step: ReportComposerStep = .details
+    @State private var draftSaveTask: Task<Void, Never>?
+    @State private var saveStatus = "자동 저장 대기"
     @FocusState private var focusedField: String?
 
     private var document: ReportDocument {
@@ -35,70 +47,22 @@ struct ReportComposerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             ABASectionHeading(title: "중간보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동·보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
-            DisclosureGroup("표지 · 기관 · 서명 정보") {
-                field("기관명", $draft.institution)
-                field("담당 치료사", $draft.therapist)
-                field("소속반", $draft.className)
-                field("프로그램 분류 표시", $draft.programFamily)
-                field("주 횟수", $draft.schedule)
-                field("회기 시간", $draft.duration)
-                field("기관장", $draft.director)
-                field("기관장 자격 정보", $draft.directorCredential)
-                field("서명 일자", $draft.signedDate)
-                field("하단 저작권 · 출처 문구", $draft.copyright)
+            Picker("보고서 작성 단계", selection: $step) {
+                ForEach(ReportComposerStep.allCases) { Text($0.rawValue).tag($0) }
             }
-            DisclosureGroup("평가군 분류") {
-                ForEach(programs) { program in
-                    TextField(program.name, text: Binding(
-                        get: { draft.groupByProgram[program.id.uuidString] ?? "기타 목표" },
-                        set: { draft.groupByProgram[program.id.uuidString] = $0 }
-                    )).textFieldStyle(.roundedBorder)
-                    .accessibilityLabel("\(program.name) 평가군: ELCAR 평가 또는 기타 목표")
-                }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("report-composer-step")
+
+            switch step {
+            case .details: detailsStep
+            case .narratives: narrativesStep
+            case .review: reviewStep
             }
-            field("도전적 행동 변화 · 직접 작성", $draft.behavior)
-            DisclosureGroup("참고용 관찰 기록 · 기기에만 보관") {
-                field("직접 작성 참고 메모 · AI 전송 제외", $draft.confirmedObservations)
-            }
-            field("종합 현황 · AI 초안 또는 직접 작성", $draft.currentStatus)
-            field("이번 기간의 강점과 주요 변화 · AI 초안 또는 직접 작성", $draft.majorChanges)
-            aiControls
-            Divider()
-            ABASectionHeading(title: "치료사 작성", help: "아래 소견·가정 안내·다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
-            field("치료사 종합 소견", $draft.therapistOpinion)
-            field("가정에서 함께 하기", $draft.homePractice)
-            field("다음 목표", $draft.nextGoals)
-            Button { webEditorPresented = true } label: {
-                Label(webSession == nil ? "보고서 웹 편집" : "웹 수정본 가져오기", systemImage: "rectangle.and.pencil.and.ellipsis")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.bordered).controlSize(.large).disabled(!loaded || isBusy)
-            Toggle("집계 기준·그래프·서술 내용을 검토했습니다", isOn: $reviewed)
-            Button {
-                let snapshot = document
-                isBusy = true
-                Task { @MainActor in
-                    defer { isBusy = false }
-                    do {
-                        let url = try await ReportTemplateExporter.export(snapshot)
-                        guard snapshot.fingerprint == document.fingerprint, snapshot.draft == draft else {
-                            try? FileManager.default.removeItem(at: url)
-                            self.error = "생성 중 보고서가 변경되었습니다. 내용을 검토한 뒤 다시 생성하세요."
-                            return
-                        }
-                        shareURL = url
-                    }
-                    catch { self.error = error.localizedDescription }
-                }
-            } label: {
-                Label(isBusy ? "처리 중…" : "기본 양식 PDF 생성", systemImage: ABASymbol.pdf)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent).controlSize(.large)
-            .disabled(isBusy || !reviewed || !loaded || document.goals.isEmpty)
-            if let shareURL {
-                ShareLink(item: shareURL) { Label("PDF 공유 / 저장", systemImage: ABASymbol.share) }
-            }
+
+            Text(saveStatus)
+                .font(.caption)
+                .foregroundStyle(saveStatus.contains("실패") ? .red : .secondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             if let error { Text(error).font(.footnote).foregroundStyle(.red) }
         }
         .abaSurface()
@@ -121,13 +85,17 @@ struct ReportComposerView: View {
         .onChange(of: draft) {
             guard loaded else { return }
             reviewed = false
-            shareURL = nil
-            do { try ReportDraftStore.save(draft, childID: child.id, start: startDate, end: endDate) }
-            catch { self.error = "보고서 저장 실패: \(error.localizedDescription)" }
+            removeShareFile()
+            scheduleDraftSave()
         }
         .onChange(of: document.fingerprint) {
             reviewed = false
-            shareURL = nil
+            removeShareFile()
+        }
+        .onDisappear {
+            draftSaveTask?.cancel()
+            if loaded { storeDraft(draft) }
+            removeShareFile()
         }
         .sheet(item: $consentRequest) { request in
             ReportConsentSheet(request: request) {
@@ -140,6 +108,112 @@ struct ReportComposerView: View {
                 try ReportDraftStore.save(updated, childID: child.id, start: startDate, end: endDate)
             }
         }
+    }
+
+    @ViewBuilder
+    private var detailsStep: some View {
+        if horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize {
+            HStack(alignment: .top, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
+                    field("기관명", $draft.institution)
+                    field("담당 치료사", $draft.therapist)
+                    field("소속반", $draft.className)
+                    field("프로그램 분류 표시", $draft.programFamily)
+                    field("주 횟수", $draft.schedule)
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                Divider()
+                VStack(alignment: .leading, spacing: 12) {
+                    field("회기 시간", $draft.duration)
+                    field("기관장", $draft.director)
+                    field("기관장 자격 정보", $draft.directorCredential)
+                    field("서명 일자", $draft.signedDate)
+                    field("하단 저작권 · 출처 문구", $draft.copyright)
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                field("기관명", $draft.institution)
+                field("담당 치료사", $draft.therapist)
+                field("소속반", $draft.className)
+                field("프로그램 분류 표시", $draft.programFamily)
+                field("주 횟수", $draft.schedule)
+                field("회기 시간", $draft.duration)
+                field("기관장", $draft.director)
+                field("기관장 자격 정보", $draft.directorCredential)
+                field("서명 일자", $draft.signedDate)
+                field("하단 저작권 · 출처 문구", $draft.copyright)
+            }
+        }
+
+        DisclosureGroup("평가군 분류") {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(programs) { program in
+                    ABAAlignedField(title: program.name) {
+                        TextField("ELCAR 평가 또는 기타 목표", text: Binding(
+                            get: { draft.groupByProgram[program.id.uuidString] ?? "기타 목표" },
+                            set: { draft.groupByProgram[program.id.uuidString] = $0 }
+                        ))
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel("\(program.name) 평가군")
+                    }
+                }
+            }
+            .padding(.top, 8)
+        }
+
+        Button("다음: 서술 작성") { step = .narratives }
+            .buttonStyle(.borderedProminent)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    @ViewBuilder
+    private var narrativesStep: some View {
+        field("도전적 행동 변화 · 직접 작성", $draft.behavior)
+        DisclosureGroup("참고용 관찰 기록 · 기기에만 보관") {
+            field("직접 작성 참고 메모 · AI 전송 제외", $draft.confirmedObservations)
+                .padding(.top, 8)
+        }
+        field("종합 현황 · AI 초안 또는 직접 작성", $draft.currentStatus)
+        field("이번 기간의 강점과 주요 변화 · AI 초안 또는 직접 작성", $draft.majorChanges)
+        aiControls
+        Divider()
+        ABASectionHeading(title: "치료사 작성", help: "아래 소견·가정 안내·다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
+        field("치료사 종합 소견", $draft.therapistOpinion)
+        field("가정에서 함께 하기", $draft.homePractice)
+        field("다음 목표", $draft.nextGoals)
+        HStack {
+            Button("이전") { step = .details }.buttonStyle(.bordered)
+            Spacer()
+            Button("다음: 검토 및 내보내기") { step = .review }.buttonStyle(.borderedProminent)
+        }
+    }
+
+    @ViewBuilder
+    private var reviewStep: some View {
+        ABAInlineNotice(
+            title: "내보내기 전 확인",
+            message: "기간 \(ReportDocument.date(startDate)) ~ \(ReportDocument.date(endDate)), 프로그램 \(programs.count)개, STO \(document.stoCount)개를 사용합니다. 그래프의 빈 표식은 일부 과제만 기록된 날짜입니다.",
+            systemImage: ABASymbol.review,
+            tint: .blue
+        )
+        Button { webEditorPresented = true } label: {
+            Label(webSession == nil ? "보고서 웹 편집" : "웹 수정본 가져오기", systemImage: "rectangle.and.pencil.and.ellipsis")
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.bordered).controlSize(.large).disabled(!loaded || isBusy)
+        Toggle("집계 기준·그래프·서술 내용을 검토했습니다", isOn: $reviewed)
+        Button(action: exportPDF) {
+            Label(isBusy ? "처리 중…" : "기본 양식 PDF 생성", systemImage: ABASymbol.pdf)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent).controlSize(.large)
+        .disabled(isBusy || !reviewed || !loaded || document.goals.isEmpty)
+        if let shareURL {
+            ShareLink(item: shareURL) { Label("PDF 공유 / 저장", systemImage: ABASymbol.share) }
+        }
+        Button("이전: 서술 작성") { step = .narratives }.buttonStyle(.bordered)
     }
 
     private var seriesLegend: String {
@@ -221,14 +295,12 @@ struct ReportComposerView: View {
     private func field(_ title: String, _ value: Binding<String>) -> some View {
         let parts = title.components(separatedBy: " · ")
         let label = parts[0] == "이번 기간의 강점과 주요 변화" ? "강점과 주요 변화" : parts[0]
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(label).font(.subheadline.weight(.medium)).frame(maxWidth: .infinity, alignment: .leading)
-                if parts.count > 1 {
-                    ABAHelpButton(title: label, message: title.contains("AI 전송 제외") ? "기기에만 보관하는 참고 메모입니다. AI와 웹 편집에 전송하지 않습니다." : parts.dropFirst().joined(separator: " · "))
-                }
-            }
-            .frame(minHeight: 44)
+        return ABAAlignedField(
+            title: label,
+            help: parts.count > 1
+                ? (title.contains("AI 전송 제외") ? "기기에만 보관하는 참고 메모입니다. AI와 웹 편집에 전송하지 않습니다." : parts.dropFirst().joined(separator: " · "))
+                : nil
+        ) {
             TextField("내용 입력", text: value, axis: .vertical)
                 .lineLimit(2...12).textFieldStyle(.roundedBorder)
                 .accessibilityLabel(label)
@@ -236,7 +308,53 @@ struct ReportComposerView: View {
                 .focused($focusedField, equals: title)
                 .disabled(!loaded)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func scheduleDraftSave() {
+        draftSaveTask?.cancel()
+        saveStatus = "저장 대기 중…"
+        let snapshot = draft
+        draftSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            storeDraft(snapshot)
+        }
+    }
+
+    private func storeDraft(_ snapshot: ReportDraft) {
+        do {
+            try ReportDraftStore.save(snapshot, childID: child.id, start: startDate, end: endDate)
+            saveStatus = "기기에 저장됨"
+            if error?.hasPrefix("보고서 저장 실패") == true { error = nil }
+        } catch {
+            saveStatus = "자동 저장 실패"
+            self.error = "보고서 저장 실패: \(error.localizedDescription)"
+        }
+    }
+
+    private func removeShareFile() {
+        if let shareURL { try? FileManager.default.removeItem(at: shareURL) }
+        shareURL = nil
+    }
+
+    private func exportPDF() {
+        let snapshot = document
+        isBusy = true
+        Task { @MainActor in
+            defer { isBusy = false }
+            do {
+                let url = try await ReportTemplateExporter.export(snapshot)
+                guard snapshot.fingerprint == document.fingerprint, snapshot.draft == draft else {
+                    try? FileManager.default.removeItem(at: url)
+                    self.error = "생성 중 보고서가 변경되었습니다. 내용을 검토한 뒤 다시 생성하세요."
+                    return
+                }
+                removeShareFile()
+                shareURL = url
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
     }
 
     private func generate(_ consent: ReportConsentRequest) {

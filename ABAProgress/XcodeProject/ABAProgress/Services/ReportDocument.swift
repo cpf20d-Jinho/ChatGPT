@@ -23,10 +23,34 @@ struct ReportDraft: Codable, Equatable {
     var reviewedFingerprint = ""
 }
 
-struct InterimReportPoint: Codable {
+struct InterimReportPoint: Codable, Identifiable {
     let date: String
     let value: Double
     let level: Int
+    let recordedCount: Int
+    let applicableCount: Int
+
+    var id: String { "\(date)-L\(level)" }
+    var hasCompleteCoverage: Bool { applicableCount > 0 && recordedCount == applicableCount }
+
+    init(date: String, value: Double, level: Int, recordedCount: Int = 0, applicableCount: Int = 0) {
+        self.date = date
+        self.value = value
+        self.level = level
+        self.recordedCount = recordedCount
+        self.applicableCount = applicableCount
+    }
+
+    private enum CodingKeys: String, CodingKey { case date, value, level, recordedCount, applicableCount }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        date = try values.decode(String.self, forKey: .date)
+        value = try values.decode(Double.self, forKey: .value)
+        level = try values.decode(Int.self, forKey: .level)
+        recordedCount = try values.decodeIfPresent(Int.self, forKey: .recordedCount) ?? 0
+        applicableCount = try values.decodeIfPresent(Int.self, forKey: .applicableCount) ?? 0
+    }
 }
 
 struct ReportGoal: Codable {
@@ -132,18 +156,25 @@ struct ReportDocument: Codable {
                 var streak = 0
                 var met = false
                 for day in dates {
-                    let values = targets.compactMap { target -> Double? in
+                    let applicable = targets.filter { target in
+                        calendar.startOfDay(for: target.startDate) <= day &&
+                        (target.endDate == nil || calendar.startOfDay(for: target.endDate!) >= day)
+                    }
+                    let values = applicable.compactMap { target -> Double? in
                         let daily = target.sessions.filter {
                             $0.completed && $0.accuracy != nil && calendar.isDate($0.date, inSameDayAs: day)
                         }.compactMap(\.accuracy)
                         return daily.isEmpty ? nil : mean(daily)
                     }
-                    points.append(InterimReportPoint(date: date(day), value: mean(values), level: level))
+                    guard !values.isEmpty else { continue }
+                    points.append(InterimReportPoint(
+                        date: date(day),
+                        value: mean(values),
+                        level: level,
+                        recordedCount: values.count,
+                        applicableCount: applicable.count
+                    ))
                     // Averages alone do not establish mastery. Every applicable target must pass.
-                    let applicable = targets.filter { target in
-                        calendar.startOfDay(for: target.startDate) <= day &&
-                        (target.endDate == nil || calendar.startOfDay(for: target.endDate!) >= day)
-                    }
                     let allPassed = !applicable.isEmpty && applicable.allSatisfy { target in
                         let values = target.sessions.filter {
                             $0.completed && calendar.isDate($0.date, inSameDayAs: day)

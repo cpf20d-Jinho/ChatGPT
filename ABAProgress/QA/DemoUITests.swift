@@ -23,6 +23,13 @@ final class DemoUITests: XCTestCase {
             let attachment = XCTAttachment(screenshot: app.screenshot())
             attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
         }
+        func waitForOrientation(landscape: Bool) {
+            let predicate = NSPredicate { _, _ in
+                landscape ? app.frame.width > app.frame.height : app.frame.height > app.frame.width
+            }
+            let expectation = XCTNSPredicateExpectation(predicate: predicate, object: app)
+            XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 8), .completed)
+        }
         if app.tabBars.buttons["보고서"].exists { app.tabBars.buttons["보고서"].tap() }
         else { app.staticTexts["보고서"].firstMatch.tap() }
         let child = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch
@@ -31,11 +38,18 @@ final class DemoUITests: XCTestCase {
         reveal(help); shot("Report aligned controls"); help.tap()
         XCTAssertTrue(app.buttons["닫기"].waitForExistence(timeout: 5)); shot("Accessible help")
         app.buttons["닫기"].tap()
+        let narrativesStep = app.buttons["2 서술"]
+        XCTAssertTrue(narrativesStep.waitForExistence(timeout: 5)); narrativesStep.tap()
         let field = app.textFields["종합 현황 · AI 초안 또는 직접 작성"]
         reveal(field); shot("Report aligned narrative fields")
         XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .portrait : .landscapeLeft
+        waitForOrientation(landscape: UIDevice.current.userInterfaceIdiom != .pad)
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
         shot("Report alternate orientation")
         XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .landscapeLeft : .portrait
+        waitForOrientation(landscape: UIDevice.current.userInterfaceIdiom == .pad)
+        let reviewStep = app.buttons["3 검토"]
+        XCTAssertTrue(reviewStep.waitForExistence(timeout: 5)); reviewStep.tap()
         let web = app.buttons["보고서 웹 편집"]
         reveal(web); web.tap()
         let agree = app.switches["전송 범위와 링크 접근 권한을 확인했으며 동의합니다"]
@@ -44,6 +58,28 @@ final class DemoUITests: XCTestCase {
         XCTAssertFalse(app.buttons["동의하고 편집 링크 만들기"].isEnabled)
         shot("Web editing explicit consent default off")
         app.buttons["닫기"].firstMatch.tap()
+    }
+
+    @MainActor func testConsolidatedProgramAndEditEntryPoints() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["ABA_DEMO"] = "1"
+        app.launchArguments = ["-AppleLanguages", "(ko)", "-AppleLocale", "ko_KR"]
+        app.launch()
+        func shot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.screenshot())
+            attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        }
+        XCTAssertTrue(app.staticTexts["오늘 진행 현황"].firstMatch.waitForExistence(timeout: 10))
+        shot("Today recordable programs only")
+        let openChild = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "아동 열기")).firstMatch
+        XCTAssertTrue(openChild.exists); openChild.tap()
+        XCTAssertTrue(app.navigationBars["시연 아동"].waitForExistence(timeout: 5))
+        shot("Child consolidated program list")
+        let editChild = app.buttons["아동 정보 수정"]
+        XCTAssertTrue(editChild.exists); editChild.tap()
+        XCTAssertTrue(app.navigationBars["아동 정보 수정"].waitForExistence(timeout: 5))
+        shot("Child metadata editor")
     }
 
     @MainActor func testReportWalkthrough() throws {
@@ -84,6 +120,7 @@ final class DemoUITests: XCTestCase {
         tap(app.tabBars.buttons["보고서"])
         tap(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch)
         pause()
+        tap(app.buttons["2 서술"])
         func write(_ title: String, _ text: String) {
             let field = app.textFields[title]
             reveal(field); field.tap(); field.typeText(text)
@@ -96,6 +133,7 @@ final class DemoUITests: XCTestCase {
         write("치료사 종합 소견", "시연용 수동 소견입니다. 다음 회기에서도 수행을 관찰합니다.")
         write("가정에서 함께 하기", "시연용 안내: 놀이 중 손뼉 치기 활동을 함께 합니다.")
         write("다음 목표", "시연용 목표: 서로 다른 상황에서 반응을 기록합니다.")
+        tap(app.buttons["3 검토"])
         tap(app.switches["집계 기준·그래프·서술 내용을 검토했습니다"])
         tap(app.buttons["기본 양식 PDF 생성"])
         let share = app.buttons["PDF 공유 / 저장"]

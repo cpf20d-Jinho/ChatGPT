@@ -37,6 +37,7 @@ import CryptoKit
         let first = report()
         precondition(first.goals[0].points.map(\.value) == [90,90], "NA/unfinished dates must be excluded")
         precondition(first.goals[0].points.map(\.date) == ["2026-01-01","2026-01-03"])
+        precondition(first.goals[0].points.allSatisfy { $0.recordedCount == 2 && $0.applicableCount == 2 && $0.hasCompleteCoverage })
         precondition(first.incompleteCount == 1 && first.stoCount == 1 && first.masteredCount == 1)
         b.sessions[1].trials[3].response = .prompted
         let changed = report()
@@ -51,6 +52,35 @@ import CryptoKit
         precondition(fields["series"] as? [[Double]] == [[90,80]])
         let restricted = ReportDocument.build(child: child, start: day(3), end: day(3), programs: [program], draft: draft)
         precondition(restricted.goals[0].points.count == 1 && restricted.goals[0].points[0].value == 80)
+
+        let transitionProgram = TherapyProgram(name: "LEVEL_RESET")
+        transitionProgram.levels[0].status = .completed
+        let level2 = ProgramLevel(levelNumber: 2)
+        transitionProgram.levels.append(level2)
+        let l1 = TherapyTarget(name: "L1_TARGET", levelNumber: 1)
+        l1.startDate = day(1); l1.status = .mastered
+        l1.sessions = [session(1, [.correct]), session(2, [.correct])]
+        let l2 = TherapyTarget(name: "L2_TARGET", levelNumber: 2)
+        l2.startDate = day(3)
+        l2.sessions = [session(3, [.prompted]), session(4, [.correct, .prompted])]
+        transitionProgram.targets = [l1, l2]
+        let transition = ReportDocument.build(
+            child: child, start: day(1), end: day(4), programs: [transitionProgram], draft: draft
+        ).goals[0]
+        precondition(transition.points.filter { $0.level == 1 }.map(\.value) == [100, 100])
+        precondition(transition.points.filter { $0.level == 2 }.map(\.value) == [0, 50],
+                     "L2 must restart from its own observations instead of carrying L1 accuracy")
+
+        let partialProgram = TherapyProgram(name: "PARTIAL_COVERAGE")
+        let p1 = TherapyTarget(name: "P1"), p2 = TherapyTarget(name: "P2")
+        p1.startDate = day(1); p2.startDate = day(1)
+        p1.sessions = [session(1, [.correct])]
+        partialProgram.targets = [p1, p2]
+        let partialPoint = ReportDocument.build(
+            child: child, start: day(1), end: day(1), programs: [partialProgram], draft: draft
+        ).goals[0].points[0]
+        precondition(partialPoint.recordedCount == 1 && partialPoint.applicableCount == 2 && !partialPoint.hasCompleteCoverage,
+                     "Partial target coverage must be explicit and cannot imply mastery")
         draft.institution = "PRIVATE_INSTITUTION"
         draft.therapist = "PRIVATE_THERAPIST"
         draft.currentStatus = "가상 보고서"
@@ -74,5 +104,6 @@ import CryptoKit
         precondition(webSession.link.query == nil && webSession.link.fragment != nil)
         print("PASS: encrypted web edit boundary, wrong-key rejection, strict field whitelist and local profile preservation")
         print("PASS: actual models and report builder: NA, incomplete sessions, date range, every-target mastery, stale review and identity-free serializer")
+        print("PASS: L1→L2 restarts the series and partial daily coverage remains explicit")
     }
 }

@@ -19,10 +19,10 @@ for name in ['BUILD_INFO.json', 'HANDOFF_MANIFEST.json']:
     path = root/name
     data = json.loads(path.read_text())
     if name == 'BUILD_INFO.json':
-        data.update(version='0.10.0', buildTimeKST=now, buildHash=source[:10], sourceSHA256=source, previousBuild='v0.9.1_b9d0ded59d')
+        data.update(version='0.11.0', buildTimeKST=now, buildHash=source[:10], sourceSHA256=source, previousBuild='v0.10.0_cf0f6b4d14')
     else:
-        data.update(sourceVersion='0.10.0', sourceBuild=now, sourceBuildHash=source[:10])
+        data.update(sourceVersion='0.11.0', sourceBuild=now, sourceBuildHash=source[:10])
         data['readFirst'] = list(dict.fromkeys(data['readFirst'] + ['RELEASE_READINESS.md','Server/DEPLOYMENT.md']))
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2)+'\n')
 (root/'SHA256SUMS.txt').write_text(''.join(f'{h}  {p}\n' for h,p in checks))
-print('v0.10.0', source[:10])
+print('v0.11.0', source[:10])

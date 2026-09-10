@@ -23,8 +23,10 @@ try:
   try:
    run('xcrun','simctl','boot',device);run('xcrun','simctl','bootstatus',device,'-b')
    if index==0: run('xcrun','simctl','ui',device,'content_size','accessibility-large')
+   selected_tests=['-only-testing:DemoUITests/DemoUITests/testHelpAndWebConsent']
+   if index==1:selected_tests+=['-only-testing:DemoUITests/DemoUITests/testConsolidatedProgramAndEditEntryPoints']
    with (out/f'{index}.log').open('w') as log:
-    result=subprocess.run(common+['-destination','id='+device,'test-without-building','-only-testing:DemoUITests/DemoUITests/testHelpAndWebConsent','-parallel-testing-enabled','NO','-resultBundlePath',str(out/f'{index}.xcresult')],stdout=log,stderr=subprocess.STDOUT)
+    result=subprocess.run(common+['-destination','id='+device,'test-without-building']+selected_tests+['-parallel-testing-enabled','NO','-resultBundlePath',str(out/f'{index}.xcresult')],stdout=log,stderr=subprocess.STDOUT)
    results.append({'device':name,'success':result.returncode==0,'largeType':index==0})
    subprocess.run(['xcrun','xcresulttool','export','attachments','--path',str(out/f'{index}.xcresult'),'--output-path',str(out/f'{index}-screens')],check=True)
   finally:

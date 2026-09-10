@@ -1,7 +1,7 @@
 name: ABAProgress report layout
 on:
   push:
-    branches: [codex/abaprogress-release-readiness-v0.9]
+    branches: [codex/**]
     paths: [ABAProgress/XcodeProject/ABAProgress/Views/**, ABAProgress/QA/ui_layout_runtime.py, ABAProgress/QA/DemoUITests.swift, .github/workflows/abaprogress-layout.yml]
   workflow_dispatch:
 permissions:

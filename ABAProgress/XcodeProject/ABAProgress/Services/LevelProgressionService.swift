@@ -2,6 +2,10 @@ import Foundation
 import SwiftData
 
 enum LevelProgressionService {
+    enum EvaluationResult: Equatable {
+        case unchanged
+        case advanced(from: Int, to: Int)
+    }
     static func targets(for level: ProgramLevel, in program: TherapyProgram) -> [TherapyTarget] {
         program.targets.filter {
             $0.levelNumber == level.levelNumber && $0.status != .discontinued
@@ -34,10 +38,11 @@ enum LevelProgressionService {
         var trailing = 0
         for date in orderedDates.reversed() {
             let allQualified = levelTargets.allSatisfy { target in
-                guard let session = target.sessions.first(where: {
+                let accuracies = target.sessions.filter {
                     $0.completed && $0.hasMeaningfulData && calendar.isDate($0.date, inSameDayAs: date)
-                }), let accuracy = session.accuracy else { return false }
-                return accuracy >= level.criterionPercent
+                }.compactMap(\.accuracy)
+                guard !accuracies.isEmpty else { return false }
+                return ReportDocument.mean(accuracies) >= level.criterionPercent
             }
             if allQualified {
                 trailing += 1
@@ -49,12 +54,12 @@ enum LevelProgressionService {
     }
 
     @discardableResult
-    static func evaluateCurrentLevel(in program: TherapyProgram, modelContext: ModelContext) -> Bool {
-        guard let level = program.currentLevel else { return false }
+    static func evaluateCurrentLevel(in program: TherapyProgram, modelContext: ModelContext) throws -> EvaluationResult {
+        guard let level = program.currentLevel else { return .unchanged }
         let levelTargets = targets(for: level, in: program)
-        guard !levelTargets.isEmpty else { return false }
+        guard !levelTargets.isEmpty else { return .unchanged }
         guard trailingQualifiedDays(for: level, in: program) >= level.requiredDays else {
-            return false
+            return .unchanged
         }
 
         level.status = .completed
@@ -75,8 +80,13 @@ enum LevelProgressionService {
             next.status = .active
         }
 
-        try? modelContext.save()
-        return true
+        do {
+            try modelContext.save()
+            return .advanced(from: level.levelNumber, to: nextNumber)
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
     }
 
     static func integrityIssues(in program: TherapyProgram) -> [String] {
