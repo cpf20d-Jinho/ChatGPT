@@ -1,4 +1,4 @@
-# v0.9 출시 준비
+# v0.9.1 출시 준비
 
 ## 이번 변경
 - 요청별 기본 미동의 화면. 수신처·목적·실제 수치 배열·제외 항목을 표시하고 체크 후 전송한다. 취소하면 AI 요청하지 않는다.
@@ -30,3 +30,6 @@ CI의 아카이브는 코드·리소스·SDK 검사이며 설치용 IPA나 Apple
 - https://developer.apple.com/app-store/review/guidelines/
 - https://developer.apple.com/app-store/app-privacy-details/
 - https://console.groq.com/docs/your-data
+
+## 제출 자료
+`Release/APP_STORE_METADATA.ko.md`, `Release/PRIVACY_POLICY_DRAFT.ko.md`, `Release/TESTFLIGHT_CHECKLIST.md`를 참조한다. 서명 IPA용 수동 GitHub workflow는 준비됐지만 인증서가 없어 실제 실행 검증은 하지 않았다.

@@ -1,6 +1,9 @@
 # Codex Start Here
 
-This folder is a complete handoff of ABAProgress v0.9.0.
+This folder is a complete handoff of ABAProgress v0.9.1.
+
+## Release handoff
+Review `Release/TESTFLIGHT_CHECKLIST.md` and `BUILD_INFO.json`. Render hosting is configured; live AI credentials, operator policy details and Apple distribution signing still need verification. Do not repeat the already completed server provisioning.
 
 ## First task
 Use the **Build iOS Apps** plugin / Xcode runtime if available and bring this project to a reproducibly runnable state on iPhone and iPad simulators.

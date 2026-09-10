@@ -1,4 +1,4 @@
-# ABAProgress v0.9 — Consent, Server Connection and Release Verification
+# ABAProgress v0.9.1 — Release Preparation
 
 ## 현재 구현
 
@@ -7,7 +7,9 @@
 - AI가 번호로 설명한 학습 계열을 기기 안에서 프로그램명·레벨로 치환합니다. 이름을 서버에 보내지 않으면서 보고서 문구를 읽기 쉽게 합니다.
 - 연결 확인, 만료되는 사용자별 서버 토큰, 요청 제한, Keychain 키 삭제/교체를 지원합니다.
 - Xcode 26+/SDK 26+의 미서명 Release 아카이브와 iPhone/iPad 실제 PDF 생성 검사를 CI에서 수행합니다.
-- 운영 서버와 새 Groq 키, Apple 배포 서명은 아직 연결하지 않았습니다. `RELEASE_READINESS.md` 및 `Server/DEPLOYMENT.md`에 준비 사항을 정리했습니다.
+- Render 무료 운영 서버를 배포하고 HTTPS 인증 및 입력 차단을 확인했습니다. 새 Groq 키의 실제 응답과 Apple 배포 서명은 아직 검증하지 않았습니다.
+- `Release/`에 App Store 등록 문구·개인정보 방침 초안·TestFlight 체크리스트·서명 빌드 절차를 준비했습니다.
+- 프로그램 행 전체 터치, 보고서 키보드 입력 완료, 아동 삭제 시 해당 보고서 초안 정리를 보완했습니다. 최신 검증 결과는 `BUILD_INFO.json`과 PR #5를 확인하세요.
 
 ## v0.8 구현 이력
 
