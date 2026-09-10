@@ -39,3 +39,11 @@
 - Xcode 26 및 iOS/iPadOS 26 SDK 이상: https://developer.apple.com/news/upcoming-requirements/
 - 심사 및 제3자 AI 동의: https://developer.apple.com/app-store/review/guidelines/
 - 개인정보 공개: https://developer.apple.com/app-store/app-privacy-details/
+
+## Mac이 없는 경우: GitHub에서 서명 IPA 생성
+`.github/workflows/abaprogress-distribution.yml`을 수동 실행한다. 자동 업로드·심사 제출은 하지 않는다. GitHub `app-store` environment에 아래 비밀값을 먼저 등록해야 한다. 환경 접근은 소유자에게 제한하고 승인 규칙을 설정하는 것이 좋다.
+- APPLE_TEAM_ID
+- APPLE_DISTRIBUTION_P12_BASE64 / APPLE_DISTRIBUTION_P12_PASSWORD
+- APPLE_PROFILE_BASE64 (com.abaprogress.universal용 App Store 배포 프로파일)
+
+Apple 계정에서 발급한 유효한 인증서와 개인 키가 들어 있는 P12가 필요하다. 비밀값이 없으면 작업은 명확한 오류로 종료한다. 팀·앱 ID·만료·프로파일 종류를 확인한 뒤 임시 Keychain에서 서명하고 작업 종료 시 서명 자료를 정리한다. 결과 IPA는 보관 기간 3일의 GitHub artifact로 제공되므로 저장소 접근 권한을 확인한다. 아직 실제 서명 실행으로 검증하지 않은 준비용 workflow다.
