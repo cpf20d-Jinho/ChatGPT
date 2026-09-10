@@ -72,9 +72,11 @@ final class DemoUITests: XCTestCase {
         }
         XCTAssertTrue(app.staticTexts["오늘 진행 현황"].firstMatch.waitForExistence(timeout: 10))
         shot("Today recordable programs only")
-        let openChild = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "아동 열기")).firstMatch
-        XCTAssertTrue(openChild.exists); openChild.tap()
-        XCTAssertTrue(app.navigationBars["시연 아동"].waitForExistence(timeout: 5))
+        let childrenTab = app.tabBars.buttons["아동"]
+        XCTAssertTrue(childrenTab.waitForExistence(timeout: 5)); childrenTab.tap()
+        let childRow = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch
+        XCTAssertTrue(childRow.waitForExistence(timeout: 5)); childRow.tap()
+        XCTAssertTrue(app.staticTexts["오늘 현황"].waitForExistence(timeout: 5))
         shot("Child consolidated program list")
         let editChild = app.buttons["아동 정보 수정"]
         XCTAssertTrue(editChild.exists); editChild.tap()
