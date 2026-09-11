@@ -7,7 +7,8 @@ final class DemoUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["ABA_DEMO"] = "1"
         app.launchArguments = ["-AppleLanguages", "(ko)", "-AppleLocale", "ko_KR"]
-        if UIDevice.current.userInterfaceIdiom == .pad { XCUIDevice.shared.orientation = .landscapeLeft }
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        if isPad { XCUIDevice.shared.orientation = .landscapeLeft }
         app.launch()
         func reveal(_ element: XCUIElement) {
             for _ in 0..<28 {
@@ -30,10 +31,13 @@ final class DemoUITests: XCTestCase {
             let expectation = XCTNSPredicateExpectation(predicate: predicate, object: app)
             XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 8), .completed)
         }
-        if app.tabBars.buttons["보고서"].exists { app.tabBars.buttons["보고서"].tap() }
-        else { app.staticTexts["보고서"].firstMatch.tap() }
-        let child = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch
-        XCTAssertTrue(child.waitForExistence(timeout: 10)); child.tap()
+        func openReportAndChild() {
+            if app.tabBars.buttons["보고서"].exists { app.tabBars.buttons["보고서"].tap() }
+            else { app.staticTexts["보고서"].firstMatch.tap() }
+            let child = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch
+            XCTAssertTrue(child.waitForExistence(timeout: 10)); child.tap()
+        }
+        openReportAndChild()
         let help = app.buttons["help-프로그램 선택"]
         reveal(help); shot("Report aligned controls"); help.tap()
         XCTAssertTrue(app.buttons["닫기"].waitForExistence(timeout: 5)); shot("Accessible help")
@@ -42,12 +46,26 @@ final class DemoUITests: XCTestCase {
         XCTAssertTrue(narrativesStep.waitForExistence(timeout: 5)); narrativesStep.tap()
         let field = app.textFields["종합 현황 · AI 초안 또는 직접 작성"]
         reveal(field); shot("Report aligned narrative fields")
-        XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .portrait : .landscapeLeft
-        waitForOrientation(landscape: UIDevice.current.userInterfaceIdiom != .pad)
+        if isPad {
+            // A running iPad simulator can report a portrait app frame while the
+            // physical screen remains landscape. Relaunch to capture true pixels.
+            app.terminate(); XCUIDevice.shared.orientation = .portrait; app.launch()
+            openReportAndChild()
+            XCTAssertTrue(app.buttons["2 서술"].waitForExistence(timeout: 5)); app.buttons["2 서술"].tap()
+            reveal(field); waitForOrientation(landscape: false)
+        } else {
+            XCUIDevice.shared.orientation = .landscapeLeft
+            waitForOrientation(landscape: true)
+        }
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         shot("Report alternate orientation")
-        XCUIDevice.shared.orientation = UIDevice.current.userInterfaceIdiom == .pad ? .landscapeLeft : .portrait
-        waitForOrientation(landscape: UIDevice.current.userInterfaceIdiom == .pad)
+        if isPad {
+            app.terminate(); XCUIDevice.shared.orientation = .landscapeLeft; app.launch()
+            openReportAndChild(); waitForOrientation(landscape: true)
+        } else {
+            XCUIDevice.shared.orientation = .portrait
+            waitForOrientation(landscape: false)
+        }
         let reviewStep = app.buttons["3 검토"]
         XCTAssertTrue(reviewStep.waitForExistence(timeout: 5)); reviewStep.tap()
         let web = app.buttons["보고서 웹 편집"]
