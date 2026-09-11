@@ -133,6 +133,7 @@ final class DemoUITests: XCTestCase {
     }
 
     @MainActor func testReportWalkthrough() throws {
+        // Shared by the 11-inch iPad usage-video workflow and the standard UI walkthrough.
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchEnvironment["ABA_DEMO"] = "1"

@@ -1,9 +1,9 @@
 {
   "product": "ABAProgress",
   "version": "0.12.0",
-  "buildTimeKST": "2026-09-11T17:01:33+09:00",
-  "buildHash": "293c033040",
-  "sourceSHA256": "293c033040618a39eda14341974125910e048375ec7a7354843e8537f499d845",
+  "buildTimeKST": "2026-09-11T17:06:00+09:00",
+  "buildHash": "13242a38fc",
+  "sourceSHA256": "13242a38fcb5f15b68920e9f794d90d336fe5ed9083acaab96c32d00820757e5",
   "previousBuild": "v0.11.0_403f604dcb",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",

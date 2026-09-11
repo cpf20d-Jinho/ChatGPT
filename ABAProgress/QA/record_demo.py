@@ -1,4 +1,4 @@
-"""Record genuine XCUITest interactions in an iOS simulator, without real child data."""
+"""Record genuine XCUITest interactions on an 11-inch iPad, without real child data."""
 import json,os,subprocess,time,signal,shutil
 from pathlib import Path
 
