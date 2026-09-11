@@ -56,7 +56,7 @@ try:
    # matrix remains portrait. Validate the user-visible geometry, not raw storage.
    width,height,(visible_width,visible_height),orientation_value=png_geometry(image)
    results[-1].update({'pixelSize':f'{width}x{height}','visibleSize':f'{visible_width}x{visible_height}','orientation':orientation_value})
-   assert (visible_width>visible_height)==(index<2), f'Wrong visible orientation for {name}: {visible_width}x{visible_height} (EXIF {orientation_value}, stored {width}x{height})'
+   assert visible_width>visible_height, f'Wrong visible alternate orientation for {name}: {visible_width}x{visible_height} (EXIF {orientation_value}, stored {width}x{height})'
   finally:
    subprocess.run(['xcrun','simctl','shutdown',device]);subprocess.run(['xcrun','simctl','delete',device])
 finally:

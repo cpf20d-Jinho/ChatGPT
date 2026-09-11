@@ -8,7 +8,7 @@ final class DemoUITests: XCTestCase {
         app.launchEnvironment["ABA_DEMO"] = "1"
         app.launchArguments = ["-AppleLanguages", "(ko)", "-AppleLocale", "ko_KR"]
         let isPad = UIDevice.current.userInterfaceIdiom == .pad
-        if isPad { XCUIDevice.shared.orientation = .landscapeLeft }
+        XCUIDevice.shared.orientation = .portrait
         app.launch()
         func reveal(_ element: XCUIElement) {
             for _ in 0..<28 {
@@ -47,12 +47,12 @@ final class DemoUITests: XCTestCase {
         let field = app.textFields["종합 현황 · AI 초안 또는 직접 작성"]
         reveal(field); shot("Report aligned narrative fields")
         if isPad {
-            // A running iPad simulator can report a portrait app frame while the
-            // physical screen remains landscape. Relaunch to capture true pixels.
-            app.terminate(); XCUIDevice.shared.orientation = .portrait; app.launch()
+            // Relaunch after changing the iPad's physical direction because a
+            // running simulator can report a changed app frame before rotating.
+            app.terminate(); XCUIDevice.shared.orientation = .landscapeLeft; app.launch()
             openReportAndChild()
             XCTAssertTrue(app.buttons["2 서술"].waitForExistence(timeout: 5)); app.buttons["2 서술"].tap()
-            reveal(field); waitForOrientation(landscape: false)
+            reveal(field); waitForOrientation(landscape: true)
         } else {
             XCUIDevice.shared.orientation = .landscapeLeft
             waitForOrientation(landscape: true)
@@ -60,8 +60,8 @@ final class DemoUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         shot("Report alternate orientation")
         if isPad {
-            app.terminate(); XCUIDevice.shared.orientation = .landscapeLeft; app.launch()
-            openReportAndChild(); waitForOrientation(landscape: true)
+            app.terminate(); XCUIDevice.shared.orientation = .portrait; app.launch()
+            openReportAndChild(); waitForOrientation(landscape: false)
         } else {
             XCUIDevice.shared.orientation = .portrait
             waitForOrientation(landscape: false)
