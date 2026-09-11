@@ -72,6 +72,7 @@ private struct RegularRootView: View {
                     Text("ABA Progress")
                         .font(.headline)
                         .fixedSize(horizontal: true, vertical: false)
+                        .padding(.leading, 20)
                         .accessibilityAddTraits(.isHeader)
                 }
             }
