@@ -1,6 +1,15 @@
 import SwiftUI
 import SwiftData
-import Charts
+
+// Invisible alignment axis shared by the program title and recording date controls.
+private extension VerticalAlignment {
+    struct ProgramTitleCenter: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat {
+            context[VerticalAlignment.center]
+        }
+    }
+    static let programTitleCenter = VerticalAlignment(ProgramTitleCenter.self)
+}
 
 struct ProgramDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -157,44 +166,35 @@ struct ProgramDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             ViewThatFits(in: .horizontal) {
-                HStack {
+                HStack(alignment: .programTitleCenter, spacing: 16) {
                     programIdentity
                     Spacer()
-                    HStack(spacing: 8) {
-                        DatePicker(
-                            "기록 날짜",
-                            selection: $selectedDate,
-                            in: ...Date(),
-                            displayedComponents: .date
-                        )
-                        .datePickerStyle(.compact)
-                        if !Calendar.current.isDateInToday(selectedDate) {
-                            Button("오늘") { selectedDate = Calendar.current.startOfDay(for: Date()) }
-                                .buttonStyle(.bordered)
-                        }
-                    }
+                    recordingDateControls
+                        .alignmentGuide(.programTitleCenter) { $0[VerticalAlignment.center] }
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     programIdentity
-                    HStack(spacing: 8) {
-                        DatePicker(
-                            "기록 날짜",
-                            selection: $selectedDate,
-                            in: ...Date(),
-                            displayedComponents: .date
-                        )
-                        .datePickerStyle(.compact)
-                        if !Calendar.current.isDateInToday(selectedDate) {
-                            Button("오늘") { selectedDate = Calendar.current.startOfDay(for: Date()) }
-                                .buttonStyle(.bordered)
-                        }
-                    }
+                    recordingDateControls
                 }
             }
 
             ABASectionHeading(title: "반응 기록", help: "버튼을 누르면 NA → + → − → NA 순서로 바뀝니다. +는 독립 정반응, −는 촉구반응입니다. NA는 미실시 또는 미기록 상태이며 정반응률 계산에서 제외합니다. 길게 누르면 NA로 초기화합니다. 변경 내용은 자동 저장됩니다.")
         }
         .abaSurface()
+    }
+
+    private var recordingDateControls: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text("기록 날짜")
+            DatePicker("기록 날짜", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .fixedSize()
+            if !Calendar.current.isDateInToday(selectedDate) {
+                Button("오늘") { selectedDate = Calendar.current.startOfDay(for: Date()) }
+                    .buttonStyle(.bordered)
+            }
+        }
     }
 
     private var programIdentity: some View {
@@ -204,6 +204,7 @@ struct ProgramDetailView: View {
                 .foregroundStyle(.secondary)
             Text(program.name)
                 .font(.title2.bold())
+                .alignmentGuide(.programTitleCenter) { $0[VerticalAlignment.center] }
         }
     }
 
@@ -377,16 +378,6 @@ struct TargetSessionCard: View {
         return Double(correctCount) / Double(attemptedCount) * 100
     }
 
-    private var recentEntries: [MiniProgressPoint] {
-        let sessions = target.sessions
-            .filter { $0.completed && $0.accuracy != nil }
-            .sorted { $0.date < $1.date }
-            .suffix(5)
-        return sessions.enumerated().map { index, session in
-            MiniProgressPoint(id: session.id, index: index, date: session.date, accuracy: session.accuracy ?? 0)
-        }
-    }
-
     @State private var pendingBulkResponse: TrialResponse?
     @State private var showingBulkConfirmation = false
 
@@ -418,12 +409,6 @@ struct TargetSessionCard: View {
                     targetIdentity
                     accuracySummary
                 }
-            }
-
-            if recentEntries.count >= 2 {
-                MiniProgressChart(entries: recentEntries, criterion: target.masteryPercent)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
             }
 
             LazyVGrid(
@@ -460,17 +445,7 @@ struct TargetSessionCard: View {
                 }
             }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) {
-                    statBadges
-                    Spacer()
-                    secondaryActions
-                }
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) { statBadges }
-                    HStack(spacing: 8) { secondaryActions }
-                }
-            }
+            HStack(spacing: 8) { secondaryActions }
 
             if let session {
                 Button {
@@ -637,8 +612,18 @@ struct TargetSessionCard: View {
         )
     }
 
-    @ViewBuilder
     private var accuracySummary: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            accuracyValue
+            HStack(spacing: 8) { statBadges }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("현재 반응 개수")
+                .accessibilityValue("정반응 \(correctCount)개, 촉구반응 \(promptedCount)개, 미기록 \(naCount)개")
+        }
+    }
+
+    @ViewBuilder
+    private var accuracyValue: some View {
         if let accuracy {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(accuracy, format: .number.precision(.fractionLength(0...1)))%")
@@ -818,43 +803,6 @@ struct TargetSessionCard: View {
         } catch {
             saveError = "아직 저장할 수 없습니다. 기록은 마지막으로 성공한 저장 상태에 있습니다."
         }
-    }
-}
-
-private struct MiniProgressPoint: Identifiable {
-    let id: UUID
-    let index: Int
-    let date: Date
-    let accuracy: Double
-}
-
-private struct MiniProgressChart: View {
-    let entries: [MiniProgressPoint]
-    let criterion: Double
-
-    var body: some View {
-        Chart(entries) { point in
-            LineMark(
-                x: .value("세션", point.index),
-                y: .value("정반응률", point.accuracy)
-            )
-            .lineStyle(StrokeStyle(lineWidth: 2))
-
-            PointMark(
-                x: .value("세션", point.index),
-                y: .value("정반응률", point.accuracy)
-            )
-            .symbolSize(18)
-
-            RuleMark(y: .value("기준", criterion))
-                .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [3, 3]))
-                .foregroundStyle(.secondary.opacity(0.6))
-        }
-        .chartYScale(domain: 0...100)
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .accessibilityLabel("최근 \(entries.count)회 경과 그래프")
-        .accessibilityValue("최근 정반응률 \(Int(entries.last?.accuracy.rounded() ?? 0))퍼센트, 습득 기준 \(Int(criterion.rounded()))퍼센트")
     }
 }
 

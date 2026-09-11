@@ -13,6 +13,10 @@ struct ReportComposerView: View {
     let endDate: Date
     let programs: [TherapyProgram]
     @State private var draft = ReportDraft()
+    @State private var narrativeEditor: NarrativeEditorSelection?
+    @State private var templateStatus: String?
+    @State private var pendingTemplate: ReportBasicTemplate?
+    @State private var confirmTemplateLoad = false
     @State private var loaded = false
     @State private var error: String?
     @State private var endpoint = ""
@@ -44,7 +48,7 @@ struct ReportComposerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ABASectionHeading(title: "중간보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동과 보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
+            ABASectionHeading(title: "보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동과 보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
             Picker("보고서 작성 단계", selection: $step) {
                 ForEach(ReportComposerStep.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -95,6 +99,38 @@ struct ReportComposerView: View {
             if loaded { storeDraft(draft) }
             removeShareFile()
         }
+        .confirmationDialog("현재 기본 정보를 저장된 양식으로 바꿀까요?", isPresented: $confirmTemplateLoad, titleVisibility: .visible) {
+            Button("불러오기") {
+                if let pendingTemplate { draft = pendingTemplate.applying(to: draft) }
+                pendingTemplate = nil
+                templateStatus = "기본 양식을 불러왔습니다."
+            }
+            Button("취소", role: .cancel) { pendingTemplate = nil }
+        } message: {
+            Text("서명 일자, 평가군 분류와 서술 내용은 유지됩니다.")
+        }
+        .sheet(item: $narrativeEditor) { selection in
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("입력 내용은 자동 저장됩니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    TextEditor(text: selection.value)
+                        .accessibilityLabel(selection.title)
+                        .padding(8)
+                        .background(.background)
+                        .clipShape(.rect(cornerRadius: 12))
+                }
+                .padding()
+                .navigationTitle(selection.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("완료") { narrativeEditor = nil }
+                    }
+                }
+            }
+            .presentationDetents([.large])
+        }
         .sheet(item: $consentRequest) { request in
             ReportConsentSheet(request: request) {
                 consentRequest = nil
@@ -110,6 +146,26 @@ struct ReportComposerView: View {
 
     @ViewBuilder
     private var detailsStep: some View {
+        ABASectionHeading(title: "기본 양식", help: "기관명, 담당 치료사, 소속반, 프로그램 분류 표시, 주 횟수, 회기 시간, 기관장, 자격 정보와 하단 문구를 이 기기에 저장합니다. 새 아동이나 새 보고 기간의 보고서에 자동 적용합니다. 기존 보고서에는 불러오기를 눌렀을 때만 적용됩니다. 서명 일자, 평가군 분류와 서술은 양식에 저장하지 않습니다. 다시 저장하면 이전 기본 양식을 대체합니다.")
+        HStack {
+            Button("기본 양식 저장") {
+                do {
+                    try ReportBasicTemplate(draft).save()
+                    templateStatus = "기본 양식을 저장했습니다."
+                } catch { self.error = "기본 양식 저장 실패: \(error.localizedDescription)" }
+            }
+            Button("불러오기") {
+                do {
+                    if let template = try ReportBasicTemplate.load() {
+                        pendingTemplate = template
+                        confirmTemplateLoad = true
+                    } else { templateStatus = "저장된 기본 양식이 없습니다." }
+                } catch { self.error = "기본 양식 불러오기 실패: \(error.localizedDescription)" }
+            }
+        }
+        .buttonStyle(.bordered)
+        .disabled(!loaded)
+        if let templateStatus { Text(templateStatus).font(.footnote).foregroundStyle(.secondary) }
         VStack(alignment: .leading, spacing: 12) {
             singleLineField("기관명", $draft.institution)
             singleLineField("담당 치료사", $draft.therapist)
@@ -139,21 +195,24 @@ struct ReportComposerView: View {
             .padding(.top, 8)
         }
 
-        Button("다음: 서술 작성") { step = .narratives }
+        Button("다음") { step = .narratives }
             .buttonStyle(.borderedProminent)
             .frame(maxWidth: .infinity, alignment: .trailing)
     }
 
     @ViewBuilder
     private var narrativesStep: some View {
-        field("도전적 행동 변화", $draft.behavior, help: "치료사가 직접 작성하는 항목입니다.")
-        DisclosureGroup("기기에만 보관하는 참고용 관찰 기록") {
-            field("직접 작성 참고 메모", $draft.confirmedObservations, help: "기기에만 보관하며 AI와 웹 편집에는 전송하지 않습니다.")
-                .padding(.top, 8)
+        Toggle("AI로 작성", isOn: Binding(
+            get: { draft.aiWritingEnabled ?? false },
+            set: { draft.aiWritingEnabled = $0 }
+        )).disabled(!loaded || isBusy)
+        field("도전적 행동 변화", $draft.behavior, help: "서술은 아동과 보고 기간별로 이 기기에 자동 저장됩니다. AI에는 반응률 수치만 보내며, 행동 관찰과 직접 작성한 문장은 보내지 않습니다. 현재 AI는 행동 변화를 생성하지 않으므로 직접 작성한 내용이 유지됩니다. AI 작성 여부와 관계없이 직접 편집할 수 있습니다. PDF 공유 시 이 항목이 포함됩니다.")
+        field("종합 현황", $draft.currentStatus, help: narrativeStorageHelp, aiManaged: true)
+        field("강점과 주요 변화", $draft.majorChanges, help: narrativeStorageHelp, aiManaged: true)
+        DisclosureGroup("참고 메모") {
+            field("관찰 메모", $draft.confirmedObservations, help: "아동과 보고 기간별로 이 기기에 자동 저장하는 작성 참고 자료입니다. AI 요청, 웹 편집과 최종 PDF에는 포함하지 않습니다. 앱 데이터 삭제 시 메모도 삭제될 수 있습니다.")
         }
-        field("종합 현황", $draft.currentStatus, help: "AI 초안을 적용하거나 치료사가 직접 작성할 수 있습니다.")
-        field("강점과 주요 변화", $draft.majorChanges, help: "AI 초안을 적용하거나 치료사가 직접 작성할 수 있습니다.")
-        aiControls
+        if draft.aiWritingEnabled == true { aiControls }
         Divider()
         ABASectionHeading(title: "치료사 작성", help: "아래 소견, 가정 안내와 다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
         field("치료사 종합 소견", $draft.therapistOpinion)
@@ -162,7 +221,7 @@ struct ReportComposerView: View {
         HStack {
             Button("이전") { step = .details }.buttonStyle(.bordered)
             Spacer()
-            Button("다음: 검토 및 내보내기") { step = .review }.buttonStyle(.borderedProminent)
+            Button("다음") { step = .review }.buttonStyle(.borderedProminent)
         }
     }
 
@@ -174,6 +233,33 @@ struct ReportComposerView: View {
             systemImage: ABASymbol.review,
             tint: .blue
         )
+        DisclosureGroup("보고서 서술 확인") {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(Array(ReportEditableText(draft).rows.enumerated()), id: \.offset) { _, field in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(field.0).font(.headline)
+                        Text(field.1.isEmpty ? "작성된 내용이 없습니다." : field.1)
+                            .textSelection(.enabled)
+                    }
+                }
+            }
+        }
+            if let result = aiResult {
+                Text("검토 전 AI 초안").font(.headline)
+                Text(result.currentStatus).textSelection(.enabled)
+                Text(result.majorChanges).textSelection(.enabled)
+                Text(result.warnings.joined(separator: "\n")).font(.footnote).foregroundStyle(.orange)
+                Button("검토한 AI 초안을 두 항목에 적용") {
+                    guard aiFingerprint == document.fingerprint else {
+                        error = "데이터가 변경되었습니다. 초안을 다시 생성하세요."
+                        return
+                    }
+                    draft.currentStatus = result.currentStatus
+                    draft.majorChanges = result.majorChanges
+                    draft.reviewedFingerprint = aiFingerprint
+                    aiResult = nil
+                }
+            }
         Button { webEditorPresented = true } label: {
             Label(webSession == nil ? "보고서 웹 편집" : "웹 수정본 가져오기", systemImage: "rectangle.and.pencil.and.ellipsis")
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -189,7 +275,7 @@ struct ReportComposerView: View {
         if let shareURL {
             ShareLink(item: shareURL) { Label("PDF 공유 / 저장", systemImage: ABASymbol.share) }
         }
-        Button("이전: 서술 작성") { step = .narratives }.buttonStyle(.bordered)
+        Button("이전") { step = .narratives }.buttonStyle(.bordered)
     }
 
     private var seriesLegend: String {
@@ -248,37 +334,34 @@ struct ReportComposerView: View {
                 consentRequest = ReportConsentRequest(document: document, endpoint: endpoint, token: token, groqKey: groqKey)
             }
                 .disabled(isBusy || !loaded || endpoint.isEmpty || token.isEmpty || groqKey.isEmpty || document.goals.isEmpty)
-            if let result = aiResult {
-                Text("검토 전 AI 초안").font(.headline)
-                Text(result.currentStatus).textSelection(.enabled)
-                Text(result.majorChanges).textSelection(.enabled)
-                Text(result.warnings.joined(separator: "\n")).font(.footnote).foregroundStyle(.orange)
-                Button("검토한 AI 초안을 두 항목에 적용") {
-                    guard aiFingerprint == document.fingerprint else {
-                        error = "데이터가 변경되었습니다. 초안을 다시 생성하세요."
-                        return
-                    }
-                    draft.currentStatus = result.currentStatus
-                    draft.majorChanges = result.majorChanges
-                    draft.reviewedFingerprint = aiFingerprint
-                    aiResult = nil
-                }
+            if aiResult != nil {
+                Button("보고서에서 AI 초안 검토") { step = .review }
             }
             }.padding(.top, 12).frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private func field(_ title: String, _ value: Binding<String>, help: String? = nil) -> some View {
-        return ABAAlignedField(
-            title: title,
-            help: help
-        ) {
-            TextField("내용 입력", text: value, axis: .vertical)
-                .lineLimit(2...12).textFieldStyle(.roundedBorder)
-                .accessibilityLabel(title)
-                .accessibilityIdentifier(title)
-                .focused($focusedField, equals: title)
-                .disabled(!loaded)
+    private var narrativeStorageHelp: String {
+        "서술은 아동과 보고 기간별로 이 기기에 자동 저장됩니다. AI 요청에는 직접 작성한 문장 대신 반응률 수치만 전송합니다. AI로 작성 중에는 수동 편집을 잠그고 적용된 내용은 보고서에서 확인합니다. 기능을 꺼도 기존 문장은 유지됩니다. 웹 편집을 요청하면 선택한 보고서의 여섯 서술 항목을 전송하며, PDF 공유 시 작성한 서술이 포함됩니다. 참고 메모는 AI, 웹 편집과 PDF에 포함하지 않습니다."
+    }
+
+    private func field(_ title: String, _ value: Binding<String>, help: String? = nil, aiManaged: Bool = false) -> some View {
+        let locked = aiManaged && draft.aiWritingEnabled == true
+        return ABAAlignedField(title: title, help: help ?? narrativeStorageHelp) {
+            Button {
+                narrativeEditor = NarrativeEditorSelection(title: title, value: value)
+            } label: {
+                HStack {
+                    Text(locked ? "보고서에서 확인" : (value.wrappedValue.isEmpty ? "내용 작성" : "내용 수정"))
+                    Spacer()
+                    Image(systemName: locked ? "lock" : "square.and.pencil")
+                }
+                .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .accessibilityLabel("\(title) \(locked ? "보고서에서 확인" : "편집")")
+            .accessibilityIdentifier(title)
+            .disabled(!loaded || locked)
         }
     }
 
@@ -380,6 +463,12 @@ struct ReportComposerView: View {
         }
         return output
     }
+}
+
+private struct NarrativeEditorSelection: Identifiable {
+    let id = UUID()
+    let title: String
+    let value: Binding<String>
 }
 
 private struct ReportConsentRequest: Identifiable {

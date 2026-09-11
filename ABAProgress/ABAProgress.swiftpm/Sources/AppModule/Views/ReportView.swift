@@ -7,6 +7,8 @@ struct ReportView: View {
     @State private var startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var endDate = Date()
     @State private var selectedProgramIDs: Set<UUID> = []
+    @State private var expandedProgramIDs: Set<UUID> = []
+    @State private var initializedExpansion = false
     @State private var shareURL: URL?
     @State private var exportError: String?
 
@@ -55,8 +57,36 @@ struct ReportView: View {
                         description: Text("한 개 이상의 프로그램을 선택하면 경과 그래프를 확인할 수 있습니다.")
                     )
                 } else {
+                    ABASectionHeading(title: "프로그램별 경과", help: "프로그램 이름을 눌러 그래프와 학습 내용을 접거나 펼칠 수 있습니다. 화면에서 접어도 선택된 프로그램은 보고서와 PDF에 포함됩니다.")
+                    HStack(spacing: 12) {
+                        Button("모두 펼치기") {
+                            expandedProgramIDs.formUnion(selectedProgramIDs)
+                        }
+                        .disabled(selectedProgramIDs.isSubset(of: expandedProgramIDs))
+                        Button("모두 접기") {
+                            expandedProgramIDs.subtract(selectedProgramIDs)
+                        }
+                        .disabled(expandedProgramIDs.isDisjoint(with: selectedProgramIDs))
+                    }
+                    .buttonStyle(.bordered)
                     ForEach(selectedPrograms) { program in
-                        ProgramReportSection(child: child, program: program, startDate: startDate, endDate: endDate)
+                        DisclosureGroup(isExpanded: Binding(
+                            get: { expandedProgramIDs.contains(program.id) },
+                            set: { expanded in
+                                if expanded { expandedProgramIDs.insert(program.id) }
+                                else { expandedProgramIDs.remove(program.id) }
+                            }
+                        )) {
+                            if expandedProgramIDs.contains(program.id) {
+                                ProgramReportSection(child: child, program: program, startDate: startDate, endDate: endDate)
+                                    .padding(.top, 12)
+                            }
+                        } label: {
+                            Text(program.name)
+                                .font(.headline)
+                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        }
+                        .abaSurface()
                     }
                 }
 
@@ -78,6 +108,10 @@ struct ReportView: View {
             if selectedProgramIDs.isEmpty {
                 selectedProgramIDs = Set(programs.map(\.id))
             }
+            if !initializedExpansion {
+                if let first = selectedPrograms.first { expandedProgramIDs.insert(first.id) }
+                initializedExpansion = true
+            }
         }
         .onChange(of: startDate) {
             if endDate < startDate { endDate = startDate }
@@ -97,13 +131,15 @@ struct ReportView: View {
             Text("데이터 선택")
                 .font(.title2.bold())
 
-            ABAAlignedField(title: "시작일") {
-                DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
-                    .labelsHidden()
-            }
-            ABAAlignedField(title: "종료일") {
-                DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
-                    .labelsHidden()
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 24) {
+                    startDateControl
+                    endDateControl
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    startDateControl
+                    endDateControl
+                }
             }
 
             ABASectionHeading(title: "프로그램 선택", help: "선택한 프로그램의 완료된 치료 기록을 지정 기간에 맞춰 집계합니다. 그래프에는 실제 기록일만 표시합니다. 프로그램을 누르면 보고서 포함 여부가 바뀝니다.")
@@ -143,6 +179,28 @@ struct ReportView: View {
                 .foregroundStyle(.secondary)
         }
         .abaSurface()
+    }
+
+    // Intrinsic widths let ViewThatFits choose one or two rows using the
+    // available content width, including Split View and larger text sizes.
+    private var startDateControl: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text("시작일")
+            DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var endDateControl: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text("종료일")
+            DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+        }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var exportSection: some View {
@@ -444,8 +502,18 @@ private struct ProgramLevelProgressChart: View {
             .clipShape(.rect(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("학습 내용")
-                    .font(.subheadline.weight(.semibold))
+                HStack(alignment: .center, spacing: 12) {
+                    Text("학습 내용")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 8)
+                    NavigationLink {
+                        ProgramDetailView(child: child, program: program)
+                    } label: {
+                        Label("학습 내용 수정", systemImage: "square.and.pencil")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .accessibilityHint("프로그램 과제명과 설명을 수정하면 보고서의 학습 내용에 반영됩니다.")
+                }
                 ForEach(levels, id: \.self) { level in
                     HStack(alignment: .top, spacing: 10) {
                         Text("L\(level)")
@@ -459,13 +527,7 @@ private struct ProgramLevelProgressChart: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                NavigationLink {
-                    ProgramDetailView(child: child, program: program)
-                } label: {
-                    Label("학습 내용 입력 및 수정", systemImage: "square.and.pencil")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .accessibilityHint("프로그램 과제명과 설명을 수정하면 보고서의 학습 내용에 반영됩니다.")
+
             }
             .padding(12)
             .background(ABAVisualStyle.tertiarySurface)

@@ -21,6 +21,7 @@ struct ReportDraft: Codable, Equatable {
     var groupByProgram: [String: String] = [:]
     var confirmedObservations = ""
     var reviewedFingerprint = ""
+    var aiWritingEnabled: Bool? = nil
 }
 
 struct InterimReportPoint: Codable, Identifiable {
@@ -222,12 +223,69 @@ enum ReportDraftStore {
 
     static func load(childID: UUID, start: Date, end: Date) throws -> ReportDraft {
         let file = try url(childID: childID, start: start, end: end)
-        guard FileManager.default.fileExists(atPath: file.path) else { return ReportDraft() }
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return try ReportBasicTemplate.load()?.applying(to: ReportDraft()) ?? ReportDraft()
+        }
         return try JSONDecoder().decode(ReportDraft.self, from: Data(contentsOf: file))
     }
 
     static func save(_ draft: ReportDraft, childID: UUID, start: Date, end: Date) throws {
         try JSONEncoder().encode(draft).write(to: url(childID: childID, start: start, end: end),
                                             options: [.atomic, .completeFileProtection])
+    }
+}
+
+// Reusable basic information only; never copy clinical narratives or signing dates.
+struct ReportBasicTemplate: Codable {
+    let institution: String
+    let therapist: String
+    let className: String
+    let programFamily: String
+    let schedule: String
+    let duration: String
+    let director: String
+    let directorCredential: String
+    let copyright: String
+
+    init(_ draft: ReportDraft) {
+        institution = draft.institution
+        therapist = draft.therapist
+        className = draft.className
+        programFamily = draft.programFamily
+        schedule = draft.schedule
+        duration = draft.duration
+        director = draft.director
+        directorCredential = draft.directorCredential
+        copyright = draft.copyright
+    }
+
+    func applying(to draft: ReportDraft) -> ReportDraft {
+        var result = draft
+        result.institution = institution
+        result.therapist = therapist
+        result.className = className
+        result.programFamily = programFamily
+        result.schedule = schedule
+        result.duration = duration
+        result.director = director
+        result.directorCredential = directorCredential
+        result.copyright = copyright
+        return result
+    }
+
+    private static func fileURL() throws -> URL {
+        try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                    appropriateFor: nil, create: true)
+            .appendingPathComponent("ReportBasicTemplate.json")
+    }
+
+    static func load() throws -> ReportBasicTemplate? {
+        let file = try fileURL()
+        guard FileManager.default.fileExists(atPath: file.path) else { return nil }
+        return try JSONDecoder().decode(Self.self, from: Data(contentsOf: file))
+    }
+
+    func save() throws {
+        try JSONEncoder().encode(self).write(to: Self.fileURL(), options: [.atomic, .completeFileProtection])
     }
 }
