@@ -167,7 +167,11 @@ final class DemoUITests: XCTestCase {
         pause()
         tap(app.buttons["기록 완료"])
         if app.buttons["완료 처리"].waitForExistence(timeout: 2) { tap(app.buttons["완료 처리"]) }
-        tap(app.tabBars.buttons["보고서"])
+        if app.tabBars.buttons["보고서"].exists {
+            tap(app.tabBars.buttons["보고서"])
+        } else {
+            tap(app.staticTexts["보고서"].firstMatch)
+        }
         tap(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "시연 아동")).firstMatch)
         pause()
         tap(app.buttons["2 서술"])

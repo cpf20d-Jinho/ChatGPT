@@ -1,7 +1,7 @@
 name: ABAProgress usage video
 on:
   push:
-    branches: [codex/abaprogress-release-readiness-v0.9]
+    branches: [codex/**]
     paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, .github/workflows/abaprogress-demo.yml]
   workflow_dispatch:
 permissions:
@@ -19,6 +19,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ABAProgress-usage-video
+          name: ABAProgress-iPad-11-usage-video
           path: ${{ runner.temp }}/aba-demo/
           retention-days: 7
