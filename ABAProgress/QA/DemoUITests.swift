@@ -75,7 +75,7 @@ final class DemoUITests: XCTestCase {
         app.buttons["닫기"].tap()
         let narrativesStep = app.buttons["2 서술"]
         XCTAssertTrue(narrativesStep.waitForExistence(timeout: 5)); narrativesStep.tap()
-        let field = app.textFields["종합 현황"]
+        let field = app.buttons["종합 현황"]
         reveal(field); shot("Report aligned narrative fields")
         if isPad {
             // Relaunch after changing the iPad's physical direction because a
@@ -178,11 +178,12 @@ final class DemoUITests: XCTestCase {
         pause()
         tap(app.buttons["2 서술"])
         func write(_ title: String, _ text: String) {
-            let field = app.textFields[title]
-            reveal(field); field.tap(); field.typeText(text)
-            let done = app.buttons["입력 완료"]
-            XCTAssertTrue(done.waitForExistence(timeout: 5))
-            done.tap(); pause()
+            let entry = app.buttons[title]
+            reveal(entry); entry.tap()
+            let editor = app.textViews[title]
+            XCTAssertTrue(editor.waitForExistence(timeout: 5)); editor.tap(); editor.typeText(text)
+            let done = app.buttons["완료"]
+            XCTAssertTrue(done.waitForExistence(timeout: 5)); done.tap(); pause()
         }
         write("종합 현황", "가상 데이터 시연입니다. 손뼉 치기의 정반응률은 초기 40%에서 최근 80%로 변화했습니다.")
         write("강점과 주요 변화", "기록일별 정반응률이 점진적으로 증가했습니다. 이 문장은 치료사가 직접 작성한 시연 문구입니다.")
@@ -199,4 +200,63 @@ final class DemoUITests: XCTestCase {
         // The real system share sheet is the final step. No external recipient is contacted.
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "PDF ready to share"; shot.lifetime = .keepAlways; add(shot)
     }
+
+    @MainActor func testEightProgramsAndHistoricalRecordReview() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchEnvironment["ABA_EIGHT_PROGRAM_QA"] = "1"
+        app.launchArguments = ["-AppleLanguages", "(ko)", "-AppleLocale", "ko_KR"]
+        app.launch()
+
+        func reveal(_ element: XCUIElement) {
+            for _ in 0..<32 {
+                if element.exists && element.isHittable { return }
+                app.swipeUp()
+            }
+            XCTFail("화면에서 찾을 수 없음: \(element)")
+        }
+        func openDestination(_ title: String) {
+            let tab = app.tabBars.buttons[title]
+            if tab.exists { tab.tap() }
+            else { app.staticTexts[title].firstMatch.tap() }
+        }
+
+        let names = ["소근육 모방", "대근육 모방", "언어 모방", "수용 언어", "표현 언어", "시각 수행", "놀이 기술", "사회성 기술"]
+        openDestination("아동")
+        let child = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "8개 프로그램 시연 아동")).firstMatch
+        XCTAssertTrue(child.waitForExistence(timeout: 10)); child.tap()
+
+        for name in names {
+            let row = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+            reveal(row); XCTAssertTrue(row.isHittable); row.tap()
+            XCTAssertTrue(app.navigationBars[name].waitForExistence(timeout: 5), "\(name) 관리 화면 진입 실패")
+            XCTAssertTrue(app.staticTexts["기록 날짜"].exists)
+            app.navigationBars.buttons.firstMatch.tap()
+        }
+
+        openDestination("보고서")
+        let reportChild = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "8개 프로그램 시연 아동")).firstMatch
+        XCTAssertTrue(reportChild.waitForExistence(timeout: 5)); reportChild.tap()
+        for name in names {
+            let chip = app.buttons[name]
+            if !chip.exists || !chip.isHittable {
+                app.swipeLeft()
+            }
+            XCTAssertTrue(chip.waitForExistence(timeout: 3), "보고서 프로그램 선택 누락: \(name)")
+        }
+
+        openDestination("기록")
+        let oldDate = Calendar.current.date(byAdding: .day, value: -8, to: Date())!
+        let oldDateLabel = oldDate.formatted(date: .complete, time: .omitted)
+        let day = app.buttons[oldDateLabel]
+        XCTAssertTrue(day.waitForExistence(timeout: 5)); day.tap()
+        let historyChild = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "8개 프로그램 시연 아동")).firstMatch
+        XCTAssertTrue(historyChild.waitForExistence(timeout: 5)); historyChild.tap()
+        XCTAssertTrue(app.staticTexts["소근육 모방"].waitForExistence(timeout: 5))
+        let target = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "손뼉 치기")).firstMatch
+        XCTAssertTrue(target.exists); target.tap()
+        XCTAssertTrue(app.staticTexts["과거 기록 수정"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["trial-1"].exists)
+    }
+
 }
