@@ -32,10 +32,16 @@ try:
    manifest=json.loads((out/f'{index}-screens'/'manifest.json').read_text())
    orientation=next(a for test in manifest for a in test['attachments'] if 'Report alternate orientation' in a['suggestedHumanReadableName'])
    image=out/f'{index}-screens'/orientation['exportedFileName']
-   size=run('sips','-g','pixelWidth','-g','pixelHeight',str(image))
-   width=int(next(line.split(':')[1] for line in size.splitlines() if 'pixelWidth' in line))
-   height=int(next(line.split(':')[1] for line in size.splitlines() if 'pixelHeight' in line))
-   assert (width>height)==(index<2), f'Wrong captured orientation for {name}: {width}x{height}'
+   properties=run('sips','-g','pixelWidth','-g','pixelHeight','-g','orientation',str(image))
+   width=int(next(line.split(':',1)[1] for line in properties.splitlines() if 'pixelWidth' in line))
+   height=int(next(line.split(':',1)[1] for line in properties.splitlines() if 'pixelHeight' in line))
+   orientation_value=next((line.split(':',1)[1].strip().lower() for line in properties.splitlines() if 'orientation' in line),'up')
+   # XCTest preserves the device rotation as EXIF orientation while the PNG pixel
+   # matrix remains portrait. Validate the user-visible geometry, not raw storage.
+   rotated=orientation_value in {'5','6','7','8'} or 'left' in orientation_value or 'right' in orientation_value
+   visible_width,visible_height=(height,width) if rotated else (width,height)
+   results[-1].update({'pixelSize':f'{width}x{height}','visibleSize':f'{visible_width}x{visible_height}','orientation':orientation_value})
+   assert (visible_width>visible_height)==(index<2), f'Wrong visible orientation for {name}: {visible_width}x{visible_height} ({orientation_value}, stored {width}x{height})'
   finally:
    subprocess.run(['xcrun','simctl','shutdown',device]);subprocess.run(['xcrun','simctl','delete',device])
 finally:
