@@ -34,7 +34,9 @@ for family in ['iPhone', 'iPad']:
         env = dict(os.environ, SIMCTL_CHILD_ABA_REPORT_QA='1')
         run('xcrun', 'simctl', 'launch', device, 'com.abaprogress.universal', env=env)
         result = documents / 'qa-output'
-        deadline = time.monotonic() + 150
+        # A newly booted CI simulator may need extra time to start WebKit's
+        # content process before the first report template finishes loading.
+        deadline = time.monotonic() + 300
         while time.monotonic() < deadline and not (result / 'success.json').exists() and not (result / 'failure.txt').exists():
             time.sleep(2)
         target = out / family
@@ -49,3 +51,4 @@ for family in ['iPhone', 'iPad']:
     finally:
         subprocess.run(['xcrun', 'simctl', 'shutdown', device], check=False)
         subprocess.run(['xcrun', 'simctl', 'delete', device], check=False)
+

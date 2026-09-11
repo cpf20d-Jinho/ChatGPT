@@ -42,7 +42,9 @@ final class DemoUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["시연 아동 · 가상 데이터"].exists)
 
         let programHeading = app.staticTexts["프로그램 선택"]
-        let selectedProgram = app.buttons["소근육 모방"]
+        let selectedProgram = app.buttons.matching(
+            NSPredicate(format: "label == %@ AND isSelected == true", "소근육 모방")
+        ).firstMatch
         XCTAssertTrue(programHeading.exists)
         XCTAssertTrue(selectedProgram.exists)
         XCTAssertLessThanOrEqual(abs(programHeading.frame.minX - selectedProgram.frame.minX), 8)
@@ -260,3 +262,4 @@ final class DemoUITests: XCTestCase {
     }
 
 }
+

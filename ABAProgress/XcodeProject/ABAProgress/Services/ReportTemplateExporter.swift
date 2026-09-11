@@ -29,9 +29,9 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
         let html = try String(contentsOf: source, encoding: .utf8)
         try await withCheckedThrowingContinuation { continuation in
             navigation = continuation
-            webView.loadHTMLString(html, baseURL: nil)
+            webView.loadHTMLString(html, baseURL: source.deletingLastPathComponent())
             loadTimeout = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(20))
+                try? await Task.sleep(for: .seconds(60))
                 guard !Task.isCancelled, let self else { return }
                 self.navigation?.resume(throwing: NSError(domain: "Report", code: 2,
                     userInfo: [NSLocalizedDescriptionKey: "보고서 양식 로딩 시간이 초과되었습니다."]))
@@ -155,3 +155,4 @@ private final class ReportPageRenderer: UIPrintPageRenderer {
         ])
     }
 }
+
