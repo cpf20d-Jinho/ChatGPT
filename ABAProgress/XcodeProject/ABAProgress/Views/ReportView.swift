@@ -94,7 +94,7 @@ struct ReportView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(child.name)
+            Text("데이터 선택")
                 .font(.title2.bold())
 
             ABAAlignedField(title: "시작일") {
@@ -110,24 +110,34 @@ struct ReportView: View {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 8) {
                     ForEach(programs) { program in
-                        Toggle(program.name, isOn: Binding(
-                            get: { selectedProgramIDs.contains(program.id) },
-                            set: { selected in
-                                if selected { selectedProgramIDs.insert(program.id) }
-                                else { selectedProgramIDs.remove(program.id) }
-                            }
-                        ))
-                        .toggleStyle(.button)
-                        .frame(minWidth: 150, maxWidth: 240, minHeight: 44)
-                        .fixedSize(horizontal: false, vertical: true)
+                        let selected = selectedProgramIDs.contains(program.id)
+                        Button {
+                            if selected { selectedProgramIDs.remove(program.id) }
+                            else { selectedProgramIDs.insert(program.id) }
+                        } label: {
+                            Text(program.name)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(selected ? ABAVisualStyle.brand : .primary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(selected ? ABAVisualStyle.brand.opacity(0.14) : ABAVisualStyle.tertiarySurface)
+                                .clipShape(Capsule())
+                                .overlay { Capsule().stroke(selected ? ABAVisualStyle.brand.opacity(0.28) : .clear) }
+                        }
+                        .buttonStyle(.plain)
+                        .frame(minHeight: 44, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .accessibilityLabel(program.name)
                         .accessibilityHint("보고서에 이 프로그램을 포함하거나 제외합니다.")
-                        .accessibilityAddTraits(selectedProgramIDs.contains(program.id) ? .isSelected : [])
+                        .accessibilityAddTraits(selected ? .isSelected : [])
                     }
                 }
                 .scrollTargetLayout()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollTargetBehavior(.viewAligned)
             .scrollIndicators(.visible)
+            .contentMargins(.horizontal, 0)
             Text("좌우로 밀어 프로그램 보기")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -199,9 +209,6 @@ private struct ProgramReportSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(program.name)
-                .font(.title3.bold())
-
             if !levelReviewIssues.isEmpty {
                 Label("레벨 판정 검토 필요", systemImage: ABASymbol.review)
                     .font(.footnote.bold())
@@ -212,19 +219,18 @@ private struct ProgramReportSection: View {
                 Text("선택한 기간에 기록된 과제가 없습니다.")
                     .foregroundStyle(.secondary)
             } else if let goal {
-                ProgramLevelProgressChart(goal: goal)
-
-                DisclosureGroup("과제별 상세 \(targets.count)개") {
-                    VStack(spacing: 12) {
-                        ForEach(targets) { target in
-                            TargetReportCard(target: target, entries: chartEntries(for: target))
-                        }
-                    }
-                    .padding(.top, 8)
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(ABAVisualStyle.brand.opacity(0.55))
+                        .frame(width: 3, height: 24)
+                    Text(goal.group)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
                 }
+
+                ProgramLevelProgressChart(child: child, program: program, goal: goal)
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
     }
 
     private func chartEntries(for target: TherapyTarget) -> [ReportPoint] {
@@ -263,6 +269,8 @@ private struct ProgramLevelSeries: Identifiable {
 }
 
 private struct ProgramLevelProgressChart: View {
+    let child: ChildProfile
+    let program: TherapyProgram
     let goal: ReportGoal
 
     private var points: [ProgramChartPoint] {
@@ -297,76 +305,173 @@ private struct ProgramLevelProgressChart: View {
         return values
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("레벨별 경과")
-                    .font(.headline)
-                Spacer()
-                Text("L 전환 시 새 계열로 시작")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private var levels: [Int] { series.map(\.level) }
 
-            Chart {
-                ForEach(series) { levelSeries in
-                    ForEach(levelSeries.points) { point in
-                        LineMark(
-                            x: .value("기록 순서", point.index),
-                            y: .value("정반응률", point.value),
-                            series: .value("레벨 계열", levelSeries.label)
-                        )
-                        .foregroundStyle(by: .value("레벨", levelSeries.label))
+    private var masteryRules: [Double] {
+        Array(Set(goal.criteria.values)).sorted()
+    }
 
-                        PointMark(
-                            x: .value("기록 순서", point.index),
-                            y: .value("정반응률", point.value)
-                        )
-                        .foregroundStyle(by: .value("레벨", levelSeries.label))
-                        .symbol(by: .value("기록 범위", point.coverageLabel))
-                    }
-                }
+    private var isCompleted: Bool {
+        !levels.isEmpty && levels.allSatisfy { goal.masteredLevels.contains($0) }
+    }
 
-                ForEach(transitions) { point in
-                    RuleMark(x: .value("레벨 전환", point.index))
-                        .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-                        .foregroundStyle(.secondary)
-                        .annotation(position: .top, alignment: .leading) {
-                            Text("L\(point.level)")
-                                .font(.caption2.bold())
-                                .foregroundStyle(.secondary)
-                        }
-                }
-            }
-            .chartYScale(domain: 0...100)
-            .chartXAxis {
-                AxisMarks(values: visibleAxisIndices) { value in
-                    AxisGridLine()
-                    AxisTick()
-                    AxisValueLabel {
-                        if let index = value.as(Int.self), points.indices.contains(index) {
-                            Text(points[index].date.dropFirst(5).replacingOccurrences(of: "-", with: "/"))
-                                .font(.caption2)
-                        }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(position: .leading, values: [0, 20, 40, 60, 80, 100]) {
-                    AxisGridLine()
-                    AxisValueLabel()
-                }
-            }
-            .chartPlotStyle { $0.background(ABAVisualStyle.tertiarySurface.opacity(0.55)) }
-            .frame(height: 250)
-            .accessibilityLabel("\(goal.name) 레벨별 경과 그래프")
-            .accessibilityValue("레벨 \(series.count)개, 실제 기록일 \(points.count)개. 점선은 레벨 전환이며 다음 레벨 정반응률은 새로 시작합니다.")
+    private var dataDescription: String {
+        goal.domain == "미분류" ? "기록일별 정반응률" : "\(goal.domain) 정반응률"
+    }
 
-            Label("빈 표식은 해당 날짜에 일부 적용 과제만 기록되었음을 뜻합니다. 레벨 습득 판정은 모든 적용 과제가 기록된 날만 사용합니다.", systemImage: "circle")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private func levelColor(_ level: Int) -> Color {
+        switch (level - 1) % 5 {
+        case 0: return Color(red: 0.96, green: 0.29, blue: 0.30)
+        case 1: return Color(red: 0.98, green: 0.49, blue: 0.18)
+        case 2: return Color(red: 0.64, green: 0.43, blue: 0.79)
+        case 3: return Color(red: 0.16, green: 0.57, blue: 0.64)
+        default: return ABAVisualStyle.brand
         }
-        .abaSurface(padding: 14, background: ABAVisualStyle.tertiarySurface)
+    }
+
+    private func displayDate(_ value: String) -> String {
+        let parts = value.split(separator: "-")
+        guard parts.count == 3, let month = Int(parts[1]), let day = Int(parts[2]) else { return value }
+        return "\(month).\(day)"
+    }
+
+    private func learningText(for level: Int) -> String {
+        let text = goal.learning[String(level)] ?? ""
+        return text.isEmpty ? "등록된 학습 내용이 없습니다." : text
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(goal.name)
+                        .font(.headline)
+                    Text(dataDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                ABAStatusPill(
+                    title: isCompleted ? "완료" : "진행중",
+                    systemImage: isCompleted ? ABASymbol.mastered : ABASymbol.active,
+                    tint: isCompleted ? .green : .blue
+                )
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let firstLevel = levels.first {
+                    Text("L\(firstLevel)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 34)
+                }
+
+                Chart {
+                    ForEach(series) { levelSeries in
+                        let color = levelColor(levelSeries.level)
+                        ForEach(levelSeries.points) { point in
+                            LineMark(
+                                x: .value("기록 순서", point.index),
+                                y: .value("정반응률", point.value),
+                                series: .value("레벨 계열", levelSeries.label)
+                            )
+                            .foregroundStyle(color)
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+
+                            PointMark(
+                                x: .value("기록 순서", point.index),
+                                y: .value("정반응률", point.value)
+                            )
+                            .foregroundStyle(color)
+                            .symbol {
+                                Circle()
+                                    .fill(point.recordedCount < point.applicableCount ? Color(uiColor: .systemBackground) : color)
+                                    .stroke(color, lineWidth: 1.5)
+                                    .frame(width: 7, height: 7)
+                            }
+                        }
+                    }
+
+                    ForEach(transitions) { point in
+                        RuleMark(x: .value("레벨 전환", point.index))
+                            .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 4]))
+                            .foregroundStyle(.secondary.opacity(0.7))
+                            .annotation(position: .top, alignment: .leading) {
+                                Text("L\(point.level)")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+
+                    ForEach(masteryRules, id: \.self) { criterion in
+                        RuleMark(y: .value("숙달 기준", criterion))
+                            .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+                            .foregroundStyle(.green)
+                            .annotation(position: .top, alignment: .trailing) {
+                                Text("숙달 \(criterion, format: .number.precision(.fractionLength(0)))%")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.green)
+                            }
+                    }
+                }
+                .chartYScale(domain: 0...100)
+                .chartXAxis {
+                    AxisMarks(values: visibleAxisIndices) { value in
+                        AxisValueLabel {
+                            if let index = value.as(Int.self), points.indices.contains(index) {
+                                Text(displayDate(points[index].date))
+                                    .font(.caption2)
+                            }
+                        }
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: [0, 20, 40, 60, 80, 100]) {
+                        AxisGridLine().foregroundStyle(Color.secondary.opacity(0.18))
+                        AxisValueLabel()
+                    }
+                }
+                .chartLegend(.hidden)
+                .chartPlotStyle { plot in
+                    plot.background(Color(uiColor: .systemBackground).opacity(0.7))
+                }
+                .frame(height: 220)
+                .accessibilityLabel("\(goal.name) 기록일별 정반응률 그래프")
+                .accessibilityValue("레벨 \(series.count)개, 실제 기록일 \(points.count)개. 가로 점선은 숙달 기준이고 세로 점선은 다음 레벨의 새 집계 시작입니다.")
+            }
+            .padding(12)
+            .background(ABAVisualStyle.tertiarySurface)
+            .clipShape(.rect(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("학습 내용")
+                    .font(.subheadline.weight(.semibold))
+                ForEach(levels, id: \.self) { level in
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("L\(level)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(levelColor(level))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .overlay { Capsule().stroke(levelColor(level), lineWidth: 1) }
+                        Text(learningText(for: level))
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                NavigationLink {
+                    ProgramDetailView(child: child, program: program)
+                } label: {
+                    Label("학습 내용 입력 및 수정", systemImage: "square.and.pencil")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .accessibilityHint("프로그램 과제명과 설명을 수정하면 보고서의 학습 내용에 반영됩니다.")
+            }
+            .padding(12)
+            .background(ABAVisualStyle.tertiarySurface)
+            .clipShape(.rect(cornerRadius: 12))
+        }
+        .abaSurface(padding: 14, background: Color(uiColor: .systemBackground))
     }
 }
 
@@ -414,8 +519,8 @@ private struct TargetReportCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("L\(target.levelNumber) · \(target.name)").font(.headline)
-                    Text("세션 \(entries.count)회 · 평균 \(average, format: .number.precision(.fractionLength(0...1)))%")
+                    Text("L\(target.levelNumber) \(target.name)").font(.headline)
+                    Text("세션 \(entries.count)회, 평균 \(average, format: .number.precision(.fractionLength(0...1)))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

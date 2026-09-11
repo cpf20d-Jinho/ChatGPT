@@ -1,9 +1,9 @@
 {
   "project": "ABAProgress",
   "handoffPurpose": "Codex + Build iOS Apps runtime validation and continued development",
-  "sourceVersion": "0.11.0",
-  "sourceBuild": "2026-09-11T09:21:06+09:00",
-  "sourceBuildHash": "403f604dcb",
+  "sourceVersion": "0.12.0",
+  "sourceBuild": "2026-09-11T16:55:46+09:00",
+  "sourceBuildHash": "38f9d3d627",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
   "minimumOS": "iOS/iPadOS 17.0",

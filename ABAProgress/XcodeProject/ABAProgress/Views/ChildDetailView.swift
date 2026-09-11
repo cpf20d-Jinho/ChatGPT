@@ -287,7 +287,7 @@ private struct ProgramRow: View {
             Text(program.name)
                 .font(.headline)
             HStack(spacing: 12) {
-                if let level = program.currentLevel { Text("\(level.label) · 진행 과제 \(activeTargets)개") }
+                if let level = program.currentLevel { Text("\(level.label), 진행 과제 \(activeTargets)개") }
                 else { Text("진행 과제 \(activeTargets)개") }
                 if let latestDate {
                     Text("최근 기록 \(latestDate.formatted(date: .numeric, time: .omitted))")

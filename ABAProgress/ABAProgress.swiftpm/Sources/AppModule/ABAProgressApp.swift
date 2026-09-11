@@ -18,7 +18,7 @@ struct ABAProgressApp: App {
             #if DEBUG
             if ProcessInfo.processInfo.environment["ABA_DEMO"] == "1" {
                 let context = ModelContext(container)
-                let child = ChildProfile(name: "시연 아동 · 가상 데이터")
+                let child = ChildProfile(name: "시연 아동")
                 let program = TherapyProgram(name: "소근육 모방", category: "모방")
                 program.levels[0].requiredDays = 10
                 let target = TherapyTarget(name: "손뼉 치기")

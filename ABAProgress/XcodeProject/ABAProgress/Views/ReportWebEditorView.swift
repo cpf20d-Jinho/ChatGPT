@@ -44,7 +44,7 @@ struct ReportWebEditorView: View {
                     }
                 }
                 if let preview {
-                    Section("웹 수정본 · 적용 전 검토") {
+                    Section("적용 전 웹 수정본 검토") {
                         textRows(preview)
                         Button("검토한 여섯 항목 적용", action: apply).disabled(busy)
                         Button("수정본 닫기") { self.preview = nil }

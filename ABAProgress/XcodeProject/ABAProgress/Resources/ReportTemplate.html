@@ -59,20 +59,20 @@ function renderReport(doc){
  const domains=[...groups].map(([name,a])=>({name,count:a.length,first:mean(a.map(s=>mean(s.slice(0,3).map(p=>p.value)))),recent:mean(a.map(s=>mean(s.slice(-3).map(p=>p.value))))})).sort((a,b)=>b.recent-a.recent);
  const total=domains.reduce((s,r)=>s+r.count,0),mastered=doc.goals.reduce((s,g)=>s+g.masteredLevels.length,0);
  const initial=mean(domains.map(r=>r.first)),recent=mean(domains.map(r=>r.recent)),delta=recent-initial;
- let html='<section class="page cover"><div class="cover-meta">보고유형 중간보고서<br>보고기간 '+esc(doc.start)+' ~ '+esc(doc.end)+'</div><div class="brandmark">ABA</div><div class="brand">'+esc(d.institution)+'</div><div class="muted">개별화된 데이터 기반 중재 · 언어/행동 통합적 접근</div><h1>중간 보고서</h1><div class="muted">'+esc(doc.childName)+' 아동 · '+esc(d.therapist)+' 치료사</div><table>';
+ let html='<section class="page cover"><div class="cover-meta">보고유형 중간보고서<br>보고기간 '+esc(doc.start)+' ~ '+esc(doc.end)+'</div><div class="brandmark">ABA</div><div class="brand">'+esc(d.institution)+'</div><div class="muted">개별화된 데이터 기반 중재와 언어 및 행동 통합적 접근</div><h1>중간 보고서</h1><div class="muted">아동 '+esc(doc.childName)+', 치료사 '+esc(d.therapist)+'</div><table>';
  const rows=[["아동명",doc.childName,"생년월일",doc.birthDate],["소속반",d.className,"담당 치료사",d.therapist],["치료기간",doc.start+" ~ "+doc.end,"프로그램",d.programFamily],["주 횟수",d.schedule,"회기 시간",d.duration]];
  for(const r of rows)html+="<tr><th>"+esc(r[0])+"</th><td>"+esc(r[1])+"</td><th>"+esc(r[2])+"</th><td>"+esc(r[3])+"</td></tr>";
- html+='</table><div class="summary"><small>SUMMARY · 핵심 요약</small><p>'+esc(doc.childName)+' 아동의 영역별 달성률 평균은 '+Math.round(initial)+'%에서 '+Math.round(recent)+'%로 '+(delta>=0?"+":"")+Math.round(delta)+'%p 변화했습니다. '+total+'개 STO 중 '+mastered+'개에서 보고 기간 내 준거를 달성했습니다.</p></div></section>';
+ html+='</table><div class="summary"><small>핵심 요약</small><p>'+esc(doc.childName)+' 아동의 영역별 달성률 평균은 '+Math.round(initial)+'%에서 '+Math.round(recent)+'%로 '+(delta>=0?"+":"")+Math.round(delta)+'%p 변화했습니다. '+total+'개 STO 중 '+mastered+'개에서 보고 기간 내 준거를 달성했습니다.</p></div></section>';
  let bars='<svg class="chart" viewBox="0 0 660 '+Math.max(100,domains.length*30+30)+'" xmlns="http://www.w3.org/2000/svg">'+text(390,15,"평균 달성률(%)",10,"#777","middle");
  domains.forEach((r,i)=>{const y=30+i*30;bars+=text(212,y+13,r.name+" ("+r.count+"개)",11,"#555","end")+
  '<rect x="224" y="'+y+'" width="390" height="18" rx="4" fill="#f4f4f4"/><rect x="224" y="'+y+'" width="'+r.recent*3.9+'" height="18" rx="4" fill="'+(r.recent>=80?"#619d20":r.recent>=60?"#4c96dd":"#f3ad37")+'"/>'+text(Math.min(626,230+r.recent*3.9),y+13,Math.round(r.recent)+"%",11,"#333");});
  const dates=[...new Set(doc.goals.flatMap(g=>g.points.map(p=>p.date)))].sort();
  const growth=dates.map(date=>({date,level:0,value:mean(doc.goals.map(g=>g.points.filter(p=>p.date<=date).at(-1)?.value).filter(v=>v!==undefined))}));
  const events={};for(const g of doc.goals){const levels=[...new Set(g.points.map(p=>p.level))];for(const l of levels){const date=g.points.find(p=>p.level===l)?.date;if(date)events[date]=l===levels[0]?"+새 목표":"+새 단계";}}
- html+='<section class="page"><h2>영역별 균형 분석</h2><p class="hint">※ 영역별 최근 3회기 평균 달성률 · 괄호는 단기 목표(STO) 수 · 회색은 달성률로 나타내지 않는 영역<br>※ 초록 80% 이상 숙달 · 파랑 60~79% 진전 · 주황 60% 미만 집중 지도</p>'+bars+'</svg><div style="height:25pt"></div><h2>성장 추이 (전체 목표 평균)</h2><p class="hint">※ 선택 기간에 관측된 전체 목표의 평균 정반응률 · 그날 측정하지 않은 목표는 최근 값 사용 · 라벨은 일부만 표시<br>※ +새 목표 / +새 단계는 새로 시작한 날 — 낮은 수행률에서 출발해 평균이 잠시 내려갈 수 있습니다</p>'+chart(growth,{},false,true,events)+'</section>';
+ html+='<section class="page"><h2>영역별 균형 분석</h2><p class="hint">※ 영역별 최근 3회기 평균 달성률이며 괄호는 단기 목표(STO) 수입니다. 회색은 달성률로 나타내지 않는 영역입니다.<br>※ 초록은 80% 이상 숙달, 파랑은 60~79% 진전, 주황은 60% 미만 집중 지도를 뜻합니다.</p>'+bars+'</svg><div style="height:25pt"></div><h2>성장 추이 (전체 목표 평균)</h2><p class="hint">※ 선택 기간에 관측된 전체 목표의 평균 정반응률입니다. 그날 측정하지 않은 목표는 최근 값을 사용하며 라벨은 일부만 표시합니다.<br>※ +새 목표 / +새 단계는 새로 시작한 날입니다. 낮은 수행률에서 출발해 평균이 잠시 내려갈 수 있습니다.</p>'+chart(growth,{},false,true,events)+'</section>';
  const ordered=[...doc.goals].sort((a,b)=>a.group.localeCompare(b.group,"ko")||a.domain.localeCompare(b.domain,"ko")||a.name.localeCompare(b.name,"ko"));
  for(let i=0;i<ordered.length;i+=2){
-  html+='<section class="page">'+(i===0?'<h2>영역별 세부 학습 목표</h2><p class="hint">※ 영역별 목표의 진행 상태와 추이선 · 회기당 1회 시도 목표는 O(성공)·X(실패)로 표시<br>※ 빈 원은 해당 날짜에 일부 적용 과제만 기록된 평균 · 세로 점선은 다음 레벨의 새 집계 시작</p>':"");
+  html+='<section class="page">'+(i===0?'<h2>영역별 세부 학습 목표</h2><p class="hint">※ 영역별 목표의 진행 상태와 추이선입니다. 회기당 1회 시도 목표는 O(성공) 또는 X(실패)로 표시합니다.<br>※ 빈 원은 해당 날짜에 일부 적용 과제만 기록된 평균이며 세로 점선은 다음 레벨의 새 집계 시작입니다.</p>':"");
   let last="";
   for(const g of ordered.slice(i,i+2)){
    if(last!==g.group){html+='<div class="group">'+esc(g.group)+'</div>';last=g.group;}

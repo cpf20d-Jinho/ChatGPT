@@ -98,7 +98,7 @@ enum LevelProgressionService {
             let qualified = trailingQualifiedDays(for: level, in: program, through: completedAt)
             guard qualified < level.requiredDays else { return nil }
 
-            return "\(level.label): 완료 당시 기준(\(level.requiredDays)회 연속 · 전체 과제 \(Int(level.criterionPercent))% 이상)을 현재 기록이 충족하지 않습니다."
+            return "\(level.label): 완료 당시 기준인 \(level.requiredDays)회 연속, 전체 과제 \(Int(level.criterionPercent))% 이상을 현재 기록이 충족하지 않습니다."
         }
     }
 }

@@ -38,13 +38,43 @@ final class DemoUITests: XCTestCase {
             XCTAssertTrue(child.waitForExistence(timeout: 10)); child.tap()
         }
         openReportAndChild()
+        XCTAssertTrue(app.staticTexts["데이터 선택"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["시연 아동 · 가상 데이터"].exists)
+
+        let programHeading = app.staticTexts["프로그램 선택"]
+        let selectedProgram = app.buttons["소근육 모방"]
+        XCTAssertTrue(programHeading.exists)
+        XCTAssertTrue(selectedProgram.exists)
+        XCTAssertLessThanOrEqual(abs(programHeading.frame.minX - selectedProgram.frame.minX), 8)
+
+        let institution = app.textFields["기관명"]
+        let therapist = app.textFields["담당 치료사"]
+        reveal(institution)
+        XCTAssertTrue(therapist.exists)
+        XCTAssertLessThanOrEqual(abs(institution.frame.minX - therapist.frame.minX), 2)
+        XCTAssertLessThan(institution.frame.height, 52)
+
+        if isPad {
+            let appTitle = app.staticTexts["ABA Progress"]
+            let workspace = app.staticTexts["워크스페이스"]
+            XCTAssertTrue(appTitle.exists)
+            XCTAssertTrue(workspace.exists)
+            XCTAssertLessThanOrEqual(abs(appTitle.frame.minX - workspace.frame.minX), 8)
+        }
+
+        let learning = app.staticTexts["학습 내용"].firstMatch
+        reveal(learning)
+        XCTAssertTrue(learning.exists)
+        XCTAssertFalse(app.staticTexts["레벨별 경과"].exists)
+        shot("Report chart and learning content")
+
         let help = app.buttons["help-프로그램 선택"]
         reveal(help); shot("Report aligned controls"); help.tap()
         XCTAssertTrue(app.buttons["닫기"].waitForExistence(timeout: 5)); shot("Accessible help")
         app.buttons["닫기"].tap()
         let narrativesStep = app.buttons["2 서술"]
         XCTAssertTrue(narrativesStep.waitForExistence(timeout: 5)); narrativesStep.tap()
-        let field = app.textFields["종합 현황 · AI 초안 또는 직접 작성"]
+        let field = app.textFields["종합 현황"]
         reveal(field); shot("Report aligned narrative fields")
         if isPad {
             // Relaunch after changing the iPad's physical direction because a
@@ -148,13 +178,13 @@ final class DemoUITests: XCTestCase {
             XCTAssertTrue(done.waitForExistence(timeout: 5))
             done.tap(); pause()
         }
-        write("종합 현황 · AI 초안 또는 직접 작성", "가상 데이터 시연입니다. 손뼉 치기의 정반응률은 초기 40%에서 최근 80%로 변화했습니다.")
-        write("이번 기간의 강점과 주요 변화 · AI 초안 또는 직접 작성", "기록일별 정반응률이 점진적으로 증가했습니다. 이 문장은 치료사가 직접 작성한 시연 문구입니다.")
+        write("종합 현황", "가상 데이터 시연입니다. 손뼉 치기의 정반응률은 초기 40%에서 최근 80%로 변화했습니다.")
+        write("강점과 주요 변화", "기록일별 정반응률이 점진적으로 증가했습니다. 이 문장은 치료사가 직접 작성한 시연 문구입니다.")
         write("치료사 종합 소견", "시연용 수동 소견입니다. 다음 회기에서도 수행을 관찰합니다.")
         write("가정에서 함께 하기", "시연용 안내: 놀이 중 손뼉 치기 활동을 함께 합니다.")
         write("다음 목표", "시연용 목표: 서로 다른 상황에서 반응을 기록합니다.")
         tap(app.buttons["3 검토"])
-        tap(app.switches["집계 기준·그래프·서술 내용을 검토했습니다"])
+        tap(app.switches["집계 기준, 그래프와 서술 내용을 검토했습니다"])
         tap(app.buttons["기본 양식 PDF 생성"])
         let share = app.buttons["PDF 공유 / 저장"]
         XCTAssertTrue(share.waitForExistence(timeout: 40))

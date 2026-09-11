@@ -8,8 +8,6 @@ private enum ReportComposerStep: String, CaseIterable, Identifiable {
 }
 
 struct ReportComposerView: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let child: ChildProfile
     let startDate: Date
     let endDate: Date
@@ -46,7 +44,7 @@ struct ReportComposerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ABASectionHeading(title: "중간보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동·보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
+            ABASectionHeading(title: "중간보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동과 보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
             Picker("보고서 작성 단계", selection: $step) {
                 ForEach(ReportComposerStep.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -112,39 +110,17 @@ struct ReportComposerView: View {
 
     @ViewBuilder
     private var detailsStep: some View {
-        if horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize {
-            HStack(alignment: .top, spacing: 24) {
-                VStack(alignment: .leading, spacing: 12) {
-                    field("기관명", $draft.institution)
-                    field("담당 치료사", $draft.therapist)
-                    field("소속반", $draft.className)
-                    field("프로그램 분류 표시", $draft.programFamily)
-                    field("주 횟수", $draft.schedule)
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                Divider()
-                VStack(alignment: .leading, spacing: 12) {
-                    field("회기 시간", $draft.duration)
-                    field("기관장", $draft.director)
-                    field("기관장 자격 정보", $draft.directorCredential)
-                    field("서명 일자", $draft.signedDate)
-                    field("하단 저작권 · 출처 문구", $draft.copyright)
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 12) {
-                field("기관명", $draft.institution)
-                field("담당 치료사", $draft.therapist)
-                field("소속반", $draft.className)
-                field("프로그램 분류 표시", $draft.programFamily)
-                field("주 횟수", $draft.schedule)
-                field("회기 시간", $draft.duration)
-                field("기관장", $draft.director)
-                field("기관장 자격 정보", $draft.directorCredential)
-                field("서명 일자", $draft.signedDate)
-                field("하단 저작권 · 출처 문구", $draft.copyright)
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            singleLineField("기관명", $draft.institution)
+            singleLineField("담당 치료사", $draft.therapist)
+            singleLineField("소속반", $draft.className)
+            singleLineField("프로그램 분류 표시", $draft.programFamily)
+            singleLineField("주 횟수", $draft.schedule)
+            singleLineField("회기 시간", $draft.duration)
+            singleLineField("기관장", $draft.director)
+            singleLineField("기관장 자격 정보", $draft.directorCredential)
+            singleLineField("서명 일자", $draft.signedDate)
+            singleLineField("하단 저작권과 출처 문구", $draft.copyright)
         }
 
         DisclosureGroup("평가군 분류") {
@@ -170,16 +146,16 @@ struct ReportComposerView: View {
 
     @ViewBuilder
     private var narrativesStep: some View {
-        field("도전적 행동 변화 · 직접 작성", $draft.behavior)
-        DisclosureGroup("참고용 관찰 기록 · 기기에만 보관") {
-            field("직접 작성 참고 메모 · AI 전송 제외", $draft.confirmedObservations)
+        field("도전적 행동 변화", $draft.behavior, help: "치료사가 직접 작성하는 항목입니다.")
+        DisclosureGroup("기기에만 보관하는 참고용 관찰 기록") {
+            field("직접 작성 참고 메모", $draft.confirmedObservations, help: "기기에만 보관하며 AI와 웹 편집에는 전송하지 않습니다.")
                 .padding(.top, 8)
         }
-        field("종합 현황 · AI 초안 또는 직접 작성", $draft.currentStatus)
-        field("이번 기간의 강점과 주요 변화 · AI 초안 또는 직접 작성", $draft.majorChanges)
+        field("종합 현황", $draft.currentStatus, help: "AI 초안을 적용하거나 치료사가 직접 작성할 수 있습니다.")
+        field("강점과 주요 변화", $draft.majorChanges, help: "AI 초안을 적용하거나 치료사가 직접 작성할 수 있습니다.")
         aiControls
         Divider()
-        ABASectionHeading(title: "치료사 작성", help: "아래 소견·가정 안내·다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
+        ABASectionHeading(title: "치료사 작성", help: "아래 소견, 가정 안내와 다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
         field("치료사 종합 소견", $draft.therapistOpinion)
         field("가정에서 함께 하기", $draft.homePractice)
         field("다음 목표", $draft.nextGoals)
@@ -194,7 +170,7 @@ struct ReportComposerView: View {
     private var reviewStep: some View {
         ABAInlineNotice(
             title: "내보내기 전 확인",
-            message: "기간 \(ReportDocument.date(startDate)) ~ \(ReportDocument.date(endDate)), 프로그램 \(programs.count)개, STO \(document.stoCount)개를 사용합니다. 그래프의 빈 표식은 일부 과제만 기록된 날짜입니다.",
+            message: "기간 \(ReportDocument.date(startDate)) ~ \(ReportDocument.date(endDate)), 프로그램 \(programs.count)개와 STO \(document.stoCount)개를 사용합니다. 그래프의 빈 표식은 일부 과제만 기록된 날짜입니다.",
             systemImage: ABASymbol.review,
             tint: .blue
         )
@@ -203,7 +179,7 @@ struct ReportComposerView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.bordered).controlSize(.large).disabled(!loaded || isBusy)
-        Toggle("집계 기준·그래프·서술 내용을 검토했습니다", isOn: $reviewed)
+        Toggle("집계 기준, 그래프와 서술 내용을 검토했습니다", isOn: $reviewed)
         Button(action: exportPDF) {
             Label(isBusy ? "처리 중…" : "기본 양식 PDF 생성", systemImage: ABASymbol.pdf)
                 .frame(maxWidth: .infinity)
@@ -219,7 +195,7 @@ struct ReportComposerView: View {
     private var seriesLegend: String {
         let labels = document.goals.flatMap { goal in
             Set(goal.points.map(\.level)).sorted().map { level in
-                "\(goal.name) · L\(level)"
+                "\(goal.name) L\(level)"
             }
         }
         return labels.enumerated().map { "계열 \($0.offset + 1): \($0.element)" }.joined(separator: "\n")
@@ -229,7 +205,7 @@ struct ReportComposerView: View {
         DisclosureGroup("AI 초안 작성") {
             VStack(alignment: .leading, spacing: 16) {
             ABASectionHeading(title: "AI 연결", help: "Groq의 GPT-OSS 120B가 번호로 구분한 수치 요약만 해석합니다. 본인의 Groq 키와 보고서 서버 접속 토큰이 필요합니다. 요청할 때마다 실제 전송 내용을 확인하고 동의합니다.")
-            Link("Groq 계정 로그인 · API 키 만들기", destination: URL(string: "https://console.groq.com/keys")!)
+            Link("Groq 계정 로그인 후 API 키 만들기", destination: URL(string: "https://console.groq.com/keys")!)
             SecureField("본인의 Groq API 키 (gsk_…)", text: $groqKey)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                 .privacySensitive()
@@ -253,7 +229,7 @@ struct ReportComposerView: View {
                     defer { isBusy = false }
                     do {
                         try await ReportAIClient.checkConnection(endpoint: endpoint, token: token)
-                        connectionStatus = "서버 인증·통신 확인 완료. Groq 호출은 아직 수행하지 않았습니다."
+                        connectionStatus = "서버 인증과 통신 확인을 완료했습니다. Groq 호출은 아직 수행하지 않았습니다."
                     } catch { connectionStatus = error.localizedDescription }
                 }
             }.disabled(isBusy || endpoint.isEmpty || token.isEmpty)
@@ -265,15 +241,15 @@ struct ReportComposerView: View {
             DisclosureGroup("전송할 데이터 검토") {
                 Text(payloadPreview).font(.caption.monospaced()).textSelection(.enabled)
             }
-            DisclosureGroup("계열 번호 대응표 · 기기에만 표시") {
+            DisclosureGroup("기기에만 표시하는 계열 번호 대응표") {
                 Text(seriesLegend).font(.footnote).textSelection(.enabled)
             }
-            Button("현황 · 주요 변화 초안 요청") {
+            Button("현황과 주요 변화 초안 요청") {
                 consentRequest = ReportConsentRequest(document: document, endpoint: endpoint, token: token, groqKey: groqKey)
             }
                 .disabled(isBusy || !loaded || endpoint.isEmpty || token.isEmpty || groqKey.isEmpty || document.goals.isEmpty)
             if let result = aiResult {
-                Text("AI 초안 · 검토 전").font(.headline)
+                Text("검토 전 AI 초안").font(.headline)
                 Text(result.currentStatus).textSelection(.enabled)
                 Text(result.majorChanges).textSelection(.enabled)
                 Text(result.warnings.joined(separator: "\n")).font(.footnote).foregroundStyle(.orange)
@@ -292,18 +268,26 @@ struct ReportComposerView: View {
         }
     }
 
-    private func field(_ title: String, _ value: Binding<String>) -> some View {
-        let parts = title.components(separatedBy: " · ")
-        let label = parts[0] == "이번 기간의 강점과 주요 변화" ? "강점과 주요 변화" : parts[0]
+    private func field(_ title: String, _ value: Binding<String>, help: String? = nil) -> some View {
         return ABAAlignedField(
-            title: label,
-            help: parts.count > 1
-                ? (title.contains("AI 전송 제외") ? "기기에만 보관하는 참고 메모입니다. AI와 웹 편집에 전송하지 않습니다." : parts.dropFirst().joined(separator: " · "))
-                : nil
+            title: title,
+            help: help
         ) {
             TextField("내용 입력", text: value, axis: .vertical)
                 .lineLimit(2...12).textFieldStyle(.roundedBorder)
-                .accessibilityLabel(label)
+                .accessibilityLabel(title)
+                .accessibilityIdentifier(title)
+                .focused($focusedField, equals: title)
+                .disabled(!loaded)
+        }
+    }
+
+    private func singleLineField(_ title: String, _ value: Binding<String>) -> some View {
+        ABAAlignedField(title: title) {
+            TextField("내용 입력", text: value)
+                .lineLimit(1)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(title)
                 .accessibilityIdentifier(title)
                 .focused($focusedField, equals: title)
                 .disabled(!loaded)
@@ -376,7 +360,7 @@ struct ReportComposerView: View {
                 aiFingerprint = snapshot.fingerprint
                 // Restore meaningful labels locally, after the numeric-only response has arrived.
                 let labels = snapshot.goals.flatMap { goal in
-                    Set(goal.points.map(\.level)).sorted().map { "\(goal.name) · L\($0)" }
+                    Set(goal.points.map(\.level)).sorted().map { "\(goal.name) L\($0)" }
                 }
                 aiResult = ReportAIResult(currentStatus: localLabels(result.currentStatus, labels),
                                           majorChanges: localLabels(result.majorChanges, labels),
@@ -410,7 +394,7 @@ struct ReportPrivacyView: View {
     var body: some View {
         Form {
             Section("기기 내 보관") {
-                Text("아동 프로필·치료 기록·수동 작성 보고서는 앱의 기기 저장소에 보관합니다. AI 기능을 사용하지 않아도 직접 보고서를 작성할 수 있습니다. PDF를 공유하면 선택한 공유 대상에게 보고서 내용이 전달됩니다.")
+                Text("아동 프로필, 치료 기록과 수동 작성 보고서는 앱의 기기 저장소에 보관합니다. AI 기능을 사용하지 않아도 직접 보고서를 작성할 수 있습니다. PDF를 공유하면 선택한 공유 대상에게 보고서 내용이 전달됩니다.")
             }
             Section("AI 전송 안내") { Text(ReportConsentSheet.privacyNotice) }
             Section("선택적 보고서 웹 편집") { Text(ReportWebEditing.notice) }
@@ -428,17 +412,17 @@ private struct ReportConsentSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var agreed = false
     static let privacyNotice = """
-아동명·생년월일·기관명·프로그램명·날짜·메모·치료사 소견·서명은 AI 전송에서 제외합니다. 이름을 가린 문서나 PDF도 전송하지 않습니다.
+아동명, 생년월일, 기관명, 프로그램명, 날짜, 메모, 치료사 소견과 서명은 AI 전송에서 제외합니다. 이름을 가린 문서나 PDF도 전송하지 않습니다.
 
-학습별·단계별 반응률 배열만 보고서 서버에 보내고, 서버는 번호·관측 수·초기/최근 평균·차이·범위·비교 구간 중복 여부만 Groq에 전달합니다. 숫자만으로 완전한 익명성을 보장하지는 않습니다.
+학습별 및 단계별 반응률 배열만 보고서 서버에 보내고, 서버는 번호, 관측 수, 초기 평균, 최근 평균, 차이, 범위와 비교 구간 중복 여부만 Groq에 전달합니다. 숫자만으로 완전한 익명성을 보장하지는 않습니다.
 
-목적은 학습 반응 데이터에 근거한 현황과 주요 변화의 초안 작성입니다. 진단·치료 효과·행동 원인을 판단하지 않습니다. 치료사 소견 이후는 직접 작성하며 초안은 사용자가 검토·적용합니다.
+목적은 학습 반응 데이터에 근거한 현황과 주요 변화의 초안 작성입니다. 진단, 치료 효과 또는 행동 원인을 판단하지 않습니다. 치료사 소견 이후는 직접 작성하며 초안은 사용자가 검토한 후 적용합니다.
 
-연결에는 서버 접속 토큰과 Groq 키가 사용됩니다. 앱은 키를 Keychain에 저장하며, 제공된 서버 코드는 요청 본문과 키를 저장하거나 로그하지 않습니다. 운영 프록시와 Groq의 보존·처리 정책은 별도로 적용됩니다.
+연결에는 서버 접속 토큰과 Groq 키가 사용됩니다. 앱은 키를 Keychain에 저장하며, 제공된 서버 코드는 요청 본문과 키를 저장하거나 로그하지 않습니다. 운영 프록시와 Groq의 보존 및 처리 정책은 별도로 적용됩니다.
 
-Groq는 사용량 메타데이터를 보관합니다. 일반 추론 입력·출력은 기본적으로 보관하지 않지만 장애 조사·오남용 대응 시 최대 30일 보관할 수 있습니다. 보관되는 고객 데이터의 위치는 미국이며, 계정의 데이터 제어 설정에 따라 달라집니다.
+Groq는 사용량 메타데이터를 보관합니다. 일반 추론 입력과 출력은 기본적으로 보관하지 않지만 장애 조사나 오남용 대응 시 최대 30일 보관할 수 있습니다. 보관되는 고객 데이터의 위치는 미국이며, 계정의 데이터 제어 설정에 따라 달라집니다.
 
-매 요청마다 동의를 확인합니다. 취소해도 기록·수동 보고서 작성은 사용할 수 있습니다. 취소 시 학습 데이터와 Groq 키를 보내지 않습니다. 전송 이후에는 이미 처리된 정보를 소급하여 회수할 수 없습니다.
+매 요청마다 동의를 확인합니다. 취소해도 기록과 수동 보고서 작성은 사용할 수 있습니다. 취소 시 학습 데이터와 Groq 키를 보내지 않습니다. 전송 이후에는 이미 처리된 정보를 소급하여 회수할 수 없습니다.
 """
 
     var body: some View {
@@ -446,7 +430,7 @@ Groq는 사용량 메타데이터를 보관합니다. 일반 추론 입력·출�
             Form {
                 Section("수신처 및 목적") {
                     Text("보고서 서버: \(request.endpoint)")
-                    Text("AI 처리자: Groq · 학습 반응 수치 보고서 초안")
+                    Text("AI 처리자: Groq, 처리 목적: 학습 반응 수치 보고서 초안")
                 }
                 Section("전송 제외 및 처리 안내") { Text(Self.privacyNotice).font(.footnote) }
                 Section("이번 요청의 실제 전송 데이터") {

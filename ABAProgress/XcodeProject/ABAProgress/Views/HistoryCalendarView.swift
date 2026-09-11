@@ -308,7 +308,7 @@ private struct ChildDateSummaryCard: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(child.name).font(.headline)
-                Text("프로그램 \(recordedPrograms.count)개 · Session \(sessions.count)개")
+                Text("프로그램 \(recordedPrograms.count)개, Session \(sessions.count)개")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -405,14 +405,14 @@ private struct HistoricalTargetRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 Text(target.name)
-                Text("L\(target.levelNumber) · + \(session?.correctCount ?? 0) / - \(session?.promptedCount ?? 0) / NA \(session?.naCount ?? 0)")
+                Text("L\(target.levelNumber), 정반응 \(session?.correctCount ?? 0) / 촉구반응 \(session?.promptedCount ?? 0) / 미기록 \(session?.naCount ?? 0)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let session {
                     HStack(spacing: 6) {
                         Text(session.completed ? "완료" : "미완료")
                         if session.wasEditedAfterCreation {
-                            Text("· 수정됨")
+                            Text("수정됨")
                         }
                     }
                     .font(.caption2)
@@ -461,7 +461,7 @@ private struct HistoricalTargetEditView: View {
                     Label("과거 기록 수정", systemImage: ABASymbol.editHistory)
                         .font(.caption.bold())
                         .foregroundStyle(.orange)
-                    Text("\(child.name) · \(program.name)")
+                    Text("아동 \(child.name), 프로그램 \(program.name)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(date.formatted(date: .long, time: .omitted))
