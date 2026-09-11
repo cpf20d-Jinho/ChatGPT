@@ -6,7 +6,7 @@ const html=readFileSync(resolve(__dirname,"../XcodeProject/ABAProgress/Resources
 const counts=[1,1,1,2,3,2,1,1,2,2,2,2,2];
 const goals=counts.map((n,i)=>({
  id:"fixture-"+i,name:"가상 학습 목표 "+(i+1),domain:["모방","청자","학습능력","신체 발달"][i%4],group:i<10?"ELCAR 평가":"기타 목표",
- points:Array.from({length:n*4},(_,j)=>({date:"2026-01-"+String(j+1).padStart(2,"0"),value:20+(j%4)*20,level:Math.floor(j/4)+1})),
+ points:Array.from({length:n*4},(_,j)=>({date:"2026-01-"+String(j+1).padStart(2,"0"),value:20+(j%4)*20,level:Math.floor(j/4)+1,recordedCount:j===1?1:2,applicableCount:2})),
  learning:Object.fromEntries(Array.from({length:n},(_,j)=>[String(j+1),"가상 학습 내용입니다. 실제 아동 기록이 아닙니다."])),
  criteria:Object.fromEntries(Array.from({length:n},(_,j)=>[String(j+1),80])),masteredLevels:[],binary:false
 }));
@@ -21,9 +21,19 @@ ctx.fixture=doc;
 const result=vm.runInContext("renderReport(fixture)",ctx);
 assert.equal(result.stoCount,22);assert.equal(result.sections,16);
 assert(element.innerHTML.includes('stroke-dasharray="4 3"'));
+assert(element.innerHTML.includes('stroke-dasharray="3 3"'),"level transition must use a vertical dotted separator");
+assert(element.innerHTML.includes('r="3.6" fill="white"'),"partial-coverage points must be hollow");
 doc.childName='<script>alert("x")</script>';vm.runInContext("renderReport(fixture)",ctx);
 assert(!element.innerHTML.includes('<script>alert'));doc.childName="가상 아동";
 console.log("PASS: 22 STO / 13 graphs / 16 sections / escaped text / SVG charts");
+if(process.argv.includes("--fixture")){
+ const {writeFileSync}=require("node:fs");
+ doc.draft.nextGoals="검증끝";
+ const stress=JSON.parse(JSON.stringify(doc));
+ stress.draft.therapistOpinion=Array.from({length:100},(_,i)=>`${i+1}. 긴 한국어 문단의 페이지 나눔과 누락을 확인하는 합성 데이터입니다.`).join("\n");
+ stress.draft.nextGoals="검증끝";
+ writeFileSync(process.argv[process.argv.indexOf("--fixture")+1],JSON.stringify([doc,stress]));
+}
 if(process.argv.includes("--render")){
  (async()=>{
   const {chromium}=require("playwright");

@@ -1,6 +1,11 @@
 # Codex Start Here
 
-This folder is a complete handoff of ABAProgress v0.8.0.
+This folder is a complete handoff of ABAProgress v0.10.0.
+
+Read `Server/REPORT_WEB_EDITING.md` for optional encrypted, temporary report-only web editing. Therapy planning was explicitly deferred by the user. Help buttons replace nonessential inline explanations; consent, review and error states remain visible.
+
+## Release handoff
+Review `Release/TESTFLIGHT_CHECKLIST.md` and `BUILD_INFO.json`. Render hosting is configured; live AI credentials, operator policy details and Apple distribution signing still need verification. Do not repeat the already completed server provisioning.
 
 ## First task
 Use the **Build iOS Apps** plugin / Xcode runtime if available and bring this project to a reproducibly runnable state on iPhone and iPad simulators.

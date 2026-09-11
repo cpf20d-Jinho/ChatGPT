@@ -1,7 +1,8 @@
 import {createServer} from "node:http";
 import {readFileSync} from "node:fs";
-import {timingSafeEqual} from "node:crypto";
+import {timingSafeEqual,createHash} from "node:crypto";
 import {fileURLToPath} from "node:url";
+import {reportEditor} from "./report-editor.mjs";
 
 const guide=readFileSync(new URL("./GUIDE_SCRIPT.md",import.meta.url),"utf8");
 // This contract contains no user-supplied strings or real-world identifiers.
@@ -37,14 +38,26 @@ export function parseResponse(r){
   out.currentStatus.length>12000||out.majorChanges.length>12000)throw Error("Invalid response");
  return out;
 }
-export function server({token,fetchImpl=fetch}){
- if(!token||token.length<32)throw Error("Set REPORT_SERVER_TOKEN (32+ chars) on server only");
+export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
+ const accounts=users??(token?.length>=32?[{digest:createHash("sha256").update(token).digest("hex"),expiresAt:"2099-01-01T00:00:00Z"}]:[]);
+ if(!accounts.length||accounts.some(a=>!/^\w{64}$/.test(a.digest)||!/^[a-f0-9]+$/.test(a.digest)||!Number.isFinite(Date.parse(a.expiresAt))))throw Error("Configure user token digests and expiration");
+ const windows=new Map();
+ const editor=reportEditor({now});
  let busy=false;
- return createServer(async(req,res)=>{
+ const service=createServer(async(req,res)=>{
   res.setHeader("Cache-Control","no-store");res.setHeader("Content-Type","application/json");
-  const received=Buffer.from(req.headers.authorization??""),expected=Buffer.from("Bearer "+token);
-  if(received.length!==expected.length||!timingSafeEqual(received,expected)){res.writeHead(401);res.end('{"error":"unauthorized"}');return;}
+  const auth=req.headers.authorization??"";
+  const received=createHash("sha256").update(auth.startsWith("Bearer ")?auth.slice(7):"").digest();
+  const account=accounts.find(a=>Date.parse(a.expiresAt)>now()&&timingSafeEqual(received,Buffer.from(a.digest,"hex")));
+  if(await editor.handle(req,res,account)) return;
+  if(!account){res.writeHead(401);res.end('{"error":"unauthorized"}');return;}
+  if(req.method==="GET"&&req.url==="/report/health"){res.end(JSON.stringify({status:"ok",contract:"numeric-v1",provider:"groq",providerVerified:false}));return;}
   if(req.method!=="POST"||req.url!=="/report/narrative"){res.writeHead(404);res.end('{"error":"not_found"}');return;}
+  if(req.headers["x-aba-consent"]!=="numeric-v1"){res.writeHead(428);res.end('{"error":"consent_required"}');return;}
+  let window=windows.get(account.digest);
+  if(!window||now()-window.start>=60000){window={start:now(),count:0};windows.set(account.digest,window);}
+  if(window.count>=limit){res.writeHead(429);res.end('{"error":"user_rate_limit"}');return;}
+  window.count++;
   if(busy){res.writeHead(429);res.end('{"error":"busy"}');return;}
   busy=true;
   try{
@@ -57,7 +70,7 @@ export function server({token,fetchImpl=fetch}){
    if(typeof userKey!=="string"||!/^gsk_[A-Za-z0-9_-]{20,}$/.test(userKey)){res.writeHead(422);res.end('{"error":"groq_key_required"}');return;}
    const r=await fetchImpl("https://api.groq.com/openai/v1/chat/completions",{method:"POST",
     headers:{"Authorization":"Bearer "+userKey,"Content-Type":"application/json"},
-    body:JSON.stringify(body),signal:AbortSignal.timeout(75000)});
+    body:JSON.stringify(body),redirect:"error",signal:AbortSignal.timeout(75000)});
    // One call only: never retry automatically or switch providers/models/plans.
    if(r.status===429){
     const retry=r.headers?.get("retry-after");
@@ -74,8 +87,14 @@ export function server({token,fetchImpl=fetch}){
    res.writeHead(502);res.end('{"error":"generation_failed"}');
   }finally{busy=false;}
  });
+ service.on('close',()=>editor.close());
+ return service;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const service=server({token:process.env.REPORT_SERVER_TOKEN});
- service.listen(Number(process.env.PORT??8787),"127.0.0.1",()=>console.log("Report service listening on loopback; place behind authenticated TLS ingress."));
+ if(process.env.NODE_ENV==="production"&&!process.env.REPORT_USERS_FILE&&!process.env.REPORT_USERS_JSON)throw Error("Production requires per-user expiring token digests");
+ const users=process.env.REPORT_USERS_FILE?JSON.parse(readFileSync(process.env.REPORT_USERS_FILE,"utf8")):
+  process.env.REPORT_USERS_JSON?JSON.parse(process.env.REPORT_USERS_JSON):undefined;
+ const service=server({token:process.env.REPORT_SERVER_TOKEN,users});
+ service.requestTimeout=15000;service.headersTimeout=10000;
+ service.listen(Number(process.env.PORT??8787),process.env.LISTEN_HOST??"127.0.0.1",()=>console.log("Report service ready; TLS ingress required for external access."));
 }

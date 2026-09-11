@@ -22,6 +22,14 @@ struct ReportGoal {
         precondition(object["series"] as? [[Double]] == [[20, 60], [80]])
         let text = String(decoding: encoded, as: UTF8.self)
         precondition(!text.contains("SECRET") && !text.contains("2026"))
+        let good = "https://reports.test/report/narrative"
+        _ = try ReportAIClient.validatedURL(good, approvedHost: "reports.test")
+        for invalid in ["http://reports.test/report/narrative", "https://evil.test/report/narrative", "https://reports.test:8443/report/narrative", "https://reports.test/report/narrative?secret=yes", "https://user:password@reports.test/report/narrative", "https://reports.test/other"] {
+            do { _ = try ReportAIClient.validatedURL(invalid, approvedHost: "reports.test"); preconditionFailure("Invalid URL accepted") }
+            catch { }
+        }
+        do { _ = try ReportAIClient.validatedURL("https://reports.example.invalid/report/narrative", approvedHost: "reports.example.invalid"); preconditionFailure("Placeholder accepted") }
+        catch { }
         print("PASS: production Swift serializer excludes names/dates and separates ordered levels")
     }
 }

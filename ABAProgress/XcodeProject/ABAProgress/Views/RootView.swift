@@ -118,6 +118,7 @@ struct ChildrenListView: View {
     let children: [ChildProfile]
     @State private var showingAddChild = false
     @State private var childPendingDeletion: ChildProfile?
+    @State private var deletionError: String?
     @State private var searchText = ""
 
     private var displayedChildren: [ChildProfile] {
@@ -174,8 +175,11 @@ struct ChildrenListView: View {
             Button("삭제", role: .destructive) { confirmChildDeletion() }
             Button("취소", role: .cancel) { childPendingDeletion = nil }
         } message: {
-            Text("이 작업은 해당 아동의 프로그램, Level, Session, Trial 기록을 모두 삭제합니다.")
+            Text("아동의 프로그램·수업 기록과 저장된 보고서 초안을 삭제합니다. 이미 공유·저장한 PDF와 기기 백업은 별도로 관리해야 합니다.")
         }
+        .alert("삭제 확인", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
+            Button("확인") { deletionError = nil }
+        } message: { Text(deletionError ?? "") }
     }
 
     private func deleteChildren(at offsets: IndexSet) {
@@ -185,9 +189,19 @@ struct ChildrenListView: View {
 
     private func confirmChildDeletion() {
         guard let childPendingDeletion else { return }
+        let childID = childPendingDeletion.id
         modelContext.delete(childPendingDeletion)
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            deletionError = "아동 기록을 삭제하지 못했습니다. 다시 시도하세요."
+            self.childPendingDeletion = nil
+            return
+        }
         self.childPendingDeletion = nil
-        try? modelContext.save()
+        do { try ReportDraftStore.remove(childID: childID) }
+        catch { deletionError = "아동 기록은 삭제했지만 보고서 초안 정리에 실패했습니다. 기기 내 보고서 데이터 정리가 필요합니다." }
     }
 }
 
@@ -311,20 +325,30 @@ private struct TodayChildCard: View {
                 spacing: 12
             ) {
                 MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: ABASymbol.today)
-                MetricTile(title: "평균 정반응률", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: ABASymbol.accuracy)
+                MetricTile(title: "오늘 입력 평균", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: ABASymbol.accuracy)
             }
 
-            if !programs.isEmpty {
+            if !recordablePrograms.isEmpty {
                 VStack(spacing: 0) {
-                    ForEach(Array(programs.enumerated()), id: \.element.id) { index, program in
+                    ForEach(Array(recordablePrograms.enumerated()), id: \.element.id) { index, program in
                         NavigationLink {
                             ProgramDetailView(child: child, program: program)
                         } label: {
                             TodayProgramStatusCompact(program: program, today: today)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        if index < programs.count - 1 { Divider() }
+                        if index < recordablePrograms.count - 1 { Divider() }
                     }
+                }
+            }
+
+            if programs.count > recordablePrograms.count {
+                NavigationLink {
+                    ChildDetailView(child: child)
+                } label: {
+                    Text("완료·과제 없음 프로그램 (programs.count - recordablePrograms.count)개 보기")
+                        .font(.footnote)
                 }
             }
         }
@@ -442,6 +466,11 @@ struct ReportHomeView: View {
             }
         }
         .navigationTitle("보고서")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink("개인정보 안내") { ReportPrivacyView() }
+            }
+        }
     }
 }
 
@@ -453,6 +482,7 @@ struct AddChildView: View {
     @State private var useBirthDate = false
     @State private var birthDate = Date()
     @State private var memo = ""
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -477,11 +507,24 @@ struct AddChildView: View {
                             memo: memo
                         )
                         modelContext.insert(child)
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            modelContext.rollback()
+                            saveError = "아동 정보를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도하세요."
+                        }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: {
+                Text(saveError ?? "")
             }
         }
     }
@@ -543,6 +586,9 @@ enum ABAVisualStyle {
     static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
     static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
     static let separator = Color(uiColor: .separator).opacity(0.18)
+    /// Shared, non-rendered form tracks. Every regular-width editor aligns to these axes.
+    static let formLabelWidth: CGFloat = 168
+    static let formColumnSpacing: CGFloat = 16
 }
 
 private struct ABASurfaceModifier: ViewModifier {
@@ -566,6 +612,126 @@ extension View {
         background: Color = ABAVisualStyle.secondarySurface
     ) -> some View {
         modifier(ABASurfaceModifier(padding: padding, background: background))
+    }
+}
+
+/// A form row aligned to shared invisible label/content tracks.
+/// Compact and accessibility layouts fold the tracks onto one leading edge.
+struct ABAAlignedField<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    let title: String
+    let help: String?
+    @ViewBuilder let content: Content
+
+    init(title: String, help: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.help = help
+        self.content = content()
+    }
+
+    var body: some View {
+        if horizontalSizeClass == .compact || dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                label
+                content.frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            Grid(alignment: .topLeading, horizontalSpacing: ABAVisualStyle.formColumnSpacing) {
+                GridRow(alignment: .top) {
+                    label
+                        .frame(width: ABAVisualStyle.formLabelWidth, alignment: .leading)
+                    content
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+    }
+
+    private var label: some View {
+        HStack(alignment: .center, spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            if let help {
+                ABAHelpButton(title: title, message: help)
+            }
+        }
+        .frame(minHeight: 44, alignment: .leading)
+    }
+}
+
+struct ABAInlineNotice: View {
+    let title: String
+    let message: String
+    let systemImage: String
+    var tint: Color = .orange
+    var retryTitle: String?
+    var retry: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .foregroundStyle(tint)
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let retryTitle, let retry {
+                Button(retryTitle, action: retry)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .abaSurface(background: tint.opacity(0.08))
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// Consistent, accessible help. Important consent and error states remain visible.
+struct ABAHelpButton: View {
+    let title: String
+    let message: String
+    @State private var presented = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var body: some View {
+        Button { presented = true } label: {
+            Image(systemName: "questionmark.circle")
+                .font(.body)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel("\(title) 도움말")
+        .accessibilityIdentifier("help-\(title)")
+        .popover(isPresented: $presented) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top) {
+                        Text(title).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                        Button("닫기") { presented = false }.frame(minHeight: 44)
+                    }
+                    Text(message).fixedSize(horizontal: false, vertical: true)
+                }.padding(24)
+            }
+            .frame(idealWidth: dynamicTypeSize.isAccessibilitySize ? 440 : 360,
+                   idealHeight: dynamicTypeSize.isAccessibilitySize ? 560 : 320)
+            .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+            .presentationContentInteraction(.scrolls)
+        }
+    }
+}
+
+struct ABASectionHeading: View {
+    let title: String
+    let help: String
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(title).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+            ABAHelpButton(title: title, message: help)
+        }
     }
 }
 

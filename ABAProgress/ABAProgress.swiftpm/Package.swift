@@ -13,8 +13,8 @@ let package = Package(
             name: "ABAProgress",
             targets: ["AppModule"],
             bundleIdentifier: "com.abaprogress.universal",
-            displayVersion: "0.8.1",
-            bundleVersion: "9",
+            displayVersion: "0.11.0",
+            bundleVersion: "12",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.pink),
             supportedDeviceFamilies: [

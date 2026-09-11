@@ -440,6 +440,7 @@ private struct HistoricalTargetEditView: View {
 
     @State private var showingDeleteConfirmation = false
     @State private var reviewRefreshVersion = 0
+    @State private var saveError: String?
 
     private var session: TherapySession? {
         target.sessions.first { $0.hasMeaningfulData && Calendar.current.isDate($0.date, inSameDayAs: date) }
@@ -453,6 +454,9 @@ private struct HistoricalTargetEditView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if let saveError {
+                    ABAInlineNotice(title: "저장 실패", message: saveError, systemImage: ABASymbol.warning, tint: .red)
+                }
                 VStack(alignment: .leading, spacing: 6) {
                     Label("과거 기록 수정", systemImage: ABASymbol.editHistory)
                         .font(.caption.bold())
@@ -488,7 +492,8 @@ private struct HistoricalTargetEditView: View {
                     levelLabel: "L\(target.levelNumber)",
                     historicalEditMode: true,
                     onSessionCompleted: {
-                        _ = LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext)
+                        do { _ = try LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext) }
+                        catch { saveError = "레벨 판정을 저장하지 못해 이전 상태로 복구했습니다." }
                         reviewRefreshVersion += 1
                     },
                     onDataChanged: refreshLevelIntegrity
@@ -524,15 +529,21 @@ private struct HistoricalTargetEditView: View {
 
     private func refreshLevelIntegrity() {
         reviewRefreshVersion += 1
-        try? modelContext.save()
+        do { try modelContext.save(); saveError = nil }
+        catch { modelContext.rollback(); saveError = "과거 기록을 저장하지 못해 마지막 저장 상태로 복구했습니다." }
     }
 
     private func deleteSession() {
         guard let session else { return }
         modelContext.delete(session)
-        try? modelContext.save()
-        reviewRefreshVersion += 1
-        dismiss()
+        do {
+            try modelContext.save()
+            reviewRefreshVersion += 1
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveError = "기록을 삭제하지 못했습니다. 원본 기록은 그대로 보존되었습니다."
+        }
     }
 }
 

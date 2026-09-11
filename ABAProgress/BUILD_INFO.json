@@ -1,20 +1,10 @@
 {
   "product": "ABAProgress",
-  "version": "0.8.1",
-  "buildTimeKST": "2026-09-08T19:23:19+09:00",
-  "buildHash": "a85949c192",
-  "sourceSHA256": "a85949c1927ffb26dfa4bafb6caf1b227e9faea394bca186c0fe300d1456dd7f",
-  "previousBuild": "v0.8.0_bf9456242f",
-  "validation": {
-    "reportServerTests": "PASS_12_SYNTHETIC",
-    "syntheticReportTemplate": "PASS",
-    "sourceParity": "PASS",
-    "iOSBuild": "PENDING_GITHUB_ACTIONS",
-    "clinicalScenarios": "PENDING_GITHUB_ACTIONS",
-    "iosRuntimeTest": "NOT_RUN",
-    "liveAPI": "NOT_RUN_MISSING_GROQ_KEY",
-    "iosPDFPagination": "PENDING"
-  },
+  "version": "0.11.0",
+  "buildTimeKST": "2026-09-11T09:21:06+09:00",
+  "buildHash": "403f604dcb",
+  "sourceSHA256": "403f604dcbc8aff7d3e9f68211aebc45dd14b61b14d08697c5baa360f9faf4ea",
+  "previousBuild": "v0.10.0_cf0f6b4d14",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
     "deviceFamilies": [
@@ -22,5 +12,44 @@
       "iPad"
     ]
   },
-  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results."
+  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results.",
+  "previousValidation": {
+    "reportServerTests": "PASS_15_SYNTHETIC",
+    "syntheticReportTemplate": "PASS",
+    "sourceParity": "PASS",
+    "iOSBuild": "PASS_RUN_34439190365",
+    "releaseArchive": "PASS_UNSIGNED_XCODE_26_3_IOS_SDK_26_2_RUN_34439190365",
+    "iosPDFPagination": "PASS_IPHONE_IPAD_16_BASELINE_18_LONG_RUN_34439190365",
+    "finalFollowupCI": "PASS_RUN_34439190365",
+    "clinicalScenarios": "PASS_RUN_34439190365",
+    "actualReportCalculationTests": "PASS_RUN_34439190365",
+    "iosRuntimeTest": "IPHONE_UI_WORKFLOW_AND_IPHONE_IPAD_PDF",
+    "liveAPI": "NOT_RUN_NEW_GROQ_KEY_REQUIRED",
+    "renderDeployment": "LIVE_AUTHENTICATED_HEALTH_200_RECHECKED_2026_09_10",
+    "distributionSigning": "WORKFLOW_PREPARED_NOT_EXECUTED",
+    "validatedSourceCommit": "8aca36ca028b31ad66e4597599417ff0a9535d8c",
+    "pdfVisualReview": "PASS_16_BASELINE_PAGES_PRINT_COLORS_HEADERS_FOOTERS",
+    "uiWalkthrough": "PASS_IPHONE_RECORD_TO_PDF_SHARE_RUN_34439190347",
+    "demoPDF": "PASS_10_PAGES_FIVE_RECORDED_DATES_40_TO_80_PERCENT_MANUAL_NARRATIVE",
+    "demoVideo": "REAL_SIMULATOR_RECORDING_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION"
+  },
+  "validation": {
+    "reportServerTests": "PASS_17_SYNTHETIC",
+    "sourceParity": "PASS",
+    "iOSBuild": "PASS_RUN_34471215697",
+    "releaseArchive": "PASS_UNSIGNED_XCODE_26_PLUS_RUN_34471215697",
+    "iosPDFPagination": "PASS_IPHONE_IPAD_16_BASELINE_18_LONG_RUN_34471215697",
+    "clinicalScenarios": "PASS_12_RUN_34471215697",
+    "webBrowser": "PASS_CHROME_EDIT_ENCRYPT_CONFLICT_REVOKE_MOBILE_RUN_34471215697",
+    "uiLayout": "PASS_FOUR_SIMULATORS_LARGE_TYPE_ROTATION_HELP_CONSENT_RUN_34471212046",
+    "liveAPI": "NOT_RUN_NEW_GROQ_KEY_REQUIRED",
+    "distributionSigning": "NOT_EXECUTED",
+    "validatedSourceCommit": "6257d287db6a8f6957f84893debbfd4b5129912d",
+    "actualReportCalculationTests": "PASS_RUN_34471215697",
+    "webCryptography": "PASS_CRYPTOKIT_WHITELIST_WRONG_KEY_APPLY_RUN_34471215697",
+    "uiWalkthrough": "PASS_RECORD_TO_PDF_SHARE_RUN_34471212091",
+    "visualReview": "PASS_SYNTHETIC_IPHONE_IPAD_SCREENSHOTS_2026_09_10",
+    "renderDeployment": "LIVE_DEP_dah975m1egvs73d4hle0_SERVER_COMMIT_a4605082",
+    "liveWebEditing": "PASS_SYNTHETIC_HTTPS_CONSENT_CREATE_READ_UPDATE_CONFLICT_DELETE_2026_09_10"
+  }
 }

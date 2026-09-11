@@ -1,4 +1,38 @@
+# 0.11.0 · 사용자 흐름 및 정합성 패치
+
+- 저장 오류를 더 이상 무시하지 않고 추가·수정·삭제·Trial 자동 저장에서 롤백과 재시도 안내를 제공합니다.
+- 공통 `ABAAlignedField`의 보이지 않는 라벨/입력 축을 기준으로 보고서 날짜와 입력란을 정렬하고, 접근성 글자 크기에서는 같은 왼쪽 축으로 안전하게 접습니다.
+- 보고서 프로그램 선택을 왼쪽부터 한 줄 가로 스와이프로 변경하고, 작성 화면을 기본 정보·서술·검토 3단계로 나눴습니다.
+- L1→L2 전환을 끊어진 계열과 세로 점선으로 표시하며 새 레벨 정확도를 독립 집계합니다.
+- 날짜별 평균의 전체/일부 과제 기록 범위를 명시하고, 일부 기록점은 빈 표식으로 표시합니다.
+- 아동·프로그램·과제 메타데이터 편집 진입점을 추가하고 기존 Session의 Trial 수는 보존합니다.
+- 아동 상세의 중복 프로그램 목록을 하나로 합치고 오늘 화면은 기록 가능한 프로그램을 우선 표시합니다.
+- 레벨 완료/검토 결과와 저장 실패를 화면 내 안내로 표시하며 이후 레벨을 자동 삭제하거나 되돌리지 않습니다.
+- 회전 완료를 화면 기하로 확인한 후 캡처하고 네 기기 before/after 시각 회귀 자료를 보존합니다.
+
+# 0.10.0 · 도움말 정리와 보고서 웹 편집
+
+- 긴 부가 설명을 접근 가능한 questionmark.circle 도움말로 이동하고 보고서 날짜·입력란 정렬을 통일했습니다. 전송 동의·오류·검토 항목은 계속 표시합니다.
+- 사전 동의 후 여섯 서술 항목만 AES-GCM 암호화하여 무료 서버에 최대 30분 임시 보관하는 웹 편집을 추가했습니다. 링크 단위 권한·명시적 종료·수정 충돌 방지·앱 검토 후 반영을 지원합니다.
+- 아동 정보·기록·그래프·서명 수정, 치료 계획 기능, 영구 서버 보관은 추가하지 않았습니다. AI 숫자 전송 계약은 그대로입니다.
+- 웹 임시본은 서버 중지·재시작 때 소실될 수 있습니다. 앱 원본을 보존하고 별도 동의를 받으며, 새 기능의 검증은 BUILD_INFO와 PR의 해당 소스 실행을 확인합니다.
+
+## 0.9.1 · 출시 준비
+
+- 오늘 프로그램 행 전체 터치 및 Trial 접근성 식별자 개선.
+- 보고서 입력 후 키보드를 닫는 입력 완료 버튼 추가.
+- 아동 삭제 시 해당 보고서 초안 정리와 실패 알림.
+- App Store 등록 문구·심사 안내·개인정보 방침 초안·서명 Archive 절차 준비.
+- UI 흐름 검증은 최종 CI 결과를 참조. Apple 서명과 새 Groq 키 검증은 아직 필요.
+
 # CHANGELOG
+
+## v0.9 — Consent, server connection and release verification
+- Request-specific consent and numeric-only transmission; never transmit child identity, dates, labels, notes or PDFs.
+- Authenticated health check, redirect rejection, Keychain update/delete, expiring per-user tokens and rate limits.
+- Xcode 26+/SDK 26+ Release archive gate, Universal orientations and privacy manifest.
+- Actual iOS simulator PDF verification using synthetic baseline and long narrative fixtures.
+- Production hosting, new provider key and Apple distribution signing still require operator configuration.
 
 ## v0.8.1 — Groq BYOK numeric-only interpretation
 - Groq GPT-OSS 120B strict JSON with numeric summaries only; exclude dates, labels, notes and identifiers.
