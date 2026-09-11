@@ -12,7 +12,7 @@
       "iPad"
     ]
   },
-  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. See PR CI for subsequent build results.",
+  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. Validation references PR #7 source checks.",
   "previousValidation": {
     "reportServerTests": "PASS_15_SYNTHETIC",
     "syntheticReportTemplate": "PASS",
@@ -34,21 +34,22 @@
     "demoVideo": "REAL_SIMULATOR_RECORDING_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION"
   },
   "validation": {
-    "reportServerTests": "PASS_17_SYNTHETIC",
-    "sourceParity": "PASS_LOCAL_STATIC",
-    "iOSBuild": "PENDING_V0.12_GITHUB_ACTIONS",
-    "releaseArchive": "PENDING_V0.12_GITHUB_ACTIONS",
-    "iosPDFPagination": "PENDING_V0.12_GITHUB_ACTIONS",
-    "clinicalScenarios": "PENDING_V0.12_GITHUB_ACTIONS",
+    "reportServerTests": "PASS_18_SYNTHETIC",
+    "sourceParity": "PASS_LOCAL_XCODE_SWIFTPM_STATIC",
+    "iOSBuild": "PASS_RUN_34583078908",
+    "releaseArchive": "PASS_UNSIGNED_RUN_34583078908",
+    "iosPDFPagination": "PASS_IPHONE_IPAD_RUN_34583078908",
+    "clinicalScenarios": "PASS_RUN_34583078908",
     "webBrowser": "PASS_CHROME_EDIT_ENCRYPT_CONFLICT_REVOKE_MOBILE_RUN_34471215697",
-    "uiLayout": "PENDING_V0.12_FOUR_SIMULATOR_RUN",
+    "uiLayout": "PASS_FOUR_SIMULATORS_RUN_34583078648",
     "liveAPI": "NOT_RUN_NEW_GROQ_KEY_REQUIRED",
     "distributionSigning": "NOT_EXECUTED",
-    "validatedSourceCommit": "PENDING_V0.12_COMMIT",
-    "actualReportCalculationTests": "PENDING_V0.12_GITHUB_ACTIONS",
+    "validatedSourceCommit": "63dafc428837f760b404400fa4e0ace4cd665864",
+    "actualReportCalculationTests": "PASS_RUN_34583078908",
     "webCryptography": "PASS_CRYPTOKIT_WHITELIST_WRONG_KEY_APPLY_RUN_34471215697",
-    "uiWalkthrough": "PENDING_V0.12_GITHUB_ACTIONS",
-    "visualReview": "BEFORE_SAVED_AFTER_PENDING_V0.12_ACTIONS",
+    "uiWalkthrough": "PASS_IPAD_11_RUN_34583078472",
+    "visualReview": "PASS_BEFORE_AFTER_ARCHIVED_RUN_34583078648",
+    "demoVideo": "REAL_IPAD_11_SIMULATOR_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION_RUN_34583078472",
     "renderDeployment": "LIVE_DEP_dah975m1egvs73d4hle0_SERVER_COMMIT_a4605082",
     "liveWebEditing": "PASS_SYNTHETIC_HTTPS_CONSENT_CREATE_READ_UPDATE_CONFLICT_DELETE_2026_09_10"
   }
