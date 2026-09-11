@@ -20,7 +20,7 @@ final class DemoUITests: XCTestCase {
             print(app.debugDescription); XCTFail("Missing \(element)")
         }
         func shot(_ name: String) {
-            let attachment = XCTAttachment(screenshot: app.screenshot())
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
             attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
         }
         func waitForOrientation(landscape: Bool) {
@@ -67,7 +67,7 @@ final class DemoUITests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(ko)", "-AppleLocale", "ko_KR"]
         app.launch()
         func shot(_ name: String) {
-            let attachment = XCTAttachment(screenshot: app.screenshot())
+            let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
             attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
         }
         XCTAssertTrue(app.staticTexts["오늘 진행 현황"].firstMatch.waitForExistence(timeout: 10))
@@ -143,6 +143,6 @@ final class DemoUITests: XCTestCase {
         tap(share)
         pause(); pause()
         // The real system share sheet is the final step. No external recipient is contacted.
-        let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = "PDF ready to share"; shot.lifetime = .keepAlways; add(shot)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); shot.name = "PDF ready to share"; shot.lifetime = .keepAlways; add(shot)
     }
 }

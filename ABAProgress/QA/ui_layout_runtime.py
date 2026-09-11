@@ -29,6 +29,13 @@ try:
     result=subprocess.run(common+['-destination','id='+device,'test-without-building']+selected_tests+['-parallel-testing-enabled','NO','-resultBundlePath',str(out/f'{index}.xcresult')],stdout=log,stderr=subprocess.STDOUT)
    results.append({'device':name,'success':result.returncode==0,'largeType':index==0})
    subprocess.run(['xcrun','xcresulttool','export','attachments','--path',str(out/f'{index}.xcresult'),'--output-path',str(out/f'{index}-screens')],check=True)
+   manifest=json.loads((out/f'{index}-screens'/'manifest.json').read_text())
+   orientation=next(a for test in manifest for a in test['attachments'] if 'Report alternate orientation' in a['suggestedHumanReadableName'])
+   image=out/f'{index}-screens'/orientation['exportedFileName']
+   size=run('sips','-g','pixelWidth','-g','pixelHeight',str(image))
+   width=int(next(line.split(':')[1] for line in size.splitlines() if 'pixelWidth' in line))
+   height=int(next(line.split(':')[1] for line in size.splitlines() if 'pixelHeight' in line))
+   assert (width>height)==(index<2), f'Wrong captured orientation for {name}: {width}x{height}'
   finally:
    subprocess.run(['xcrun','simctl','shutdown',device]);subprocess.run(['xcrun','simctl','delete',device])
 finally:
