@@ -3,6 +3,9 @@ on:
   push:
     branches: [codex/**]
     paths: [ABAProgress/XcodeProject/ABAProgress/Views/**, ABAProgress/QA/ui_layout_runtime.py, ABAProgress/QA/DemoUITests.swift, .github/workflows/abaprogress-layout.yml]
+  pull_request:
+    branches: [main]
+    paths: [ABAProgress/XcodeProject/ABAProgress/Views/**, ABAProgress/QA/ui_layout_runtime.py, ABAProgress/QA/DemoUITests.swift, .github/workflows/abaprogress-layout.yml]
   workflow_dispatch:
 permissions:
   contents: read

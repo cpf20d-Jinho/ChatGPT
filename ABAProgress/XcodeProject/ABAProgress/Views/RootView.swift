@@ -66,7 +66,16 @@ private struct RegularRootView: View {
                 }
             }
             .listStyle(.sidebar)
-            .navigationTitle("ABA Progress")
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("ABA Progress")
+                        .font(.headline)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.leading, 20)
+                        .accessibilityAddTraits(.isHeader)
+                }
+            }
             .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         } detail: {
             NavigationStack {
@@ -175,7 +184,7 @@ struct ChildrenListView: View {
             Button("삭제", role: .destructive) { confirmChildDeletion() }
             Button("취소", role: .cancel) { childPendingDeletion = nil }
         } message: {
-            Text("아동의 프로그램·수업 기록과 저장된 보고서 초안을 삭제합니다. 이미 공유·저장한 PDF와 기기 백업은 별도로 관리해야 합니다.")
+            Text("아동의 프로그램, 수업 기록과 저장된 보고서 초안을 삭제합니다. 이미 공유하거나 저장한 PDF와 기기 백업은 별도로 관리해야 합니다.")
         }
         .alert("삭제 확인", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
             Button("확인") { deletionError = nil }
@@ -347,7 +356,7 @@ private struct TodayChildCard: View {
                 NavigationLink {
                     ChildDetailView(child: child)
                 } label: {
-                    Text("완료·과제 없음 프로그램 (programs.count - recordablePrograms.count)개 보기")
+                    Text("완료되었거나 과제가 없는 프로그램 \(programs.count - recordablePrograms.count)개 보기")
                         .font(.footnote)
                 }
             }

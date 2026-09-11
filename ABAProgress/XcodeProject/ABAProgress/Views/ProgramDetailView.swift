@@ -83,7 +83,7 @@ struct ProgramDetailView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(target.name).font(.headline)
-                                        Text("L\(target.levelNumber) · \(target.status.rawValue)")
+                                        Text("L\(target.levelNumber), 상태: \(target.status.rawValue)")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -192,7 +192,7 @@ struct ProgramDetailView: View {
                 }
             }
 
-            ABASectionHeading(title: "반응 기록", help: "버튼을 누르면 NA → + → − → NA 순서로 바뀝니다. +는 독립 정반응, −는 촉구반응입니다. NA는 미실시·미기록이며 정반응률 계산에서 제외합니다. 길게 누르면 NA로 초기화합니다. 변경 내용은 자동 저장됩니다.")
+            ABASectionHeading(title: "반응 기록", help: "버튼을 누르면 NA → + → − → NA 순서로 바뀝니다. +는 독립 정반응, −는 촉구반응입니다. NA는 미실시 또는 미기록 상태이며 정반응률 계산에서 제외합니다. 길게 누르면 NA로 초기화합니다. 변경 내용은 자동 저장됩니다.")
         }
         .abaSurface()
     }
@@ -273,7 +273,7 @@ struct ProgramDetailView: View {
             case .unchanged:
                 break
             case let .advanced(from, to):
-                notice = ("L\(from) 완료 · L\(to) 시작", "새 레벨은 정반응률을 0회 기록 상태에서 다시 집계합니다. 과제 추가 버튼으로 L\(to)의 첫 과제를 등록하세요.")
+                notice = ("L\(from) 완료 후 L\(to) 시작", "새 레벨은 정반응률을 0회 기록 상태에서 다시 집계합니다. 과제 추가 버튼으로 L\(to)의 첫 과제를 등록하세요.")
             }
         } catch {
             notice = ("레벨 저장 실패", "판정 변경을 저장하지 못해 이전 상태로 되돌렸습니다.")
