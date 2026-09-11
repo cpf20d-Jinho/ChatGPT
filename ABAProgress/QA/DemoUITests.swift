@@ -60,6 +60,7 @@ final class DemoUITests: XCTestCase {
             XCTAssertTrue(appTitle.exists)
             XCTAssertTrue(workspace.exists)
             XCTAssertLessThanOrEqual(abs(appTitle.frame.minX - workspace.frame.minX), 8)
+            XCTAssertGreaterThan(appTitle.frame.width, 80)
         }
 
         let learning = app.staticTexts["학습 내용"].firstMatch

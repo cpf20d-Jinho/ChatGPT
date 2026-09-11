@@ -71,7 +71,7 @@ private struct RegularRootView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Text("ABA Progress")
                         .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
                         .accessibilityAddTraits(.isHeader)
                 }
             }
