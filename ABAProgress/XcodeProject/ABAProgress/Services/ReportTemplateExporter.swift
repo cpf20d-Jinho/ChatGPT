@@ -102,11 +102,11 @@ extension ReportTemplateExporter {
                 try? FileManager.default.removeItem(at: destination)
                 try FileManager.default.copyItem(at: generated, to: destination)
                 guard let pdf = PDFDocument(url: destination), let content = pdf.string,
-                      content.contains(document.childName), content.contains("검증끝"), pdf.pageCount >= 16 else {
+                      content.contains(document.childName), content.contains("검증끝"), pdf.pageCount >= 10 else {
                     throw NSError(domain: "ReportQA", code: 1, userInfo: [NSLocalizedDescriptionKey: "PDF text or page verification failed"])
                 }
-                if index == 0 && pdf.pageCount != 16 {
-                    throw NSError(domain: "ReportQA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Baseline page count: \(pdf.pageCount), expected 16"])
+                if index == 0 && pdf.pageCount >= 16 {
+                    throw NSError(domain: "ReportQA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Baseline report still has \(pdf.pageCount) pages; expected fewer than 16"])
                 }
                 results.append(["fixture": index, "pages": pdf.pageCount, "textVerified": true])
             }

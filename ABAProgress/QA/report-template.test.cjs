@@ -19,13 +19,16 @@ const ctx={document:{getElementById:()=>element,querySelectorAll:()=>Array.from(
 vm.createContext(ctx);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],ctx);
 ctx.fixture=doc;
 const result=vm.runInContext("renderReport(fixture)",ctx);
-assert.equal(result.stoCount,22);assert.equal(result.sections,16);
+assert.equal(result.stoCount,22);assert.equal(result.sections,13);
+assert(!element.innerHTML.includes('<h2>치료사 종합 소견</h2>'));
+assert(!element.innerHTML.includes('<th>생년월일</th>'));
+assert(html.includes('.narrative{break-before:auto'));
 assert(element.innerHTML.includes('stroke-dasharray="4 3"'));
 assert(element.innerHTML.includes('stroke-dasharray="3 3"'),"level transition must use a vertical dotted separator");
 assert(element.innerHTML.includes('r="3.6" fill="white"'),"partial-coverage points must be hollow");
 doc.childName='<script>alert("x")</script>';vm.runInContext("renderReport(fixture)",ctx);
 assert(!element.innerHTML.includes('<script>alert'));doc.childName="가상 아동";
-console.log("PASS: 22 STO / 13 graphs / 16 sections / escaped text / SVG charts");
+console.log("PASS: 22 STO / 13 graphs / 13 populated sections / escaped text / SVG charts");
 if(process.argv.includes("--fixture")){
  const {writeFileSync}=require("node:fs");
  doc.draft.nextGoals="검증끝";
@@ -46,3 +49,4 @@ if(process.argv.includes("--render")){
   await browser.close();
  })().catch(e=>{console.error(e);process.exitCode=1});
 }
+

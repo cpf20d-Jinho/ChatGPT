@@ -13,8 +13,9 @@ p{margin:0 0 16pt;white-space:pre-wrap;overflow-wrap:anywhere}.hint,.muted{color
 .status{white-space:nowrap;color:white;border-radius:12pt;padding:1pt 8pt;background:#368de2;font-size:7pt}.status.done{background:#619d20}.domain{font-size:8pt;color:#999;margin:4pt 0 8pt}
 .graph-box,.learning{background:#f9f9f9;border-radius:7pt;padding:8pt 10pt;margin-top:7pt}.learning{font-size:8pt;color:#666;border-left:2pt solid #e6d9f2}.learning p{margin:3pt 0}
 .level{border:1pt solid currentColor;border-radius:6pt;padding:0 5pt;display:inline-block;margin-right:6pt;font-size:7pt}
+.narrative{break-before:auto;page-break-before:auto;break-inside:avoid;page-break-inside:avoid;margin:14pt 0}
 .narrative h2{font-size:10pt;color:var(--pink);border-top:.6pt solid var(--line);border-bottom:0;padding-top:8pt;font-weight:500}
-.narrative .body{background:#fdfbfc;border-left:2pt solid #ff91b1;padding:10pt 13pt;min-height:120pt;white-space:pre-wrap;overflow-wrap:anywhere}
+.narrative .body{background:#fdfbfc;border-left:2pt solid #ff91b1;padding:10pt 13pt;white-space:pre-wrap;overflow-wrap:anywhere}
 .signature{padding-top:425pt;text-align:center}.signature table{width:76%;margin:10pt auto;border-collapse:collapse;font-size:9pt}.signature th{background:white}
 .signature .note{font-size:8pt;color:#aaa;line-height:1.5}.closing{color:var(--pink);border:.6pt solid var(--pink);border-radius:7pt;margin-top:18pt;padding:12pt;font-size:9pt}
 @media screen{body{max-width:515pt;margin:35pt auto}.page{border-bottom:1px dashed #ddd;min-height:730pt;margin-bottom:30pt}}
@@ -61,7 +62,11 @@ function renderReport(doc){
  const initial=mean(domains.map(r=>r.first)),recent=mean(domains.map(r=>r.recent)),delta=recent-initial;
  let html='<section class="page cover"><div class="cover-meta">보고유형 중간보고서<br>보고기간 '+esc(doc.start)+' ~ '+esc(doc.end)+'</div><div class="brandmark">ABA</div><div class="brand">'+esc(d.institution)+'</div><div class="muted">개별화된 데이터 기반 중재와 언어 및 행동 통합적 접근</div><h1>중간 보고서</h1><div class="muted">아동 '+esc(doc.childName)+', 치료사 '+esc(d.therapist)+'</div><table>';
  const rows=[["아동명",doc.childName,"생년월일",doc.birthDate],["소속반",d.className,"담당 치료사",d.therapist],["치료기간",doc.start+" ~ "+doc.end,"프로그램",d.programFamily],["주 횟수",d.schedule,"회기 시간",d.duration]];
- for(const r of rows)html+="<tr><th>"+esc(r[0])+"</th><td>"+esc(r[1])+"</td><th>"+esc(r[2])+"</th><td>"+esc(r[3])+"</td></tr>";
+ for(const r of rows){
+  const left=String(r[1]??"").trim(),right=String(r[3]??"").trim();
+  if(left&&right)html+="<tr><th>"+esc(r[0])+"</th><td>"+esc(left)+"</td><th>"+esc(r[2])+"</th><td>"+esc(right)+"</td></tr>";
+  else if(left||right)html+="<tr><th>"+esc(left?r[0]:r[2])+"</th><td colspan=\"3\">"+esc(left||right)+"</td></tr>";
+ }
  html+='</table><div class="summary"><small>핵심 요약</small><p>'+esc(doc.childName)+' 아동의 영역별 달성률 평균은 '+Math.round(initial)+'%에서 '+Math.round(recent)+'%로 '+(delta>=0?"+":"")+Math.round(delta)+'%p 변화했습니다. '+total+'개 STO 중 '+mastered+'개에서 보고 기간 내 준거를 달성했습니다.</p></div></section>';
  let bars='<svg class="chart" viewBox="0 0 660 '+Math.max(100,domains.length*30+30)+'" xmlns="http://www.w3.org/2000/svg">'+text(390,15,"평균 달성률(%)",10,"#777","middle");
  domains.forEach((r,i)=>{const y=30+i*30;bars+=text(212,y+13,r.name+" ("+r.count+"개)",11,"#555","end")+
@@ -82,10 +87,13 @@ function renderReport(doc){
    html+="</div></article>";
   }html+="</section>";
  }
- for(const [title,body] of [["도전적 행동 변화",d.behavior],["종합 현황",d.currentStatus],["이번 기간의 강점과 주요 변화",d.majorChanges],["치료사 종합 소견",d.therapistOpinion],["가정에서 함께 하기",d.homePractice],["다음 목표",d.nextGoals]])
- html+='<section class="page narrative"><h2>'+esc(title)+'</h2><div class="body">'+esc(body||" ")+'</div></section>';
+ for(const [title,body] of [["도전적 행동 변화",d.behavior],["종합 현황",d.currentStatus],["이번 기간의 강점과 주요 변화",d.majorChanges],["치료사 종합 소견",d.therapistOpinion],["가정에서 함께 하기",d.homePractice],["다음 목표",d.nextGoals]]){
+  if(!String(body??"").trim())continue;
+  html+='<section class="page narrative"><h2>'+esc(title)+'</h2><div class="body">'+esc(body)+'</div></section>';
+ }
  html+='<section class="page signature"><div style="color:var(--pink)">확인 및 서명</div><table><tr><th>구 분</th><th>성 명</th><th>서 명</th><th>일 자</th></tr><tr><td>담당 치료사</td><td>'+esc(d.therapist)+'</td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr><tr><td>기관장</td><td>'+esc(d.director)+'<br><small>'+esc(d.directorCredential)+'</small></td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr></table><div class="note">본 보고서는 '+esc(doc.childName)+' 아동의 IEP에 따라 작성되었으며, 데이터 기반 분석을 통해 아동의 강점 영역과 진행 양상을 정리하였습니다.<br>'+esc(d.institution)+'는 아동의 다음 단계 학습을 위한 체계적 중재를 진행합니다.</div><div class="closing">본 보고 기간 동안 확인된 진행 양상을 토대로, 다음 단계의 중재를 진행합니다.</div></section>';
  document.getElementById("report").innerHTML=html;
  return {sections:document.querySelectorAll(".page").length,stoCount:total,masteredCount:mastered};
 }
 </script></body></html>
+
