@@ -53,9 +53,10 @@ export function reportEditor({now=Date.now}) {
      if(rooms.size>=32 || [...rooms.values()].filter(r=>r.owner===account.digest).length>=3){reply(res,429,{error:'room_limit'});return true;}
      if(body.revision!==0){reply(res,400,{error:'revision'});return true;}
      const id=randomBytes(16).toString('hex'), capability=randomBytes(32).toString('hex');
-     const expiresAt=Math.min(now()+30*60000,Date.parse(account.expiresAt));
-     rooms.set(id,{owner:account.digest,capability:hash(capability),expiresAt,ciphertext:body.ciphertext,revision:0,window:now(),count:0});
-     reply(res,201,{id,capability,expiresAt,revision:0});
+     const createdAt=now(),accountExpiresAt=Date.parse(account.expiresAt);
+     const expiresAt=Math.min(createdAt+60*60000,accountExpiresAt);
+     rooms.set(id,{owner:account.digest,capability:hash(capability),expiresAt,accountExpiresAt,ciphertext:body.ciphertext,revision:0,window:createdAt,count:0});
+     reply(res,201,{id,capability,expiresAt,serverTime:createdAt,revision:0});
     } catch {reply(res,400,{error:'invalid_encrypted_payload'});}
     return true;
    }
@@ -66,17 +67,24 @@ export function reportEditor({now=Date.now}) {
    }
    if(now()-room.window>=60000){room.window=now();room.count=0;}
    if(++room.count>60){reply(res,429,{error:'rate_limit'});return true;}
-   if(req.method==='GET'){reply(res,200,{ciphertext:room.ciphertext,revision:room.revision,expiresAt:room.expiresAt});return true;}
+   if(req.method==='GET'){reply(res,200,{ciphertext:room.ciphertext,revision:room.revision,expiresAt:room.expiresAt,serverTime:now()});return true;}
    if(req.method==='DELETE'){rooms.delete(id);reply(res,200,{deleted:true});return true;}
+   if(req.method==='PATCH'){
+    const expiresAt=Math.min(room.expiresAt+30*60000,room.accountExpiresAt);
+    if(expiresAt<=room.expiresAt){reply(res,409,{error:'extension_unavailable'});return true;}
+    room.expiresAt=expiresAt;
+    reply(res,200,{expiresAt,serverTime:now()});return true;
+   }
    if(req.method!=='PUT'){reply(res,405,{error:'method'});return true;}
    try {
     const body=await envelope(req);
     if(rooms.get(id)!==room || room.expiresAt<=now()){reply(res,404,{error:'expired_or_unavailable'});return true;}
     if(body.revision!==room.revision){reply(res,409,{error:'revision_conflict'});return true;}
     room.ciphertext=body.ciphertext;room.revision++;
-    reply(res,200,{revision:room.revision,expiresAt:room.expiresAt});
+    reply(res,200,{revision:room.revision,expiresAt:room.expiresAt,serverTime:now()});
    } catch {reply(res,400,{error:'invalid_encrypted_payload'});}
    return true;
   }
  };
 }
+

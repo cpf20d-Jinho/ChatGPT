@@ -4,11 +4,17 @@
 <header><span class="brand">ABA</span><span>보고서 편집</span></header>
 <h1>문장에 집중하세요.</h1>
 <p class="intro">보고서의 서술 항목을 수정하고 앱에서 검토해 반영하세요.</p>
-<details><summary>편집 범위와 보관 안내 <span aria-hidden="true">?</span></summary><p>아동 프로필·시행 기록·그래프·서명은 수정할 수 없습니다. AI를 호출하지 않습니다. 내용은 브라우저에서 암호화한 뒤 서버 메모리에 최대 30분 보관합니다. 무료 서버가 재시작되거나 중지되면 더 일찍 사라질 수 있습니다.</p><p>링크를 가진 사람은 이 보고서의 서술을 읽고 수정할 수 있습니다. 신뢰하는 기기에서만 열고 링크를 다른 사람에게 전달하지 마세요. 이름·생년월일 등 개인정보를 문장에 입력하지 마세요. 저장 후 반드시 앱에서 가져와 검토하세요. 서버의 저장 완료는 앱 반영 완료를 뜻하지 않습니다.</p></details>
+<details><summary>편집 범위와 보관 안내 <span aria-hidden="true">?</span></summary><p>아동 프로필·시행 기록·그래프·서명은 수정할 수 없습니다. AI를 호출하지 않습니다. 내용은 브라우저에서 암호화한 뒤 서버 메모리에 처음 1시간 보관하며, 연장 버튼으로 30분씩 연장할 수 있습니다. 계정 만료 시각을 넘길 수 없고 무료 서버가 재시작되거나 중지되면 더 일찍 사라질 수 있습니다.</p><p>링크를 가진 사람은 이 보고서의 서술을 읽고 수정할 수 있습니다. 신뢰하는 기기에서만 열고 링크를 다른 사람에게 전달하지 마세요. 이름·생년월일 등 개인정보를 문장에 입력하지 마세요. 저장 후 반드시 앱에서 가져와 검토하세요. 서버의 저장 완료는 앱 반영 완료를 뜻하지 않습니다.</p></details>
 <p id="status" role="status" aria-live="polite">앱에서 생성한 편집 링크로 열어주세요.</p>
 <form id="editor" hidden autocomplete="off">
 <div id="fields"></div>
-<footer><button id="save" type="submit">수정 내용 저장</button><button id="download" type="button">내 기기에 임시본 보관</button><span id="expiry"></span></footer>
+<footer><button id="save" type="submit">수정 내용 저장</button><button id="download" type="button">내 기기에 임시본 보관</button><span id="expiry" role="timer" aria-live="off"></span><button id="extend" type="button">30분 연장</button></footer>
 <p class="note">앱에서 ‘웹 수정본 검토’를 눌러 반영한 뒤 PDF를 다시 생성하세요.</p>
 </form>
+<dialog id="expiryPrompt" aria-labelledby="expiryTitle" aria-describedby="expiryMessage">
+<h2 id="expiryTitle">편집 시간이 곧 끝납니다</h2>
+<p id="expiryMessage">5분 후 편집 링크가 만료됩니다. 현재 내용을 서버에 저장하시겠습니까? 저장 후 앱에서 웹 수정본을 가져와 검토해야 원본에 반영됩니다.</p>
+<div class="dialog-actions"><button id="promptSave" type="button">지금 저장</button><button id="promptDiscard" type="button">저장하지 않음</button><button id="promptExtend" type="button">30분 연장</button></div>
+</dialog>
 </main></body></html>
+
