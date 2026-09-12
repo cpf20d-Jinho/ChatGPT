@@ -13,10 +13,10 @@ p{margin:0 0 16pt;white-space:pre-wrap;overflow-wrap:anywhere}.hint,.muted{color
 .status{white-space:nowrap;color:white;border-radius:12pt;padding:1pt 8pt;background:#368de2;font-size:7pt}.status.done{background:#619d20}.domain{font-size:8pt;color:#999;margin:4pt 0 8pt}
 .graph-box,.learning{background:#f9f9f9;border-radius:7pt;padding:8pt 10pt;margin-top:7pt}.learning{font-size:8pt;color:#666;border-left:2pt solid #e6d9f2}.learning p{margin:3pt 0}
 .level{border:1pt solid currentColor;border-radius:6pt;padding:0 5pt;display:inline-block;margin-right:6pt;font-size:7pt}
-.narrative{break-before:auto;page-break-before:auto;break-inside:avoid;page-break-inside:avoid;margin:14pt 0}
-.narrative h2{font-size:10pt;color:var(--pink);border-top:.6pt solid var(--line);border-bottom:0;padding-top:8pt;font-weight:500}
-.narrative .body{background:#fdfbfc;border-left:2pt solid #ff91b1;padding:10pt 13pt;white-space:pre-wrap;overflow-wrap:anywhere}
-.signature{padding-top:425pt;text-align:center}.signature table{width:76%;margin:10pt auto;border-collapse:collapse;font-size:9pt}.signature th{background:white}
+.narrative-block{margin:13pt 0;break-inside:avoid;page-break-inside:avoid}
+.narrative-block h3{font-size:10pt;color:var(--pink);border-top:.6pt solid var(--line);padding-top:7pt;margin-bottom:6pt;font-weight:600}
+.narrative-block .body{background:#fdfbfc;border-left:2pt solid #ff91b1;padding:8pt 12pt;white-space:pre-wrap;overflow-wrap:anywhere}
+.signature{margin-top:22pt;padding-top:12pt;border-top:.6pt solid var(--line);text-align:center;break-inside:avoid;page-break-inside:avoid}.signature table{width:76%;margin:10pt auto;border-collapse:collapse;font-size:9pt}.signature th{background:white}
 .signature .note{font-size:8pt;color:#aaa;line-height:1.5}.closing{color:var(--pink);border:.6pt solid var(--pink);border-radius:7pt;margin-top:18pt;padding:12pt;font-size:9pt}
 @media screen{body{max-width:515pt;margin:35pt auto}.page{border-bottom:1px dashed #ddd;min-height:730pt;margin-bottom:30pt}}
 </style><body><main id="report"></main><script>
@@ -87,11 +87,12 @@ function renderReport(doc){
    html+="</div></article>";
   }html+="</section>";
  }
+ html+='<section class="page narrative"><h2>치료 경과 및 다음 계획</h2>';
  for(const [title,body] of [["도전적 행동 변화",d.behavior],["종합 현황",d.currentStatus],["이번 기간의 강점과 주요 변화",d.majorChanges],["치료사 종합 소견",d.therapistOpinion],["가정에서 함께 하기",d.homePractice],["다음 목표",d.nextGoals]]){
   if(!String(body??"").trim())continue;
-  html+='<section class="page narrative"><h2>'+esc(title)+'</h2><div class="body">'+esc(body)+'</div></section>';
+  html+='<div class="narrative-block"><h3>'+esc(title)+'</h3><div class="body">'+esc(body)+'</div></div>';
  }
- html+='<section class="page signature"><div style="color:var(--pink)">확인 및 서명</div><table><tr><th>구 분</th><th>성 명</th><th>서 명</th><th>일 자</th></tr><tr><td>담당 치료사</td><td>'+esc(d.therapist)+'</td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr><tr><td>기관장</td><td>'+esc(d.director)+'<br><small>'+esc(d.directorCredential)+'</small></td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr></table><div class="note">본 보고서는 '+esc(doc.childName)+' 아동의 IEP에 따라 작성되었으며, 데이터 기반 분석을 통해 아동의 강점 영역과 진행 양상을 정리하였습니다.<br>'+esc(d.institution)+'는 아동의 다음 단계 학습을 위한 체계적 중재를 진행합니다.</div><div class="closing">본 보고 기간 동안 확인된 진행 양상을 토대로, 다음 단계의 중재를 진행합니다.</div></section>';
+ html+='<div class="signature"><div style="color:var(--pink)">확인 및 서명</div><table><tr><th>구 분</th><th>성 명</th><th>서 명</th><th>일 자</th></tr><tr><td>담당 치료사</td><td>'+esc(d.therapist)+'</td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr><tr><td>기관장</td><td>'+esc(d.director)+'<br><small>'+esc(d.directorCredential)+'</small></td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr></table><div class="note">본 보고서는 '+esc(doc.childName)+' 아동의 IEP에 따라 작성되었으며, 데이터 기반 분석을 통해 아동의 강점 영역과 진행 양상을 정리하였습니다.<br>'+esc(d.institution)+'는 아동의 다음 단계 학습을 위한 체계적 중재를 진행합니다.</div><div class="closing">본 보고 기간 동안 확인된 진행 양상을 토대로, 다음 단계의 중재를 진행합니다.</div></div></section>';
  document.getElementById("report").innerHTML=html;
  return {sections:document.querySelectorAll(".page").length,stoCount:total,masteredCount:mastered};
 }
