@@ -60,8 +60,12 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
         }
         UIGraphicsEndPDFContext()
         // Each export has a new identity; existing shared PDFs are never silently overwritten.
+        let stamp = DateFormatter()
+        stamp.locale = Locale(identifier: "en_US_POSIX")
+        stamp.dateFormat = "yyyyMMdd_HHmmss_SSS"
+        let suffix = UUID().uuidString.prefix(8)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ABA_Report_\(UUID().uuidString).pdf")
+            .appendingPathComponent("ABA_중간보고서_\(stamp.string(from: Date()))_\(suffix).pdf")
         try (output as Data).write(to: url, options: [.atomic, .completeFileProtection])
         return url
     }
