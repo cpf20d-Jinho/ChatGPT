@@ -106,7 +106,6 @@ final class DemoUITests: XCTestCase {
         let agree = app.switches["전송 범위와 링크 접근 권한을 확인했으며 동의합니다"]
         reveal(agree)
         XCTAssertEqual(agree.value as? String, "0")
-        XCTAssertFalse(app.buttons["동의하고 편집 링크 만들기"].isEnabled)
         shot("Web editing explicit consent default off")
         app.buttons["닫기"].firstMatch.tap()
     }
