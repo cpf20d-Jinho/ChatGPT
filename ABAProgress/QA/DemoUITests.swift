@@ -236,6 +236,10 @@ final class DemoUITests: XCTestCase {
             app.navigationBars.buttons.firstMatch.tap()
         }
 
+        // Restart between independent navigation scenarios. On iPad a
+        // NavigationSplitView can retain the program detail path even after
+        // selecting another sidebar destination during UI automation.
+        app.terminate(); app.launch()
         openDestination("보고서")
         let reportChild = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "8개 프로그램 시연 아동")).firstMatch
         XCTAssertTrue(reportChild.waitForExistence(timeout: 5)); reportChild.tap()
@@ -247,6 +251,7 @@ final class DemoUITests: XCTestCase {
             XCTAssertTrue(chip.waitForExistence(timeout: 3), "보고서 프로그램 선택 누락: \(name)")
         }
 
+        app.terminate(); app.launch()
         openDestination("기록")
         let oldDate = Calendar.current.date(byAdding: .day, value: -8, to: Date())!
         let oldDateLabel = oldDate.formatted(date: .complete, time: .omitted)
