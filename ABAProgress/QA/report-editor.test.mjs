@@ -22,10 +22,15 @@ test('encrypted report editing: consent, capability isolation, revisions, expiry
   assert.equal((await create({Authorization:auth.Authorization})).status,428);
   const response=await create();assert.equal(response.status,201);
   const room=await response.json(), path=base+'/report/edit-sessions/'+room.id;
+  assert.equal(room.expiresAt-clock,60*60000);
   assert.equal((await fetch(path,{headers:auth})).status,404,'server owner token alone cannot read content');
   assert.equal((await fetch(path,{headers:{'X-ABA-Edit-Capability':'wrong'}})).status,404);
   const headers={'X-ABA-Edit-Capability':room.capability,'Content-Type':'application/json'};
+  assert.equal((await fetch(path,{method:'PATCH',headers:{'X-ABA-Edit-Capability':'wrong'}})).status,404);
   const stored=await (await fetch(path,{headers})).json();assert.equal(stored.ciphertext,ciphertext);
+  const extended=await (await fetch(path,{method:'PATCH',headers})).json();
+  assert.equal(extended.expiresAt-clock,90*60000);
+  assert.equal(extended.serverTime,clock);
   assert.ok(!JSON.stringify(stored).includes('가상'));
   assert.equal((await fetch(path,{method:'PUT',headers,body:JSON.stringify({ciphertext,revision:0,childName:'not permitted'})})).status,400);
   const put=()=>fetch(path,{method:'PUT',headers,body:JSON.stringify({ciphertext,revision:0})});
@@ -34,7 +39,7 @@ test('encrypted report editing: consent, capability isolation, revisions, expiry
   assert.equal((await fetch(base+'/report/edit-sessions/'+other.id,{headers})).status,404);
   assert.equal((await fetch(path,{method:'DELETE',headers})).status,200);
   assert.equal((await fetch(path,{headers})).status,404);
-  clock+=31*60000;
+  clock+=61*60000;
   assert.equal((await fetch(base+'/report/edit-sessions/'+other.id,{headers:{'X-ABA-Edit-Capability':other.capability}})).status,404);
   const page=await fetch(base+'/report/editor');assert.equal(page.status,200);
   assert.ok(page.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
@@ -54,7 +59,12 @@ test('bounded room allocation and account expiry apply to edit links',async()=>{
  try {
   const rooms=await Promise.all(Array.from({length:6},()=>fetch(base,{method:'POST',headers,body})));
   assert.equal(rooms.filter(r=>r.status===201).length,3);assert.equal(rooms.filter(r=>r.status===429).length,3);
-  const room=await rooms.find(r=>r.status===201).json();clock+=61000;
+  const room=await rooms.find(r=>r.status===201).json();
+  assert.equal(room.expiresAt-clock,60000,'account expiry caps the initial hour');
+  const capped=await fetch(base+'/'+room.id,{method:'PATCH',headers:{'X-ABA-Edit-Capability':room.capability}});
+  assert.equal(capped.status,409,'extension cannot pass account expiry');
+  clock+=61000;
   assert.equal((await fetch(base+'/'+room.id,{headers:{'X-ABA-Edit-Capability':room.capability}})).status,404);
  }finally{app.close();app.closeAllConnections();await once(app,'close');}
 });
+

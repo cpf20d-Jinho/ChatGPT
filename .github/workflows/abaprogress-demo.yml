@@ -2,10 +2,10 @@ name: ABAProgress usage video
 on:
   push:
     branches: [codex/**]
-    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, .github/workflows/abaprogress-demo.yml]
+    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, ABAProgress/XcodeProject/ABAProgress/Resources/ReportTemplate.html, .github/workflows/abaprogress-demo.yml]
   pull_request:
     branches: [main]
-    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, .github/workflows/abaprogress-demo.yml]
+    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, ABAProgress/XcodeProject/ABAProgress/Resources/ReportTemplate.html, .github/workflows/abaprogress-demo.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,3 +25,4 @@ jobs:
           name: ABAProgress-iPad-11-usage-video
           path: ${{ runner.temp }}/aba-demo/
           retention-days: 7
+

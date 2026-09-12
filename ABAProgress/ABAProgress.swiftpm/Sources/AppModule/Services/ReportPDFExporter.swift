@@ -20,7 +20,11 @@ struct ReportPDFExporter {
     ) throws -> URL {
         guard !programs.isEmpty else { throw ExportError.noPrograms }
 
-        let fileName = "\(safeName(child.name))_경과보고서_\(compactDate(startDate))_\(compactDate(endDate)).pdf"
+        let stamp = DateFormatter()
+        stamp.locale = Locale(identifier: "en_US_POSIX")
+        stamp.dateFormat = "yyyyMMdd_HHmmss_SSS"
+        let suffix = UUID().uuidString.prefix(8)
+        let fileName = "\(safeName(child.name))_경과보고서_\(compactDate(startDate))_\(compactDate(endDate))_\(stamp.string(from: Date()))_\(suffix).pdf"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
 
         let page = CGRect(x: 0, y: 0, width: 595, height: 842)
@@ -124,3 +128,4 @@ struct ReportPDFExporter {
     private static func displayShortDate(_ date: Date) -> String { let f = DateFormatter(); f.dateFormat = "M/d"; return f.string(from: date) }
     private static func safeName(_ name: String) -> String { name.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-") }
 }
+

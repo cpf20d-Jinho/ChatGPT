@@ -19,13 +19,17 @@ const ctx={document:{getElementById:()=>element,querySelectorAll:()=>Array.from(
 vm.createContext(ctx);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],ctx);
 ctx.fixture=doc;
 const result=vm.runInContext("renderReport(fixture)",ctx);
-assert.equal(result.stoCount,22);assert.equal(result.sections,16);
+assert.equal(result.stoCount,22);assert.equal(result.sections,10);
+assert(!element.innerHTML.includes('<h3>치료사 종합 소견</h3>'));
+assert(!element.innerHTML.includes('<th>생년월일</th>'));
+assert(element.innerHTML.includes('<section class="page narrative"><h2>치료 경과 및 다음 계획</h2>'));
+assert.equal((element.innerHTML.match(/class="signature"/g)||[]).length,1);
 assert(element.innerHTML.includes('stroke-dasharray="4 3"'));
 assert(element.innerHTML.includes('stroke-dasharray="3 3"'),"level transition must use a vertical dotted separator");
 assert(element.innerHTML.includes('r="3.6" fill="white"'),"partial-coverage points must be hollow");
 doc.childName='<script>alert("x")</script>';vm.runInContext("renderReport(fixture)",ctx);
 assert(!element.innerHTML.includes('<script>alert'));doc.childName="가상 아동";
-console.log("PASS: 22 STO / 13 graphs / 16 sections / escaped text / SVG charts");
+console.log("PASS: 22 STO / 13 graphs / 10 coherent sections / escaped text / SVG charts");
 if(process.argv.includes("--fixture")){
  const {writeFileSync}=require("node:fs");
  doc.draft.nextGoals="검증끝";
@@ -42,7 +46,10 @@ if(process.argv.includes("--render")){
   await page.setContent(html);await page.evaluate(doc=>renderReport(doc),doc);
   const root=process.env.REPORT_QA_OUTPUT;
   if(!root)throw Error("Set REPORT_QA_OUTPUT to scratch directory");
-  for(const i of [0,1,2,10,11,12,15])await page.locator(".page").nth(i).screenshot({path:resolve(root,"template-"+(i+1)+".png")});
+  const sectionCount=await page.locator(".page").count();
+  for(const i of [...new Set([0,1,2,Math.floor(sectionCount/2),sectionCount-1])])
+   await page.locator(".page").nth(i).screenshot({path:resolve(root,"template-"+(i+1)+".png")});
   await browser.close();
  })().catch(e=>{console.error(e);process.exitCode=1});
 }
+

@@ -45,12 +45,19 @@ try:
    if index==0: run('xcrun','simctl','ui',device,'content_size','accessibility-large')
    selected_tests=['-only-testing:DemoUITests/DemoUITests/testHelpAndWebConsent']
    if index==1:selected_tests+=['-only-testing:DemoUITests/DemoUITests/testConsolidatedProgramAndEditEntryPoints']
+   if index==2:selected_tests+=['-only-testing:DemoUITests/DemoUITests/testEightProgramsAndHistoricalRecordReview']
    with (out/f'{index}.log').open('w') as log:
     result=subprocess.run(common+['-destination','id='+device,'test-without-building']+selected_tests+['-parallel-testing-enabled','NO','-resultBundlePath',str(out/f'{index}.xcresult')],stdout=log,stderr=subprocess.STDOUT)
    results.append({'device':name,'success':result.returncode==0,'largeType':index==0})
    subprocess.run(['xcrun','xcresulttool','export','attachments','--path',str(out/f'{index}.xcresult'),'--output-path',str(out/f'{index}-screens')],check=True)
    manifest=json.loads((out/f'{index}-screens'/'manifest.json').read_text())
-   orientation=next(a for test in manifest for a in test['attachments'] if 'Report alternate orientation' in a['suggestedHumanReadableName'])
+   if result.returncode != 0:
+    log_tail='\n'.join((out/f'{index}.log').read_text(errors='replace').splitlines()[-80:])
+    raise RuntimeError(f'UI tests failed for {name}:\n{log_tail}')
+   orientation=next((a for test in manifest for a in test['attachments'] if 'Report alternate orientation' in a['suggestedHumanReadableName']),None)
+   if orientation is None:
+    names=[a.get('suggestedHumanReadableName','') for test in manifest for a in test['attachments']]
+    raise RuntimeError(f'Missing Report alternate orientation attachment for {name}. Exported: {names}')
    image=out/f'{index}-screens'/orientation['exportedFileName']
    # XCTest preserves the device rotation as EXIF orientation while the PNG pixel
    # matrix remains portrait. Validate the user-visible geometry, not raw storage.
@@ -64,3 +71,4 @@ finally:
  (out/'results.json').write_text(json.dumps(results,indent=2))
 print(json.dumps(results))
 assert len(results)==4 and all(r['success'] for r in results)
+

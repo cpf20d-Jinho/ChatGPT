@@ -37,7 +37,7 @@ struct ReportWebSession {
     let id: String
     let capability: String
     let key: SymmetricKey
-    let expiresAt: Date
+    var expiresAt: Date
     let baseURL: URL
     let original: ReportEditableText
     let fingerprint: String
@@ -56,7 +56,7 @@ enum ReportWebEditing {
     static let notice = """
 선택한 보고서의 도전적 행동 변화, 종합 현황, 주요 변화, 치료사 소견, 가정 안내와 다음 목표만 편집합니다. 아동 프로필, 생년월일, 시행 기록, 그래프, 표지, 서명과 참고 메모는 포함하지 않습니다. 문장에 직접 적은 개인정보는 자동으로 제거되지 않으므로 전송 전에 삭제하세요.
 
-여섯 항목을 기기에서 암호화한 뒤 Render 보고서 서버(싱가포르)의 메모리에 최대 30분 임시 보관합니다. AI에는 보내지 않습니다. 무료 서버가 중지되거나 재시작되면 더 일찍 사라질 수 있습니다. 서버 저장은 백업이 아니며, 앱 원본은 유지됩니다. 연결 과정에서 서비스 제공자가 IP 등 접속 정보를 처리할 수 있습니다.
+여섯 항목을 기기에서 암호화한 뒤 Render 보고서 서버(싱가포르)의 메모리에 처음 1시간 임시 보관합니다. 웹에서 30분씩 연장할 수 있지만 계정 만료 시각을 넘길 수 없습니다. AI에는 보내지 않습니다. 무료 서버가 중지되거나 재시작되면 더 일찍 사라질 수 있습니다. 서버 저장은 백업이 아니며, 앱 원본은 유지됩니다. 연결 과정에서 서비스 제공자가 IP 등 접속 정보를 처리할 수 있습니다.
 
 전용 링크를 가진 사람은 해당 서술을 읽고 수정할 수 있습니다. 신뢰하는 기기에서만 열고 공유 대상에 주의하세요. 편집 후 앱에서 가져와 검토하고 반영해야 합니다. 앱을 종료하면 링크를 복구할 수 없으며 새 링크를 만들어야 합니다. 취소해도 기기 내 수동 작성은 계속 사용할 수 있습니다.
 """
@@ -93,10 +93,11 @@ enum ReportWebEditing {
         return ReportWebSession(id: created.id, capability: created.capability, key: key,
             expiresAt: Date(timeIntervalSince1970: created.expiresAt / 1000), baseURL: base, original: text, fingerprint: fingerprint)
     }
-    static func fetch(_ session: ReportWebSession) async throws -> ReportEditableText {
+    static func fetch(_ session: ReportWebSession) async throws -> (text: ReportEditableText, expiresAt: Date) {
         let data = try await request(session.baseURL.appendingPathComponent("edit-sessions/\(session.id)"), method: "GET", headers: ["X-ABA-Edit-Capability": session.capability])
-        struct Envelope: Decodable { let ciphertext: String }
-        return try open(JSONDecoder().decode(Envelope.self, from: data).ciphertext, key: session.key)
+        struct Envelope: Decodable { let ciphertext: String; let expiresAt: Double }
+        let envelope = try JSONDecoder().decode(Envelope.self, from: data)
+        return (try open(envelope.ciphertext, key: session.key), Date(timeIntervalSince1970: envelope.expiresAt / 1000))
     }
     static func close(_ session: ReportWebSession) async throws {
         _ = try await request(session.baseURL.appendingPathComponent("edit-sessions/\(session.id)"), method: "DELETE", headers: ["X-ABA-Edit-Capability": session.capability], allowMissing: true)
@@ -122,3 +123,4 @@ enum ReportWebEditing {
         return data
     }
 }
+

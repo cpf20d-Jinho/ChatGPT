@@ -29,9 +29,9 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
         let html = try String(contentsOf: source, encoding: .utf8)
         try await withCheckedThrowingContinuation { continuation in
             navigation = continuation
-            webView.loadHTMLString(html, baseURL: nil)
+            webView.loadHTMLString(html, baseURL: source.deletingLastPathComponent())
             loadTimeout = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(20))
+                try? await Task.sleep(for: .seconds(60))
                 guard !Task.isCancelled, let self else { return }
                 self.navigation?.resume(throwing: NSError(domain: "Report", code: 2,
                     userInfo: [NSLocalizedDescriptionKey: "보고서 양식 로딩 시간이 초과되었습니다."]))
@@ -60,8 +60,12 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
         }
         UIGraphicsEndPDFContext()
         // Each export has a new identity; existing shared PDFs are never silently overwritten.
+        let stamp = DateFormatter()
+        stamp.locale = Locale(identifier: "en_US_POSIX")
+        stamp.dateFormat = "yyyyMMdd_HHmmss_SSS"
+        let suffix = UUID().uuidString.prefix(8)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ABA_Report_\(UUID().uuidString).pdf")
+            .appendingPathComponent("ABA_중간보고서_\(stamp.string(from: Date()))_\(suffix).pdf")
         try (output as Data).write(to: url, options: [.atomic, .completeFileProtection])
         return url
     }
@@ -102,11 +106,11 @@ extension ReportTemplateExporter {
                 try? FileManager.default.removeItem(at: destination)
                 try FileManager.default.copyItem(at: generated, to: destination)
                 guard let pdf = PDFDocument(url: destination), let content = pdf.string,
-                      content.contains(document.childName), content.contains("검증끝"), pdf.pageCount >= 16 else {
+                      content.contains(document.childName), content.contains("검증끝"), pdf.pageCount >= 10 else {
                     throw NSError(domain: "ReportQA", code: 1, userInfo: [NSLocalizedDescriptionKey: "PDF text or page verification failed"])
                 }
-                if index == 0 && pdf.pageCount != 16 {
-                    throw NSError(domain: "ReportQA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Baseline page count: \(pdf.pageCount), expected 16"])
+                if index == 0 && pdf.pageCount >= 16 {
+                    throw NSError(domain: "ReportQA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Baseline report still has \(pdf.pageCount) pages; expected fewer than 16"])
                 }
                 results.append(["fixture": index, "pages": pdf.pageCount, "textVerified": true])
             }
@@ -155,3 +159,4 @@ private final class ReportPageRenderer: UIPrintPageRenderer {
         ])
     }
 }
+
