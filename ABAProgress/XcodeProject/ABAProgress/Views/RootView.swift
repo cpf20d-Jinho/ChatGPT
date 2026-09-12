@@ -69,7 +69,7 @@ private struct RegularRootView: View {
             .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Text("ABA Progress")
+                    Text("쉬운 ABA")
                         .font(.headline)
                         .fixedSize(horizontal: true, vertical: false)
                         .padding(.leading, 20)

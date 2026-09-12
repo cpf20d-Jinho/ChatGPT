@@ -57,7 +57,7 @@ final class DemoUITests: XCTestCase {
         XCTAssertLessThan(institution.frame.height, 52)
 
         if isPad {
-            let appTitle = app.staticTexts["ABA Progress"]
+            let appTitle = app.staticTexts["쉬운 ABA"]
             let workspace = app.staticTexts["워크스페이스"]
             XCTAssertTrue(appTitle.exists)
             XCTAssertTrue(workspace.exists)

@@ -1,5 +1,13 @@
 # 출시 후보 검증 및 제출 순서
 
+## 쉬운 ABA 1.0.0 (빌드 15) 상태
+
+- PR #8은 2026-09-12 main에 병합됨. 병합 전 최신 커밋의 기본 CI, iOS CI, 보고서 레이아웃, 사용 영상 검사는 모두 통과함.
+- 표시 이름과 내부 앱 진입 이름을 변경한 1.0.0 후보는 별도 검증이 필요함. 기존 Bundle ID `com.abaprogress.universal`은 유지함.
+- 미서명 아카이브만으로 App Store Connect에 업로드할 수 없음. Apple Distribution 인증서·App Store 프로파일·Team ID·앱 레코드가 필요함.
+- 개인정보처리방침은 운영자·문의처·보관/국외이전 사항이 비어 있는 초안이므로 공개하거나 제출하지 않음.
+- 실제 Groq 호출 및 실기기 TestFlight 확인은 아직 완료되지 않음.
+
 ## 현재 제공 가능한 결과
 - Xcode 프로젝트와 Swift Playgrounds 소스 유지
 - iPhone/iPad 시뮬레이터 빌드·미서명 Release 아카이브·실제 PDF 출력 검증
