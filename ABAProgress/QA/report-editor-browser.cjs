@@ -21,6 +21,7 @@ const path=require('node:path');
   assert.equal(result.status,201);const room=await result.json();
   const url=base+'/report/editor#'+new URLSearchParams({id:room.id,cap:room.capability,key:raw.toString('base64')});
   const page=await browser.newPage({viewport:{width:1280,height:900}});
+  await page.clock.install();
   const failures=[];page.on('pageerror',e=>failures.push(e.message));
   await page.goto(url);await page.locator('#editor').waitFor({state:'visible'});
   assert.equal(new URL(page.url()).hash,'','secret fragment cleared');
