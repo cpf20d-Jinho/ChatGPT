@@ -258,10 +258,16 @@ private struct DayCell: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(historyDayIdentifier)
         .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
         .accessibilityValue(hasRecord ? "기록 있음" : "기록 없음")
         .accessibilityHint("이 날짜의 치료 기록을 확인합니다.")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private var historyDayIdentifier: String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "history-day-%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
     }
 }
 
@@ -553,3 +559,4 @@ private extension Calendar {
         return self.date(from: components) ?? startOfDay(for: date)
     }
 }
+
