@@ -45,7 +45,9 @@ if(process.argv.includes("--render")){
   await page.setContent(html);await page.evaluate(doc=>renderReport(doc),doc);
   const root=process.env.REPORT_QA_OUTPUT;
   if(!root)throw Error("Set REPORT_QA_OUTPUT to scratch directory");
-  for(const i of [0,1,2,10,11,12,15])await page.locator(".page").nth(i).screenshot({path:resolve(root,"template-"+(i+1)+".png")});
+  const sectionCount=await page.locator(".page").count();
+  for(const i of [...new Set([0,1,2,Math.floor(sectionCount/2),sectionCount-1])])
+   await page.locator(".page").nth(i).screenshot({path:resolve(root,"template-"+(i+1)+".png")});
   await browser.close();
  })().catch(e=>{console.error(e);process.exitCode=1});
 }
