@@ -4,17 +4,17 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "ABAProgress",
+    name: "Easy_ABA",
     platforms: [
         .iOS("17.0")
     ],
     products: [
         .iOSApplication(
-            name: "ABAProgress",
+            name: "쉬운 ABA",
             targets: ["AppModule"],
             bundleIdentifier: "com.abaprogress.universal",
-            displayVersion: "0.12.0",
-            bundleVersion: "12",
+            displayVersion: "1.0.0",
+            bundleVersion: "15",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.pink),
             supportedDeviceFamilies: [
@@ -36,3 +36,4 @@ let package = Package(
         )
     ]
 )
+
