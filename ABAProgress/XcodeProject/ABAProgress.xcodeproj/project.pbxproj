@@ -6,6 +6,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A10000000000000000000020 /* ACCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020; };
+        A10000000000000000000021 /* ACCPhotoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021; };
         A10000000000000000000018 /* ReportWebEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018; };
         A10000000000000000000019 /* ReportWebEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019; };
 		A10000000000000000000017 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* PrivacyInfo.xcprivacy */; };
@@ -27,6 +29,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        B10000000000000000000020 /* ACCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACCView.swift; sourceTree = "<group>"; };
+        B10000000000000000000021 /* ACCPhotoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACCPhotoStore.swift; sourceTree = "<group>"; };
         B10000000000000000000018 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportWebEditing.swift; sourceTree = "<group>"; };
         B10000000000000000000019 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportWebEditorView.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Resources/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
@@ -90,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000003 /* RootView.swift */,
+                B10000000000000000000020 /* ACCView.swift */,
 				B10000000000000000000004 /* ChildDetailView.swift */,
 				B10000000000000000000005 /* ProgramDetailView.swift */,
 				B10000000000000000000006 /* ReportView.swift */,
@@ -103,6 +108,7 @@
 		D10000000000000000000005 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+                B10000000000000000000021 /* ACCPhotoStore.swift */,
 				B10000000000000000000007 /* ReportPDFExporter.swift */,
 				B10000000000000000000010 /* LevelProgressionService.swift */,
 				B10000000000000000000014 /* ReportTemplateExporter.swift */,
@@ -177,6 +183,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A10000000000000000000020 /* ACCView.swift in Sources */,
+                A10000000000000000000021 /* ACCPhotoStore.swift in Sources */,
 				A10000000000000000000015 /* ReportComposerView.swift in Sources */,
                 A10000000000000000000018 /* ReportWebEditing.swift in Sources */,
                 A10000000000000000000019 /* ReportWebEditorView.swift in Sources */,

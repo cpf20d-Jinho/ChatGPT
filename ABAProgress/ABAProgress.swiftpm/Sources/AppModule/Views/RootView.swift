@@ -47,6 +47,12 @@ private struct CompactRootView: View {
             }
             .tabItem { Label(AppDestination.reports.title, systemImage: AppDestination.reports.systemImage) }
             .tag(AppDestination.reports)
+
+            NavigationStack {
+                ACCView()
+            }
+            .tabItem { Label(AppDestination.acc.title, systemImage: AppDestination.acc.systemImage) }
+            .tag(AppDestination.acc)
         }
     }
 }
@@ -88,6 +94,8 @@ private struct RegularRootView: View {
                     HistoryCalendarView(children: children)
                 case .reports:
                     ReportHomeView(children: children)
+                case .acc:
+                    ACCView()
                 }
             }
         }
@@ -100,6 +108,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
     case children
     case history
     case reports
+    case acc
 
     var id: Self { self }
 
@@ -109,6 +118,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
         case .children: return "아동"
         case .history: return "기록"
         case .reports: return "보고서"
+        case .acc: return "ACC"
         }
     }
 
@@ -118,6 +128,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
         case .children: return ABASymbol.children
         case .history: return ABASymbol.history
         case .reports: return ABASymbol.report
+        case .acc: return "photo.on.rectangle.angled"
         }
     }
 }
