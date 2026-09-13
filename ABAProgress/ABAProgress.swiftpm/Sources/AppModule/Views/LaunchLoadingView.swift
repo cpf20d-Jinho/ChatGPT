@@ -5,7 +5,7 @@ struct LaunchLoadingView: View {
     @State private var startedAt = Date()
 
     var body: some View {
-        VStack(spacing: 28) {
+        ZStack {
             Image("LaunchLogo")
                 .resizable()
                 .interpolation(.high)
@@ -16,6 +16,7 @@ struct LaunchLoadingView: View {
                 Circle()
                     .strokeBorder(rippleColor, lineWidth: 3)
                     .frame(width: 44, height: 44)
+                    .offset(y: 160)
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
                     let elapsed = timeline.date.timeIntervalSince(startedAt)
@@ -29,6 +30,7 @@ struct LaunchLoadingView: View {
                     .frame(width: 82, height: 82)
                 }
                 .frame(width: 82, height: 82)
+                .offset(y: 160)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
