@@ -57,7 +57,7 @@ struct Easy_ABAApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            LaunchGateView()
                 .task {
                     #if DEBUG
                     if ProcessInfo.processInfo.environment["ABA_REPORT_QA"] == "1" {
@@ -69,5 +69,4 @@ struct Easy_ABAApp: App {
         .modelContainer(container)
     }
 }
-
 
