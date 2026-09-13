@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct ABAProgressApp: App {
+struct Easy_ABAApp: App {
     private let container: ModelContainer = {
         let schema = Schema([
             ChildProfile.self,
@@ -57,7 +57,7 @@ struct ABAProgressApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            LaunchGateView()
                 .task {
                     #if DEBUG
                     if ProcessInfo.processInfo.environment["ABA_REPORT_QA"] == "1" {
