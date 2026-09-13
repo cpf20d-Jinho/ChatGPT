@@ -15,38 +15,15 @@ struct ACCView: View {
     private var visiblePhotos: [ACCPhoto] {
         Array(photos.dropFirst(page * pageSize).prefix(pageSize))
     }
+    private var showingDeleteConfirmation: Binding<Bool> {
+        Binding(get: { photoPendingDeletion != nil }, set: { if !$0 { photoPendingDeletion = nil } })
+    }
+    private var showingError: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
 
     var body: some View {
-        ScrollView {
-            if photos.isEmpty && !isImporting {
-                ContentUnavailableView(
-                    "저장된 ACC 사진이 없습니다",
-                    systemImage: "photo.on.rectangle.angled",
-                    description: Text("사진을 추가하면 이 기기의 ACC 자료함에 저장됩니다.")
-                )
-                .frame(maxWidth: .infinity, minHeight: 300)
-            } else {
-                if photos.count > pageSize {
-                    HStack {
-                        Button("이전") { page -= 1 }
-                            .disabled(page == 0)
-                        Spacer()
-                        Text("\(page + 1) / \((photos.count - 1) / pageSize + 1)")
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("다음") { page += 1 }
-                            .disabled((page + 1) * pageSize >= photos.count)
-                    }
-                    .padding(.horizontal)
-                }
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(visiblePhotos) { photo in
-                        ACCPhotoTile(photo: photo) { photoPendingDeletion = photo }
-                    }
-                }
-                .padding()
-            }
-        }
+        gallery
         .navigationTitle("ACC")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -65,27 +42,59 @@ struct ACCView: View {
             selection = []
             Task { await importPhotos(newValue) }
         }
-        .confirmationDialog("사진을 삭제하시겠습니까?", isPresented: Binding(
-            get: { photoPendingDeletion != nil },
-            set: { if !$0 { photoPendingDeletion = nil } }
-        )) {
-            Button("삭제", role: .destructive) {
-                guard let photo = photoPendingDeletion else { return }
-                photoPendingDeletion = nil
-                Task {
-                    do { try await ACCPhotoStore.shared.remove(photo); await reload() }
-                    catch { errorMessage = error.localizedDescription }
-                }
-            }
+        .confirmationDialog("사진을 삭제하시겠습니까?", isPresented: showingDeleteConfirmation) {
+            Button("삭제", role: .destructive, action: deleteSelectedPhoto)
         } message: {
             Text("이 기기에 저장된 원본과 미리보기가 삭제됩니다.")
         }
-        .alert("ACC 사진", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
+        .alert("ACC 사진", isPresented: showingError) {
             Button("확인") { errorMessage = nil }
         } message: { Text(errorMessage ?? "") }
+    }
+
+    private var gallery: some View {
+        ScrollView {
+            if photos.isEmpty && !isImporting {
+                ContentUnavailableView(
+                    "저장된 ACC 사진이 없습니다",
+                    systemImage: "photo.on.rectangle.angled",
+                    description: Text("사진을 추가하면 이 기기의 ACC 자료함에 저장됩니다.")
+                )
+                .frame(maxWidth: .infinity, minHeight: 300)
+            } else {
+                VStack(spacing: 0) {
+                    if photos.count > pageSize { pagination }
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(visiblePhotos) { photo in
+                            ACCPhotoTile(photo: photo) { photoPendingDeletion = photo }
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+    }
+
+    private var pagination: some View {
+        HStack {
+            Button("이전") { page -= 1 }.disabled(page == 0)
+            Spacer()
+            Text("\(page + 1) / \((photos.count - 1) / pageSize + 1)")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("다음") { page += 1 }
+                .disabled((page + 1) * pageSize >= photos.count)
+        }
+        .padding(.horizontal)
+    }
+
+    private func deleteSelectedPhoto() {
+        guard let photo = photoPendingDeletion else { return }
+        photoPendingDeletion = nil
+        Task {
+            do { try await ACCPhotoStore.shared.remove(photo); await reload() }
+            catch { errorMessage = error.localizedDescription }
+        }
     }
 
     private func reload() async {
@@ -149,4 +158,3 @@ private struct ACCPhotoTile: View {
         }
     }
 }
-
