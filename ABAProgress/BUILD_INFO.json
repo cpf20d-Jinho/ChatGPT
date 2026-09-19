@@ -1,9 +1,9 @@
 {
   "product": "ABAProgress",
   "version": "0.12.0",
-  "buildTimeKST": "2026-09-11T18:12:43+09:00",
-  "buildHash": "4805dde010",
-  "sourceSHA256": "4805dde010f5804a1638bde0b6421137675825333cc2b42ead10b8126db8019e",
+  "buildTimeKST": "2026-09-19T23:49:17+09:00",
+  "buildHash": "448881312c",
+  "sourceSHA256": "448881312c64bc42d26ad92d8a1b1a0f88df78ad89aede703ff3e54962f2e53a",
   "previousBuild": "v0.11.0_403f604dcb",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
@@ -34,6 +34,7 @@
     "demoVideo": "REAL_SIMULATOR_RECORDING_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION"
   },
   "validation": {
+    "swiftPlaygroundsPackage": "PASS_LOCAL_STRUCTURE_VERSION_SOURCE_PARITY_AND_ZIP_INTEGRITY",
     "reportServerTests": "PASS_18_SYNTHETIC",
     "sourceParity": "PASS_LOCAL_XCODE_SWIFTPM_STATIC",
     "iOSBuild": "PASS_RUN_34583078908",
