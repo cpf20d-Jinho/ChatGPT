@@ -2,8 +2,9 @@ ABAProgress v0.12.0 — iPad Swift Playgrounds 실행용
 
 [준비]
 - iPadOS 17 이상과 최신 Swift Playgrounds가 필요합니다.
-- GitHub Actions의 ABAProgress-Swift-Playgrounds 아티팩트를 내려받아 압축을 한 번 풉니다.
-- 파일 앱에 나타난 ABAProgress.swiftpm 폴더를 탭합니다. 일반 폴더 안의 Package.swift를 따로 열지 않습니다.
+- GitHub Actions의 ABAProgress-Swift-Playgrounds 아티팩트를 내려받습니다.
+- 파일 앱에서 내려받은 아티팩트 ZIP을 풀고, 안에 있는 ABAProgress-v0.12.0-Swift-Playgrounds.zip도 한 번 더 풉니다.
+- 최종적으로 나타난 ABAProgress.swiftpm 폴더를 탭합니다. 일반 폴더 안의 Package.swift를 따로 열지 않습니다.
 
 [실행]
 1. Swift Playgrounds가 ABAProgress.swiftpm을 연 뒤 패키지 준비가 끝날 때까지 기다립니다.
