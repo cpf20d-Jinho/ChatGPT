@@ -5,6 +5,7 @@ enum LevelProgressionService {
     enum EvaluationResult: Equatable {
         case unchanged
         case advanced(from: Int, to: Int)
+        case completed(number: Int)
     }
     static func targets(for level: ProgramLevel, in program: TherapyProgram) -> [TherapyTarget] {
         program.targets.filter {
@@ -54,7 +55,7 @@ enum LevelProgressionService {
     }
 
     @discardableResult
-    static func evaluateCurrentLevel(in program: TherapyProgram, modelContext: ModelContext) throws -> EvaluationResult {
+    static func evaluateCurrentLevel(in program: TherapyProgram, modelContext: ModelContext, createNext: Bool = true) throws -> EvaluationResult {
         guard let level = program.currentLevel else { return .unchanged }
         let levelTargets = targets(for: level, in: program)
         guard !levelTargets.isEmpty else { return .unchanged }
@@ -68,7 +69,7 @@ enum LevelProgressionService {
         }
 
         let nextNumber = level.levelNumber + 1
-        if !program.levels.contains(where: { $0.levelNumber == nextNumber }) {
+        if createNext && !program.levels.contains(where: { $0.levelNumber == nextNumber }) {
             program.levels.append(
                 ProgramLevel(
                     levelNumber: nextNumber,
@@ -76,17 +77,24 @@ enum LevelProgressionService {
                     criterionPercent: level.criterionPercent
                 )
             )
-        } else if let next = program.levels.first(where: { $0.levelNumber == nextNumber }) {
-            next.status = .active
         }
 
         do {
             try modelContext.save()
-            return .advanced(from: level.levelNumber, to: nextNumber)
+            return createNext ? .advanced(from: level.levelNumber, to: nextNumber) : .completed(number: level.levelNumber)
         } catch {
             modelContext.rollback()
             throw error
         }
+    }
+
+    static func createNextList(in program: TherapyProgram, modelContext: ModelContext) throws {
+        guard program.currentLevel == nil else { return }
+        let last = program.orderedLevels.last
+        program.levels.append(ProgramLevel(levelNumber: (last?.levelNumber ?? 0) + 1,
+            requiredDays: last?.requiredDays ?? 2, criterionPercent: last?.criterionPercent ?? 80))
+        do { try modelContext.save() }
+        catch { modelContext.rollback(); throw error }
     }
 
     static func integrityIssues(in program: TherapyProgram) -> [String] {

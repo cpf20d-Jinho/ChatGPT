@@ -395,7 +395,7 @@ struct ChildDateRecordsView: View {
             }
             return hasRecord ? target.levelNumber : nil
         })
-        return levels.sorted().map { "L\($0)" }
+        return levels.sorted().map { "List\($0)" }
     }
 }
 
@@ -410,8 +410,8 @@ private struct HistoricalTargetRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
-                Text(target.name)
-                Text("L\(target.levelNumber), 정반응 \(session?.correctCount ?? 0) / 촉구반응 \(session?.promptedCount ?? 0) / 미기록 \(session?.naCount ?? 0)")
+                Text(target.displayName)
+                Text("List\(target.levelNumber), 정반응 \(session?.correctCount ?? 0) / 촉구반응 \(session?.promptedCount ?? 0) / 미기록 \(session?.naCount ?? 0)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let session {
@@ -495,11 +495,11 @@ private struct HistoricalTargetEditView: View {
                 TargetSessionCard(
                     target: target,
                     selectedDate: date,
-                    levelLabel: "L\(target.levelNumber)",
+                    levelLabel: "List\(target.levelNumber)",
                     historicalEditMode: true,
                     onSessionCompleted: {
                         do { _ = try LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext) }
-                        catch { saveError = "레벨 판정을 저장하지 못해 이전 상태로 복구했습니다." }
+                        catch { saveError = "List 판정을 저장하지 못해 이전 상태로 복구했습니다." }
                         reviewRefreshVersion += 1
                     },
                     onDataChanged: refreshLevelIntegrity
@@ -529,7 +529,7 @@ private struct HistoricalTargetEditView: View {
             Button("기록 삭제", role: .destructive) { deleteSession() }
             Button("취소", role: .cancel) { }
         } message: {
-            Text("Trial과 세션 메모가 삭제됩니다. 완료된 레벨의 근거였던 기록이면 레벨 검토 경고가 표시될 수 있습니다.")
+            Text("Trial과 세션 메모가 삭제됩니다. 완료된 List의 근거였던 기록이면 List 검토 경고가 표시될 수 있습니다.")
         }
     }
 

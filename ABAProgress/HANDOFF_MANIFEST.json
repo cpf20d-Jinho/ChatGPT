@@ -1,13 +1,14 @@
 {
   "project": "ABAProgress",
-  "handoffPurpose": "Codex + Build iOS Apps runtime validation and continued development",
-  "sourceVersion": "0.12.0",
-  "sourceBuild": "2026-09-11T18:12:43+09:00",
-  "sourceBuildHash": "4805dde010",
+  "handoffPurpose": "User requested Swift Playgrounds source-only handoff without build or tests",
+  "sourceVersion": "1.1.0",
+  "sourceBuild": "2026-09-20T12:02:35+09:00",
+  "sourceBuildHash": "5e389fb098",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
   "minimumOS": "iOS/iPadOS 17.0",
   "readFirst": [
+    "UPDATE_1_1_PLAYGROUNDS.md",
     "AGENTS.md",
     "CODEX_START_HERE.md",
     "SCENARIO_VALIDATION.md",

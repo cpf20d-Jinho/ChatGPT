@@ -48,7 +48,7 @@ struct ReportComposerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ABASectionHeading(title: "보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동과 보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
+            ABASectionHeading(title: "보고서", help: "STO는 프로그램의 기록된 List 단위로 집계합니다. 서술은 아동과 보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
             Picker("보고서 작성 단계", selection: $step) {
                 ForEach(ReportComposerStep.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -281,7 +281,7 @@ struct ReportComposerView: View {
     private var seriesLegend: String {
         let labels = document.goals.flatMap { goal in
             Set(goal.points.map(\.level)).sorted().map { level in
-                "\(goal.name) L\(level)"
+                "\(goal.name) List\(level)"
             }
         }
         return labels.enumerated().map { "계열 \($0.offset + 1): \($0.element)" }.joined(separator: "\n")
@@ -443,7 +443,7 @@ struct ReportComposerView: View {
                 aiFingerprint = snapshot.fingerprint
                 // Restore meaningful labels locally, after the numeric-only response has arrived.
                 let labels = snapshot.goals.flatMap { goal in
-                    Set(goal.points.map(\.level)).sorted().map { "\(goal.name) L\($0)" }
+                    Set(goal.points.map(\.level)).sorted().map { "\(goal.name) List\($0)" }
                 }
                 aiResult = ReportAIResult(currentStatus: localLabels(result.currentStatus, labels),
                                           majorChanges: localLabels(result.majorChanges, labels),

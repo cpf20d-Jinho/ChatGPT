@@ -27,7 +27,7 @@ const path=require('node:path');
   assert.equal(new URL(page.url()).hash,'','secret fragment cleared');
   assert.equal(await page.locator('textarea').count(),6);
   assert.equal(await page.locator('#currentStatus').inputValue(),original.currentStatus);
-  assert.match(await page.locator('#expiry').textContent(),/남은 시간 01:00:/);
+  assert.match(await page.locator('#expiry').textContent(),/남은 시간 (?:01:00:00|00:59:\d{2})/);
   const beforeExtension=room.expiresAt;
   await page.locator('#extend').click();
   await page.getByRole('status').filter({hasText:'30분 연장'}).waitFor();

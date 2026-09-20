@@ -25,6 +25,7 @@ struct ProgramDetailView: View {
     @State private var showClosedTargets = false
     @State private var reviewRefreshVersion = 0
     @State private var notice: (title: String, message: String)?
+    @State private var showingListCompletion = false
 
     private var currentLevel: ProgramLevel? { program.currentLevel }
 
@@ -35,18 +36,11 @@ struct ProgramDetailView: View {
 
     private var activeTargets: [TherapyTarget] {
         guard let level = currentLevel else { return [] }
-        return program.targets
-            .filter { $0.levelNumber == level.levelNumber && $0.status == .active }
-            .sorted { $0.startDate < $1.startDate }
+        return ProgramLibrary.ordered(program.targets.filter { $0.levelNumber == level.levelNumber && $0.status == .active })
     }
 
     private var closedTargets: [TherapyTarget] {
-        program.targets
-            .filter { $0.status != .active }
-            .sorted {
-                if $0.levelNumber == $1.levelNumber { return $0.startDate < $1.startDate }
-                return $0.levelNumber < $1.levelNumber
-            }
+        ProgramLibrary.ordered(program.targets.filter { $0.status != .active })
     }
 
     var body: some View {
@@ -68,9 +62,9 @@ struct ProgramDetailView: View {
 
                 if activeTargets.isEmpty {
                     ContentUnavailableView(
-                        "현재 레벨에 진행 과제가 없습니다",
+                        "현재 List에 진행 과제가 없습니다",
                         systemImage: ABASymbol.targets,
-                        description: Text("과제를 추가하면 현재 \(currentLevel?.label ?? "레벨")에 귀속되고 즉시 Trial을 기록할 수 있습니다.")
+                        description: Text("과제를 추가하면 현재 \(currentLevel?.label ?? "List")에 귀속되고 즉시 Trial을 기록할 수 있습니다.")
                     )
                     .padding(.top, 24)
                 } else {
@@ -91,13 +85,13 @@ struct ProgramDetailView: View {
                             ForEach(closedTargets) { target in
                                 HStack {
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(target.name).font(.headline)
-                                        Text("L\(target.levelNumber), 상태: \(target.status.rawValue)")
+                                        Text(target.displayName).font(.headline)
+                                        Text(target.status.rawValue)
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()
-                                    Button("현재 레벨에 다시 추가") {
+                                    Button("현재 List에 다시 추가") {
                                         reintroduceTarget(target)
                                     }
                                     .buttonStyle(.bordered)
@@ -129,7 +123,7 @@ struct ProgramDetailView: View {
                     Button {
                         showingLevelSettings = true
                     } label: {
-                        Label("레벨 설정", systemImage: ABASymbol.settings)
+                        Label("List 설정", systemImage: ABASymbol.settings)
                     }
                 } label: {
                     Label("프로그램 관리", systemImage: ABASymbol.settings)
@@ -144,6 +138,13 @@ struct ProgramDetailView: View {
             }
         }
         .onAppear { ensureInitialLevel() }
+        .confirmationDialog("현재 List를 완료하고 다음 List를 만들까요?", isPresented: $showingListCompletion, titleVisibility: .visible) {
+            Button("완료 후 다음 List 생성") { finishList(createNext: true) }
+            Button("현재 List만 완료") { finishList(createNext: false) }
+            Button("취소", role: .cancel) { }
+        } message: {
+            Text("새 List에는 이전 시행 기록을 복사하지 않습니다. 과제 추가에서 이전 과제와 List 제목을 불러올 수 있습니다.")
+        }
         .sheet(isPresented: $showingAddTarget) {
             if let currentLevel {
                 AddTargetView(program: program, level: currentLevel)
@@ -205,16 +206,17 @@ struct ProgramDetailView: View {
             Text(program.name)
                 .font(.title2.bold())
                 .alignmentGuide(.programTitleCenter) { $0[VerticalAlignment.center] }
+            if !program.category.isEmpty { Text(program.category).font(.subheadline).foregroundStyle(.secondary) }
         }
     }
 
     private var levelHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(currentLevel?.label ?? "레벨 없음")
+                Text(currentLevel?.label ?? "List 없음")
                     .font(.title3.bold())
                 Spacer()
-                ABAHelpButton(title: "레벨 종료 기준", message: "현재 레벨의 모든 진행 과제가 설정한 정반응률을 같은 기록일에 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다. 설정한 연속 기록일 기준을 충족하면 현재 레벨을 종료하고 다음 레벨을 자동 생성합니다.")
+                ABAHelpButton(title: "List 종료 기준", message: "현재 List의 모든 진행 과제가 설정한 정반응률을 같은 기록일에 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다. 설정한 연속 기록일 기준을 충족하면 현재 List을 종료하고 다음 List 생성 여부를 확인합니다.")
             }
 
             if let level = currentLevel {
@@ -237,7 +239,14 @@ struct ProgramDetailView: View {
                 }
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-
+                Button("\(level.label) 완료") { evaluateCurrentLevel() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(progress < level.requiredDays)
+            } else {
+                Button("다음 List 생성") {
+                    do { try LevelProgressionService.createNextList(in: program, modelContext: modelContext) }
+                    catch { notice = ("저장 실패", "다음 List를 만들지 못했습니다.") }
+                }.buttonStyle(.borderedProminent)
             }
         }
         .abaSurface(background: Color(uiColor: .systemBackground))
@@ -251,14 +260,14 @@ struct ProgramDetailView: View {
 
     private var levelReviewBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("과거 기록 수정으로 레벨 판정 확인이 필요합니다", systemImage: ABASymbol.review)
+            Label("과거 기록 수정으로 List 판정 확인이 필요합니다", systemImage: ABASymbol.review)
                 .font(.headline)
                 .foregroundStyle(.orange)
             Text(levelReviewIssues.joined(separator: "\n"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("완료된 레벨과 이후 기록은 자동으로 되돌리지 않습니다. 검토 화면에서 근거 기록과 기준을 확인하세요.")
+            Text("완료된 List과 이후 기록은 자동으로 되돌리지 않습니다. 검토 화면에서 근거 기록과 기준을 확인하세요.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Button("판정 검토") { showingLevelReview = true }
@@ -269,15 +278,24 @@ struct ProgramDetailView: View {
     }
 
     private func evaluateCurrentLevel() {
+        guard let level = currentLevel,
+              LevelProgressionService.trailingQualifiedDays(for: level, in: program) >= level.requiredDays else { return }
+        showingListCompletion = true
+        reviewRefreshVersion += 1
+    }
+
+    private func finishList(createNext: Bool) {
         do {
-            switch try LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext) {
+            switch try LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext, createNext: createNext) {
             case .unchanged:
                 break
             case let .advanced(from, to):
-                notice = ("L\(from) 완료 후 L\(to) 시작", "새 레벨은 정반응률을 0회 기록 상태에서 다시 집계합니다. 과제 추가 버튼으로 L\(to)의 첫 과제를 등록하세요.")
+                notice = ("List\(from) 완료 후 List\(to) 시작", "새 List은 정반응률을 0회 기록 상태에서 다시 집계합니다. 과제 추가 버튼으로 List\(to)의 첫 과제를 등록하세요.")
+            case let .completed(number):
+                notice = ("List\(number) 완료", "필요할 때 다음 List를 생성할 수 있습니다.")
             }
         } catch {
-            notice = ("레벨 저장 실패", "판정 변경을 저장하지 못해 이전 상태로 되돌렸습니다.")
+            notice = ("List 저장 실패", "판정 변경을 저장하지 못해 이전 상태로 되돌렸습니다.")
         }
         reviewRefreshVersion += 1
     }
@@ -298,6 +316,7 @@ struct ProgramDetailView: View {
             levelNumber: currentLevel.levelNumber
         )
         program.targets.append(copy)
+        copy.listTitle = source.listTitle
         savePendingChanges()
     }
 
@@ -569,8 +588,7 @@ struct TargetSessionCard: View {
         VStack(alignment: .leading, spacing: 5) {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
-                    levelBadge
-                    Text(target.name)
+                    Text(target.displayName)
                         .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 6)
@@ -578,8 +596,7 @@ struct TargetSessionCard: View {
                 }
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
-                        levelBadge
-                        Text(target.name)
+                        Text(target.displayName)
                             .font(.headline)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -588,7 +605,7 @@ struct TargetSessionCard: View {
             }
             if !target.targetDescription.isEmpty {
                 HStack {
-                    Text("과제 안내").font(.subheadline).foregroundStyle(.secondary)
+                    Text("목표").font(.subheadline).foregroundStyle(.secondary)
                     Spacer()
                     ABAHelpButton(title: target.name, message: target.targetDescription)
                 }
@@ -984,9 +1001,12 @@ private struct AddTargetView: View {
     @Environment(\.modelContext) private var modelContext
     let program: TherapyProgram
     let level: ProgramLevel
+    @Query private var allPrograms: [TherapyProgram]
 
     @State private var name = ""
     @State private var description = ""
+    @State private var listTitle = ""
+    @State private var templateSearch = ""
     @State private var maxTrials = 10
     @State private var saveError: String?
 
@@ -994,9 +1014,23 @@ private struct AddTargetView: View {
         NavigationStack {
             Form {
                 Section("과제") {
-                    LabeledContent("귀속 레벨", value: level.label)
+                    DisclosureGroup("이 프로그램의 이전 과제 불러오기") {
+                        TextField("과제 검색", text: $templateSearch)
+                        ForEach(ProgramLibrary.templates(name: program.name, category: program.category, programs: allPrograms).filter {
+                            templateSearch.isEmpty || $0.displayName.localizedCaseInsensitiveContains(templateSearch)
+                        }) { source in
+                            Button(source.displayName) {
+                                name = source.name
+                                description = source.targetDescription
+                                listTitle = source.listTitle
+                                maxTrials = source.maxTrials
+                            }
+                        }
+                    }
+                    LabeledContent("귀속 List", value: level.label)
                     TextField("과제명", text: $name)
-                    TextField("설명 (선택)", text: $description, axis: .vertical)
+                    TextField("목표", text: $description, axis: .vertical)
+                    TextField("\(level.label) 제목", text: $listTitle)
                 }
 
                 Section("기록") {
@@ -1004,10 +1038,10 @@ private struct AddTargetView: View {
                     ABASectionHeading(title: "기록 방식", help: "NA → + → − 순서로 눌러 기록합니다. +는 독립 정반응, −는 촉구반응입니다. NA는 정반응률 계산에서 제외됩니다.")
                 }
 
-                Section("레벨 종료 기준") {
+                Section("List 종료 기준") {
                     LabeledContent("정반응률", value: "\(Int(level.criterionPercent))%")
                     LabeledContent("연속 기록일", value: "\(level.requiredDays)일")
-                    ABASectionHeading(title: "판정 방법", help: "과제별 개별 기준 대신 \(level.label)의 공통 기준을 사용합니다. 같은 레벨의 모든 진행 과제가 같은 기록일에 기준을 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다.")
+                    ABASectionHeading(title: "판정 방법", help: "과제별 개별 기준 대신 \(level.label)의 공통 기준을 사용합니다. 같은 List의 모든 진행 과제가 같은 기록일에 기준을 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다.")
                 }
             }
             .navigationTitle("과제 추가")
@@ -1026,6 +1060,7 @@ private struct AddTargetView: View {
                             levelNumber: level.levelNumber
                         )
                         program.targets.append(target)
+                        target.listTitle = listTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                         do {
                             try modelContext.save()
                             dismiss()
@@ -1061,10 +1096,10 @@ private struct LevelSettingsView: View {
                 }
 
                 Section {
-                    ABASectionHeading(title: "레벨 종료 안내", help: "현재 레벨에서 모든 진행 과제가 같은 기록일에 기준 정반응률을 달성하고, 그 상태가 설정한 기록일 수만큼 연속되면 레벨이 자동 종료됩니다. 이후 다음 레벨이 자동 생성됩니다.")
+                    ABASectionHeading(title: "List 종료 안내", help: "현재 List에서 모든 진행 과제가 같은 기록일에 기준 정반응률을 달성하고, 그 상태가 설정한 기록일 수만큼 연속되면 List 완료 기준을 충족합니다. 완료할 때 다음 List 생성 여부를 확인합니다.")
                 }
             }
-            .navigationTitle("레벨 설정")
+            .navigationTitle("List 설정")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") {
@@ -1073,7 +1108,7 @@ private struct LevelSettingsView: View {
                             dismiss()
                         } catch {
                             modelContext.rollback()
-                            saveError = "레벨 설정을 저장하지 못했습니다. 이전 설정으로 복구했습니다."
+                            saveError = "List 설정을 저장하지 못했습니다. 이전 설정으로 복구했습니다."
                         }
                     }
                 }
@@ -1130,7 +1165,7 @@ private struct EditProgramView: View {
                 Section("프로그램 정보") {
                     TextField("프로그램명", text: $name)
                     TextField("영역", text: $category)
-                    TextField("설명", text: $description, axis: .vertical)
+                    TextField("목표", text: $description, axis: .vertical)
                 }
             }
             .navigationTitle("프로그램 수정")
@@ -1138,7 +1173,7 @@ private struct EditProgramView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .alert("저장 실패", isPresented: Binding(
@@ -1150,7 +1185,7 @@ private struct EditProgramView: View {
 
     private func save() {
         program.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        program.category = category
+        program.category = category.trimmingCharacters(in: .whitespacesAndNewlines)
         program.programDescription = description
         do { try modelContext.save(); dismiss() }
         catch { modelContext.rollback(); saveError = "프로그램 정보를 저장하지 못했습니다. 기존 정보는 보존되었습니다." }
@@ -1163,6 +1198,7 @@ private struct EditTargetView: View {
     let target: TherapyTarget
     @State private var name: String
     @State private var description: String
+    @State private var listTitle: String
     @State private var maxTrials: Int
     @State private var saveError: String?
 
@@ -1170,6 +1206,7 @@ private struct EditTargetView: View {
         self.target = target
         _name = State(initialValue: target.name)
         _description = State(initialValue: target.targetDescription)
+        _listTitle = State(initialValue: target.listTitle)
         _maxTrials = State(initialValue: target.maxTrials)
     }
 
@@ -1178,7 +1215,8 @@ private struct EditTargetView: View {
             Form {
                 Section("과제 정보") {
                     TextField("과제명", text: $name)
-                    TextField("설명", text: $description, axis: .vertical)
+                    TextField("목표", text: $description, axis: .vertical)
+                    TextField("List\(target.levelNumber) 제목", text: $listTitle)
                     Stepper("앞으로 사용할 시행 횟수: \(maxTrials)", value: $maxTrials, in: 1...10)
                 }
                 Section {
@@ -1205,6 +1243,7 @@ private struct EditTargetView: View {
     private func save() {
         target.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         target.targetDescription = description
+        target.listTitle = listTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         target.maxTrials = maxTrials
         do { try modelContext.save(); dismiss() }
         catch { modelContext.rollback(); saveError = "과제 정보를 저장하지 못했습니다. 기존 정보는 보존되었습니다." }
@@ -1226,14 +1265,14 @@ private struct LevelReviewView: View {
                     }
                 }
                 Section("안전한 처리") {
-                    Text("과거 기록 수정 전의 완료 상태와 이후 레벨은 유지됩니다. 앱이 뒤 레벨을 삭제하거나 자동으로 과거 판정을 되돌리지 않습니다.")
-                    Button("레벨 기준 보기", action: openSettings)
+                    Text("과거 기록 수정 전의 완료 상태와 이후 List은 유지됩니다. 앱이 뒤 List을 삭제하거나 자동으로 과거 판정을 되돌리지 않습니다.")
+                    Button("List 기준 보기", action: openSettings)
                 }
                 Section("권장 확인") {
-                    Text("완료일 전 기록, 해당 레벨의 모든 과제, 연속 기록일 수와 정반응률 기준을 차례로 확인하세요.")
+                    Text("완료일 전 기록, 해당 List의 모든 과제, 연속 기록일 수와 정반응률 기준을 차례로 확인하세요.")
                 }
             }
-            .navigationTitle("레벨 판정 검토")
+            .navigationTitle("List 판정 검토")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("닫기") { dismiss() } } }
         }
     }

@@ -41,7 +41,7 @@ struct ReportView: View {
                         .font(.footnote)
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .abaSurface(background: Color.orange.opacity(0.08))
+                        .abaSurface(background: ABAVisualStyle.butterYellow.opacity(0.34))
                 }
 
                 if programs.isEmpty {
@@ -153,12 +153,12 @@ struct ReportView: View {
                         } label: {
                             Text(program.name)
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(selected ? ABAVisualStyle.brand : .primary)
+                                .foregroundStyle(selected ? ABAVisualStyle.actionTint : .primary)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 9)
                                 .background(selected ? ABAVisualStyle.brand.opacity(0.14) : ABAVisualStyle.tertiarySurface)
                                 .clipShape(Capsule())
-                                .overlay { Capsule().stroke(selected ? ABAVisualStyle.brand.opacity(0.28) : .clear) }
+                                .overlay { Capsule().stroke(selected ? ABAVisualStyle.leafGreen : .clear) }
                         }
                         .buttonStyle(.plain)
                         .frame(minHeight: 44, alignment: .leading)
@@ -268,7 +268,7 @@ private struct ProgramReportSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if !levelReviewIssues.isEmpty {
-                Label("레벨 판정 검토 필요", systemImage: ABASymbol.review)
+                Label("List 판정 검토 필요", systemImage: ABASymbol.review)
                     .font(.footnote.bold())
                     .foregroundStyle(.orange)
             }
@@ -323,7 +323,7 @@ private struct ProgramLevelSeries: Identifiable {
     let level: Int
     let points: [ProgramChartPoint]
     var id: Int { level }
-    var label: String { "L\(level)" }
+    var label: String { "List\(level)" }
 }
 
 private struct ProgramLevelProgressChart: View {
@@ -418,7 +418,7 @@ private struct ProgramLevelProgressChart: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 if let firstLevel = levels.first {
-                    Text("L\(firstLevel)")
+                    Text("List\(firstLevel)")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.leading, 34)
@@ -431,7 +431,7 @@ private struct ProgramLevelProgressChart: View {
                             LineMark(
                                 x: .value("기록 순서", point.index),
                                 y: .value("정반응률", point.value),
-                                series: .value("레벨 계열", levelSeries.label)
+                                series: .value("List 계열", levelSeries.label)
                             )
                             .foregroundStyle(color)
                             .lineStyle(StrokeStyle(lineWidth: 2))
@@ -451,11 +451,11 @@ private struct ProgramLevelProgressChart: View {
                     }
 
                     ForEach(transitions) { point in
-                        RuleMark(x: .value("레벨 전환", point.index))
+                        RuleMark(x: .value("List 전환", point.index))
                             .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 4]))
                             .foregroundStyle(.secondary.opacity(0.7))
                             .annotation(position: .top, alignment: .leading) {
-                                Text("L\(point.level)")
+                                Text("List\(point.level)")
                                     .font(.caption2.weight(.semibold))
                                     .foregroundStyle(.secondary)
                             }
@@ -495,7 +495,7 @@ private struct ProgramLevelProgressChart: View {
                 }
                 .frame(height: 220)
                 .accessibilityLabel("\(goal.name) 기록일별 정반응률 그래프")
-                .accessibilityValue("레벨 \(series.count)개, 실제 기록일 \(points.count)개. 가로 점선은 숙달 기준이고 세로 점선은 다음 레벨의 새 집계 시작입니다.")
+                .accessibilityValue("List \(series.count)개, 실제 기록일 \(points.count)개. 가로 점선은 숙달 기준이고 세로 점선은 다음 List의 새 집계 시작입니다.")
             }
             .padding(12)
             .background(ABAVisualStyle.tertiarySurface)
@@ -516,7 +516,7 @@ private struct ProgramLevelProgressChart: View {
                 }
                 ForEach(levels, id: \.self) { level in
                     HStack(alignment: .top, spacing: 10) {
-                        Text("L\(level)")
+                        Text("List\(level)")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(levelColor(level))
                             .padding(.horizontal, 7)
@@ -581,7 +581,7 @@ private struct TargetReportCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("L\(target.levelNumber) \(target.name)").font(.headline)
+                    Text("List\(target.levelNumber) \(target.name)").font(.headline)
                     Text("세션 \(entries.count)회, 평균 \(average, format: .number.precision(.fractionLength(0...1)))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)

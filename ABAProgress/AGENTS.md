@@ -29,12 +29,12 @@ ABAProgress is an offline-first Universal iOS/iPadOS application for ABA therapi
 
 ### Level semantics
 - Levels belong to Program, not Child or Target.
-- Programs start with L1 and can progress L2, L3, ... automatically.
+- Display existing levels as List1, List2, List3; retain stored level numbers and relationships. A target has a goal and a separate List title.
 - Default mastery criterion: all active targets in the level >= 80% on 2 consecutive *recorded treatment dates*.
 - The required consecutive-date count is configurable (2 or more).
 - Calendar gaps with no therapy are ignored; do not insert empty dates into mastery calculations.
 - A mastery date counts only if all relevant active targets have valid data that day.
-- When a level completes, mark its targets mastered as appropriate and create the next level.
+- When a level qualifies for completion, ask whether to complete and create the next List or complete only. Never silently create it from the UI. Preserve mastery criteria and recorded data.
 - Historical edits that invalidate a previously completed level must NOT silently delete/rollback later levels. Show a review/recalculation warning and require deliberate user action.
 
 ## Daily record and calendar behavior

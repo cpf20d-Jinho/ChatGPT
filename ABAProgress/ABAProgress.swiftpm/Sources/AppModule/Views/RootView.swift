@@ -14,27 +14,25 @@ struct RootView: View {
                 RegularRootView(children: children)
             }
         }
-        .tint(ABAVisualStyle.brand)
+        .tint(ABAVisualStyle.actionTint)
     }
 }
 
 private struct CompactRootView: View {
     let children: [ChildProfile]
-    @State private var selection: AppDestination = .today
+    @State private var selection: AppDestination = .children
 
     var body: some View {
         TabView(selection: $selection) {
-            NavigationStack {
-                TodayOverviewView(children: children)
-            }
-            .tabItem { Label(AppDestination.today.title, systemImage: AppDestination.today.systemImage) }
-            .tag(AppDestination.today)
-
             NavigationStack {
                 ChildrenListView(children: children)
             }
             .tabItem { Label(AppDestination.children.title, systemImage: AppDestination.children.systemImage) }
             .tag(AppDestination.children)
+
+            NavigationStack { TodayOverviewView(children: children) }
+                .tabItem { Label(AppDestination.today.title, systemImage: AppDestination.today.systemImage) }
+                .tag(AppDestination.today)
 
             NavigationStack {
                 HistoryCalendarView(children: children)
@@ -47,13 +45,17 @@ private struct CompactRootView: View {
             }
             .tabItem { Label(AppDestination.reports.title, systemImage: AppDestination.reports.systemImage) }
             .tag(AppDestination.reports)
+
+            NavigationStack { TimetableView(children: children) }
+                .tabItem { Label("시간표", systemImage: "calendar.day.timeline.left") }
+                .tag(AppDestination.timetable)
         }
     }
 }
 
 private struct RegularRootView: View {
     let children: [ChildProfile]
-    @State private var selection: AppDestination? = .today
+    @State private var selection: AppDestination? = .children
 
     var body: some View {
         NavigationSplitView {
@@ -79,7 +81,7 @@ private struct RegularRootView: View {
             .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         } detail: {
             NavigationStack {
-                switch selection ?? .today {
+                switch selection ?? .children {
                 case .children:
                     ChildrenListView(children: children)
                 case .today:
@@ -88,6 +90,8 @@ private struct RegularRootView: View {
                     HistoryCalendarView(children: children)
                 case .reports:
                     ReportHomeView(children: children)
+                case .timetable:
+                    TimetableView(children: children)
                 }
             }
         }
@@ -96,10 +100,11 @@ private struct RegularRootView: View {
 }
 
 private enum AppDestination: String, CaseIterable, Identifiable {
-    case today
     case children
+    case today
     case history
     case reports
+    case timetable
 
     var id: Self { self }
 
@@ -109,6 +114,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
         case .children: return "아동"
         case .history: return "기록"
         case .reports: return "보고서"
+        case .timetable: return "시간표"
         }
     }
 
@@ -118,6 +124,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
         case .children: return ABASymbol.children
         case .history: return ABASymbol.history
         case .reports: return ABASymbol.report
+        case .timetable: return "calendar.day.timeline.left"
         }
     }
 }
@@ -491,6 +498,9 @@ struct AddChildView: View {
     @State private var useBirthDate = false
     @State private var birthDate = Date()
     @State private var memo = ""
+    @State private var useStartDate = true
+    @State private var lessonStartDate = Date()
+    @State private var lessons: [WeeklyLesson] = []
     @State private var saveError: String?
 
     var body: some View {
@@ -500,10 +510,11 @@ struct AddChildView: View {
                     TextField("이름", text: $name)
                     Toggle("생년월일 입력", isOn: $useBirthDate)
                     if useBirthDate {
-                        DatePicker("생년월일", selection: $birthDate, displayedComponents: .date)
+                        DatePicker("생년월일", selection: $birthDate, in: ...Date(), displayedComponents: .date)
                     }
                     TextField("메모", text: $memo, axis: .vertical)
                 }
+                LessonScheduleFields(useStartDate: $useStartDate, startDate: $lessonStartDate, lessons: $lessons)
             }
             .navigationTitle("아동 추가")
             .toolbar {
@@ -516,6 +527,8 @@ struct AddChildView: View {
                             memo: memo
                         )
                         modelContext.insert(child)
+                        child.lessonStartDate = useStartDate ? lessonStartDate : nil
+                        child.weeklyLessons = lessons
                         do {
                             try modelContext.save()
                             dismiss()
@@ -524,7 +537,7 @@ struct AddChildView: View {
                             saveError = "아동 정보를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도하세요."
                         }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !LessonSchedule.valid(lessons))
                 }
             }
             .alert("저장 실패", isPresented: Binding(
@@ -581,20 +594,20 @@ enum ABASymbol {
 }
 
 enum ABAVisualStyle {
-    // Pink is reserved for navigation/actions; clinical green/orange remain semantic.
-    static let brand = Color(uiColor: UIColor { traits in
-        if traits.userInterfaceStyle == .dark {
-            return UIColor(red: 1.0, green: 0.54, blue: 0.72, alpha: 1)
-        }
-        return UIColor(red: 0.70, green: 0.12, blue: 0.36, alpha: 1)
-    })
+    // Jeju tangerine blossom palette. Asset variants preserve readable controls
+    // in light, dark, and increased-contrast appearances.
+    static let brand = Color("PaletteButterYellow")
+    static let actionTint = Color("AccentColor")
+    static let leafGreen = Color("PaletteLeafGreen")
+    static let butterYellow = Color("PaletteButterYellow")
+    static let ivory = Color("PaletteIvory")
 
     static let cornerRadius: CGFloat = 16
     static let contentMaxWidth: CGFloat = 980
-    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
-    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
-    static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
-    static let separator = Color(uiColor: .separator).opacity(0.18)
+    static let groupedBackground = ivory
+    static let secondarySurface = Color("PaletteSurface")
+    static let tertiarySurface = Color("PaletteRaised")
+    static let separator = leafGreen.opacity(0.45)
     /// Shared, non-rendered form tracks. Every regular-width editor aligns to these axes.
     static let formLabelWidth: CGFloat = 168
     static let formColumnSpacing: CGFloat = 16
@@ -694,7 +707,7 @@ struct ABAInlineNotice: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .abaSurface(background: tint.opacity(0.08))
+        .abaSurface(background: ABAVisualStyle.butterYellow.opacity(0.34))
         .accessibilityElement(children: .contain)
     }
 }

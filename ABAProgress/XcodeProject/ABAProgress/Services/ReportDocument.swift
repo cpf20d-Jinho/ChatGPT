@@ -31,7 +31,7 @@ struct InterimReportPoint: Codable, Identifiable {
     let recordedCount: Int
     let applicableCount: Int
 
-    var id: String { "\(date)-L\(level)" }
+    var id: String { "\(date)-List\(level)" }
     var hasCompleteCoverage: Bool { applicableCount > 0 && recordedCount == applicableCount }
 
     init(date: String, value: Double, level: Int, recordedCount: Int = 0, applicableCount: Int = 0) {
@@ -148,7 +148,7 @@ struct ReportDocument: Codable {
                 let required = definition?.requiredDays ?? 2
                 criteria[String(level)] = criterion
                 learning[String(level)] = targets.map {
-                    $0.targetDescription.isEmpty ? $0.name : "\($0.name): \($0.targetDescription)"
+                    $0.targetDescription.isEmpty ? $0.displayName : "\($0.displayName): \($0.targetDescription)"
                 }.joined(separator: ", ")
                 let sessions = targets.flatMap(\.sessions).filter { $0.date >= lower && $0.date < upper }
                 incomplete += sessions.filter { !$0.completed && $0.hasMeaningfulData }.count

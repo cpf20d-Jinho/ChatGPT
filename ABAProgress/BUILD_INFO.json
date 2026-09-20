@@ -1,14 +1,14 @@
 {
   "product": "Easy_ABA",
   "displayName": "쉬운 ABA",
-  "version": "1.0.0",
-  "buildNumber": "15",
-  "buildTimeKST": "2026-09-12T16:42:32+09:00",
-  "buildHash": "530f4d88d6",
-  "sourceSHA256": "530f4d88d6adb802fe27e5534e235715d3341793ad1c53ebf7b10207a050230d",
-  "candidateID": "v1.0.0_20260912T1642320900_530f4d88d6",
-  "previousBuild": "v0.12.0_4805dde010",
-  "sourceCommit": "PENDING_RELEASE_CANDIDATE_COMMIT",
+  "version": "1.1.0",
+  "buildNumber": "17",
+  "buildTimeKST": "2026-09-20T12:02:35+09:00",
+  "buildHash": "5e389fb098",
+  "sourceSHA256": "5e389fb0988c20d2140141afd9d6f197e1cda2503638fd9ba061bd246a63bc5a",
+  "candidateID": "v1.1.0_20260920T120235+0900_5e389fb098",
+  "previousBuild": "v1.0.0_20260912T1642320900_530f4d88d6",
+  "sourceCommit": "74a308e + UNCOMMITTED_LOCAL_CHANGES",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
     "deviceFamilies": [
@@ -17,17 +17,14 @@
     ]
   },
   "validation": {
-    "mergedPR8": "PASS_MAIN_6dda6eac24b0f2bd03409272a157abf0fc016fc7",
-    "priorBranchCI": "PASS_34678696150",
-    "priorBranchIOSCI": "PASS_34678696056",
-    "priorBranchLayout": "PASS_34678696072",
-    "priorBranchUsageVideo": "PASS_34678696066",
-    "releaseCandidateIOSCI": "PENDING",
-    "releaseCandidateLayout": "PENDING",
-    "distributionSigning": "NOT_EXECUTED_APPLE_TEAM_ASSETS_REQUIRED",
-    "testFlight": "NOT_UPLOADED",
-    "appReview": "NOT_SUBMITTED",
-    "liveGroq": "NOT_VERIFIED_NEW_KEY_REQUIRED",
-    "privacyPolicy": "DRAFT_OPERATOR_DETAILS_REQUIRED"
-  }
+    "build": "NOT_RUN_USER_REQUEST",
+    "tests": "NOT_RUN_USER_REQUEST",
+    "simulator": "NOT_RUN_USER_REQUEST",
+    "migration": "NOT_RUN",
+    "commit": "NOT_CREATED",
+    "push": "NOT_RUN"
+  },
+  "githubMain": "6dda6ea",
+  "branch": "codex/easy-aba-schedule-lists",
+  "distribution": "PLAYGROUNDS_SOURCE_ONLY"
 }

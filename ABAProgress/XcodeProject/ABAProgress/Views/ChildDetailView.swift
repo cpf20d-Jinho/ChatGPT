@@ -57,11 +57,16 @@ struct ChildDetailView: View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(child.name)
-                        .font(.title2.bold())
-                    if let birthDate = child.birthDate {
-                        Text("생년월일 \(birthDate.formatted(date: .numeric, time: .omitted))")
-                            .foregroundStyle(.secondary)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: 12) { childIdentity }
+                        VStack(alignment: .leading, spacing: 4) { childIdentity }
+                    }
+                    if let start = child.lessonStartDate {
+                        Text("수업 시작 \(LessonSchedule.dateText(start))").font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    ForEach(child.weeklyLessons) { lesson in
+                        Text("\(LessonSchedule.weekdayName(lesson.weekday)) \(LessonSchedule.timeText(lesson.startMinute))–\(LessonSchedule.timeText(lesson.endMinute)) · \(lesson.category)")
+                            .font(.subheadline).foregroundStyle(.secondary)
                     }
                     if !child.memo.isEmpty {
                         Text(child.memo)
@@ -116,7 +121,8 @@ struct ChildDetailView: View {
                 }
             }
         }
-        .navigationTitle(child.name)
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
@@ -148,7 +154,7 @@ struct ChildDetailView: View {
             Button("삭제", role: .destructive) { confirmProgramDeletion() }
             Button("취소", role: .cancel) { programPendingDeletion = nil }
         } message: {
-            Text("이 작업은 프로그램의 모든 Level, 과제, Session, Trial 기록을 삭제합니다.")
+            Text("이 작업은 프로그램의 모든 List, 과제, Session, Trial 기록을 삭제합니다.")
         }
         .alert("저장 실패", isPresented: Binding(
             get: { saveError != nil },
@@ -158,6 +164,14 @@ struct ChildDetailView: View {
             Button("취소", role: .cancel) { saveError = nil }
         } message: {
             Text(saveError ?? "")
+        }
+    }
+
+    @ViewBuilder private var childIdentity: some View {
+        Text(child.name).font(.title2.bold())
+        if let birthDate = child.birthDate {
+            Text(LessonSchedule.dateText(birthDate)).foregroundStyle(.secondary)
+                .accessibilityLabel("생년월일 \(LessonSchedule.dateText(birthDate))")
         }
     }
 
@@ -304,54 +318,89 @@ private struct ProgramRow: View {
 private struct AddProgramView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-
+    @Query(sort: \ChildProfile.name) private var allChildren: [ChildProfile]
     let child: ChildProfile
-
     @State private var name = ""
     @State private var category = ""
-    @State private var description = ""
+    @State private var goal = ""
+    @State private var taskName = ""
+    @State private var listTitle = ""
+    @State private var firstMaxTrials = 10
     @State private var saveError: String?
 
+    private var valid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        (listTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !taskName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
     var body: some View {
         NavigationStack {
             Form {
                 Section("프로그램") {
+                    if allChildren.contains(where: { !$0.programs.isEmpty }) {
+                        DisclosureGroup("이전 프로그램·영역 불러오기") {
+                            ForEach(allChildren.filter { !$0.programs.isEmpty }) { sourceChild in
+                                DisclosureGroup(sourceChild.name) {
+                                    ForEach(sourceChild.programs.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { source in
+                                        Button {
+                                            name = source.name
+                                            category = source.category
+                                            goal = source.programDescription
+                                        } label: {
+                                            VStack(alignment: .leading) {
+                                                Text(source.name)
+                                                Text(source.category).font(.caption).foregroundStyle(.secondary)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     TextField("프로그램명", text: $name)
-                    TextField("영역 (선택)", text: $category)
-                    TextField("설명 (선택)", text: $description, axis: .vertical)
+                    TextField("영역 (필수)", text: $category)
+                    TextField("목표", text: $goal, axis: .vertical)
+                }
+                Section("첫 과제") {
+                    DisclosureGroup("이 프로그램의 이전 과제 불러오기") {
+                        ForEach(ProgramLibrary.templates(name: name, category: category, programs: allChildren.flatMap(\.programs))) { source in
+                            Button(source.displayName) {
+                                taskName = source.name
+                                goal = source.targetDescription
+                                listTitle = source.listTitle
+                                firstMaxTrials = source.maxTrials
+                            }
+                        }
+                    }
+                    TextField("과제 (예: 블럭모방)", text: $taskName)
+                    TextField("List1 제목 (예: 자동차 모양)", text: $listTitle)
+                    Text("과제를 함께 등록하거나, 프로그램을 만든 뒤 추가할 수 있습니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("프로그램 추가")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("추가") {
-                        let program = TherapyProgram(
-                            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                            category: category,
-                            programDescription: description
-                        )
-                        child.programs.append(program)
-                        do {
-                            try modelContext.save()
-                            dismiss()
-                        } catch {
-                            modelContext.rollback()
-                            saveError = "프로그램을 저장하지 못했습니다. 입력 내용은 화면에 남아 있습니다."
-                        }
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("추가") { save() }.disabled(!valid) }
             }
-            .alert("저장 실패", isPresented: Binding(
-                get: { saveError != nil },
-                set: { if !$0 { saveError = nil } }
-            )) {
+            .alert("저장 실패", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
                 Button("확인", role: .cancel) { saveError = nil }
             } message: { Text(saveError ?? "") }
         }
+    }
+    private func save() {
+        let program = TherapyProgram(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            category: category.trimmingCharacters(in: .whitespacesAndNewlines), programDescription: goal)
+        let trimmedTask = taskName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedTask.isEmpty {
+            let target = TherapyTarget(name: trimmedTask, targetDescription: goal, maxTrials: firstMaxTrials,
+                masteryPercent: program.levels[0].criterionPercent, masterySessions: program.levels[0].requiredDays)
+            target.listTitle = listTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            program.targets.append(target)
+        }
+        child.programs.append(program)
+        do { try modelContext.save(); dismiss() }
+        catch { modelContext.rollback(); saveError = "프로그램을 저장하지 못했습니다. 입력 내용은 화면에 남아 있습니다." }
     }
 }
 
@@ -364,6 +413,9 @@ private struct EditChildView: View {
     @State private var useBirthDate: Bool
     @State private var birthDate: Date
     @State private var memo: String
+    @State private var useStartDate: Bool
+    @State private var lessonStartDate: Date
+    @State private var lessons: [WeeklyLesson]
     @State private var saveError: String?
 
     init(child: ChildProfile) {
@@ -372,6 +424,9 @@ private struct EditChildView: View {
         _useBirthDate = State(initialValue: child.birthDate != nil)
         _birthDate = State(initialValue: child.birthDate ?? Date())
         _memo = State(initialValue: child.memo)
+        _useStartDate = State(initialValue: child.lessonStartDate != nil)
+        _lessonStartDate = State(initialValue: child.lessonStartDate ?? Date())
+        _lessons = State(initialValue: child.weeklyLessons)
     }
 
     var body: some View {
@@ -385,13 +440,14 @@ private struct EditChildView: View {
                     }
                     TextField("메모", text: $memo, axis: .vertical)
                 }
+                LessonScheduleFields(useStartDate: $useStartDate, startDate: $lessonStartDate, lessons: $lessons)
             }
             .navigationTitle("아동 정보 수정")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { save() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !LessonSchedule.valid(lessons))
                 }
             }
             .alert("저장 실패", isPresented: Binding(
@@ -407,6 +463,8 @@ private struct EditChildView: View {
         child.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         child.birthDate = useBirthDate ? birthDate : nil
         child.memo = memo
+        child.lessonStartDate = useStartDate ? lessonStartDate : nil
+        child.weeklyLessons = lessons
         do {
             try modelContext.save()
             dismiss()

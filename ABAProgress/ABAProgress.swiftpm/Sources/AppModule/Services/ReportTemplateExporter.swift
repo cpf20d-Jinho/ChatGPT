@@ -140,7 +140,7 @@ private final class ReportPageRenderer: UIPrintPageRenderer {
 
     override func drawHeaderForPage(at pageIndex: Int, in headerRect: CGRect) {
         draw(institution, in: CGRect(x: printableRect.minX, y: 18, width: printableRect.width, height: 16),
-             color: UIColor(red: 0.91, green: 0.40, blue: 0.55, alpha: 1), size: 9, alignment: .center)
+             color: UIColor(red: 121 / 255, green: 89 / 255, blue: 0, alpha: 1), size: 9, alignment: .center)
     }
 
     override func drawFooterForPage(at pageIndex: Int, in footerRect: CGRect) {

@@ -1,6 +1,26 @@
 import Foundation
 import SwiftData
 
+enum ProgramLibrary {
+    static func ordered(_ targets: [TherapyTarget]) -> [TherapyTarget] {
+        targets.sorted {
+            let order = $0.name.compare($1.name, options: [.numeric, .caseInsensitive], locale: Locale(identifier: "ko_KR"))
+            if order != .orderedSame { return order == .orderedAscending }
+            if $0.levelNumber != $1.levelNumber { return $0.levelNumber < $1.levelNumber }
+            return $0.listTitle.compare($1.listTitle, options: [.numeric], locale: Locale(identifier: "ko_KR")) == .orderedAscending
+        }
+    }
+    static func templates(name: String, category: String, programs: [TherapyProgram]) -> [TherapyTarget] {
+        let normalize: (String) -> String = { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        guard !normalize(name).isEmpty, !normalize(category).isEmpty else { return [] }
+        let sources = programs.filter { normalize($0.name) == normalize(name) && normalize($0.category) == normalize(category) }
+        var seen = Set<String>()
+        return ordered(sources.flatMap(\.targets)).filter {
+            seen.insert("\($0.name)|\($0.levelNumber)|\($0.listTitle)|\($0.targetDescription)|\($0.maxTrials)").inserted
+        }
+    }
+}
+
 @Model
 final class ChildProfile {
     var id: UUID
@@ -8,6 +28,9 @@ final class ChildProfile {
     var birthDate: Date?
     var memo: String
     var createdAt: Date
+    var lessonStartDate: Date?
+    var weeklyLessonsData: Data?
+    var lessonExceptionsData: Data?
 
     @Relationship(deleteRule: .cascade)
     var programs: [TherapyProgram]
@@ -55,7 +78,7 @@ final class ProgramLevel {
         }
     }
 
-    var label: String { "L\(levelNumber)" }
+    var label: String { "List\(levelNumber)" }
 }
 
 @Model
@@ -104,6 +127,7 @@ final class TherapyTarget {
     var id: UUID
     var name: String
     var targetDescription: String
+    var listTitle: String = ""
     var maxTrials: Int
     var masteryPercent: Double
     var masterySessions: Int
@@ -143,6 +167,10 @@ final class TherapyTarget {
             statusRaw = newValue.rawValue
             endDate = newValue == .active ? nil : Date()
         }
+    }
+
+    var displayName: String {
+        [name, "List\(levelNumber)", listTitle].filter { !$0.isEmpty }.joined(separator: " ")
     }
 }
 

@@ -6,6 +6,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        A10000000000000000000023 /* TimetableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023; };
+        A10000000000000000000024 /* LessonSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000024; };
+        A10000000000000000000022 /* LaunchLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022; };
         A10000000000000000000018 /* ReportWebEditing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018; };
         A10000000000000000000019 /* ReportWebEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019; };
 		A10000000000000000000017 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* PrivacyInfo.xcprivacy */; };
@@ -27,6 +30,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        B10000000000000000000023 /* TimetableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetableView.swift; sourceTree = "<group>"; };
+        B10000000000000000000024 /* LessonSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonSchedule.swift; sourceTree = "<group>"; };
+        B10000000000000000000022 /* LaunchLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchLoadingView.swift; sourceTree = "<group>"; };
         B10000000000000000000018 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportWebEditing.swift; sourceTree = "<group>"; };
         B10000000000000000000019 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportWebEditorView.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "Resources/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
@@ -90,6 +96,8 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000003 /* RootView.swift */,
+                B10000000000000000000022 /* LaunchLoadingView.swift */,
+                B10000000000000000000023 /* TimetableView.swift */,
 				B10000000000000000000004 /* ChildDetailView.swift */,
 				B10000000000000000000005 /* ProgramDetailView.swift */,
 				B10000000000000000000006 /* ReportView.swift */,
@@ -103,6 +111,7 @@
 		D10000000000000000000005 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+                B10000000000000000000024 /* LessonSchedule.swift */,
 				B10000000000000000000007 /* ReportPDFExporter.swift */,
 				B10000000000000000000010 /* LevelProgressionService.swift */,
 				B10000000000000000000014 /* ReportTemplateExporter.swift */,
@@ -177,6 +186,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                A10000000000000000000022 /* LaunchLoadingView.swift in Sources */,
+                A10000000000000000000023 /* TimetableView.swift in Sources */,
+                A10000000000000000000024 /* LessonSchedule.swift in Sources */,
 				A10000000000000000000015 /* ReportComposerView.swift in Sources */,
                 A10000000000000000000018 /* ReportWebEditing.swift in Sources */,
                 A10000000000000000000019 /* ReportWebEditorView.swift in Sources */,
@@ -231,7 +243,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 17;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				DEVELOPMENT_TEAM = "";
@@ -240,9 +252,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "쉬운 ABA";
 				INFOPLIST_KEY_ABAReportServerHost = abaprogress-reports.onrender.com;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abaprogress.universal;
 				PRODUCT_NAME = Easy_ABA;
 				SDKROOT = iphoneos;
@@ -258,7 +269,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 17;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				DEVELOPMENT_TEAM = "";
@@ -267,9 +278,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "쉬운 ABA";
 				INFOPLIST_KEY_ABAReportServerHost = abaprogress-reports.onrender.com;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.abaprogress.universal;
 				PRODUCT_NAME = Easy_ABA;
 				SDKROOT = iphoneos;
