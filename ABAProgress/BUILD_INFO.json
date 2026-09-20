@@ -3,12 +3,12 @@
   "displayName": "쉬운 ABA",
   "version": "1.1.1",
   "buildNumber": "20",
-  "buildTimeKST": "2026-09-20T18:17:46+09:00",
-  "buildHash": "79703ee3e6",
-  "sourceSHA256": "79703ee3e6c4596feb1885bdffec156f9c08b4e2820c8872bcb9684ec7b9fc17",
-  "candidateID": "v1.1.1_20260920T181746+0900_79703ee3e6",
+  "buildTimeKST": "2026-09-20T18:23:39+09:00",
+  "buildHash": "d0d6d996b9",
+  "sourceSHA256": "d0d6d996b930ccad864445b5280dc636049b4a719f85697037d91ba1db907ee6",
+  "candidateID": "v1.1.1_20260920T182339+0900_d0d6d996b9",
   "previousBuild": "v1.0.0_20260912T1642320900_530f4d88d6",
-  "sourceCommit": "b2f8a9e0f8d20993c911cb2228e638b3dfc4000d",
+  "sourceCommit": "1f9ae77927fc3c4685c3bcd8ac45f63f3d43e580",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
     "deviceFamilies": [
@@ -17,9 +17,9 @@
     ]
   },
   "validation": {
-    "debugBuild": "PENDING",
-    "clinicalAndNavigationChecks": "PENDING",
-    "runURL": "",
+    "debugBuild": "PASSED",
+    "clinicalAndNavigationChecks": "PASSED",
+    "runURL": "https://github.com/cpf20d-Jinho/ChatGPT/actions/runs/35502000423",
     "imageRendering": "NOT_RUN_USER_REQUEST",
     "simulatorInteraction": "NOT_RUN_USER_REQUEST",
     "playgroundsDeviceRun": "USER_VERIFICATION_REQUIRED"
