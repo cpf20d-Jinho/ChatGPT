@@ -14,7 +14,7 @@ let package = Package(
             targets: ["AppModule"],
             bundleIdentifier: "com.abaprogress.universal",
             displayVersion: "1.1.0",
-            bundleVersion: "18",
+            bundleVersion: "19",
             appIcon: .asset("AppIcon"),
             accentColor: .asset("AccentColor"),
             supportedDeviceFamilies: [

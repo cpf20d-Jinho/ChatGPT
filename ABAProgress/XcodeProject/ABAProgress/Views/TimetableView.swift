@@ -217,7 +217,7 @@ private struct LessonOccurrenceEditor: View {
     @State private var useMakeup: Bool
     @State private var makeupStart: Date
     @State private var makeupEnd: Date
-    @State private var error: String?
+    @State private var errorMessage: String?
 
     init(entry: LessonOccurrence, children: [ChildProfile]) {
         self.entry = entry
@@ -265,9 +265,9 @@ private struct LessonOccurrenceEditor: View {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("저장") { save() }.disabled(!valid) }
             }
-            .alert("저장 실패", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-                Button("확인", role: .cancel) { error = nil }
-            } message: { Text(error ?? "") }
+            .alert("저장 실패", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                Button("확인", role: .cancel) { errorMessage = nil }
+            } message: { Text(errorMessage ?? "") }
         }
     }
     private func save() {
@@ -283,6 +283,6 @@ private struct LessonOccurrenceEditor: View {
         }
         entry.child.lessonExceptions = changes
         do { try modelContext.save(); dismiss() }
-        catch { modelContext.rollback(); error = "일정을 저장하지 못했습니다. 기존 일정은 보존되었습니다." }
+        catch { modelContext.rollback(); errorMessage = "일정을 저장하지 못했습니다. 기존 일정은 보존되었습니다." }
     }
 }

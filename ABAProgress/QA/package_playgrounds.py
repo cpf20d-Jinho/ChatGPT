@@ -16,16 +16,16 @@ for path in native.rglob('*.swift'):
 shutil.copyfile(native/'Resources/ReportTemplate.html', mirror/'Resources/ReportTemplate.html')
 
 version = '1.1.0'
-build = '18'
+build = '19'
 (root/'VERSION.txt').write_text(version+'\n', encoding='utf-8')
 package = root/'ABAProgress.swiftpm/Package.swift'
 s = package.read_text(encoding='utf-8')
 s = s.replace('displayVersion: "1.0.0"', f'displayVersion: "{version}"')
-s = s.replace('bundleVersion: "16"', f'bundleVersion: "{build}"').replace('bundleVersion: "17"', f'bundleVersion: "{build}"')
+s = s.replace('bundleVersion: "16"', f'bundleVersion: "{build}"').replace('bundleVersion: "17"', f'bundleVersion: "{build}"').replace('bundleVersion: "18"', f'bundleVersion: "{build}"')
 package.write_text(s, encoding='utf-8')
 project = root/'XcodeProject/ABAProgress.xcodeproj/project.pbxproj'
 s = project.read_text(encoding='utf-8')
-s = s.replace('CURRENT_PROJECT_VERSION = 16;', f'CURRENT_PROJECT_VERSION = {build};').replace('CURRENT_PROJECT_VERSION = 17;', f'CURRENT_PROJECT_VERSION = {build};')
+s = s.replace('CURRENT_PROJECT_VERSION = 16;', f'CURRENT_PROJECT_VERSION = {build};').replace('CURRENT_PROJECT_VERSION = 17;', f'CURRENT_PROJECT_VERSION = {build};').replace('CURRENT_PROJECT_VERSION = 18;', f'CURRENT_PROJECT_VERSION = {build};')
 s = s.replace('MARKETING_VERSION = 1.0.0;', f'MARKETING_VERSION = {version};')
 project.write_text(s, encoding='utf-8')
 
@@ -45,15 +45,16 @@ handoff_path.write_text(json.dumps(handoff, ensure_ascii=False, indent=2)+'\n', 
 notes = (root/'UPDATE_1_1_PLAYGROUNDS.md').read_text(encoding='utf-8')
 (root/'ABAProgress.swiftpm/README_iPad.txt').write_text(notes, encoding='utf-8')
 changelog = root/'CHANGELOG.md'
-entry = '''# 1.1.0 개발본 · 빌드 18 — Swift Playgrounds 빌드 수정
+entry = '''# 1.1.0 개발본 · 빌드 19 — Swift Playgrounds 빌드 수정
 
 - 시간표의 동시 수업 배치를 안정적인 `Identifiable` 구조로 변경.
 - 반복 수업 편집 행을 별도 SwiftUI View로 분리해 바인딩 컴파일 안정성 개선.
 - 새 SwiftData 선택 속성의 초기값을 명시해 모델 생성과 마이그레이션 안정성 개선.
+- 저장 오류 상태와 Swift의 `catch` 오류 이름 충돌 제거.
 
 '''
 previous = changelog.read_text(encoding='utf-8')
-if not previous.startswith('# 1.1.0 개발본 · 빌드 18'):
+if not previous.startswith('# 1.1.0 개발본 · 빌드 19'):
     changelog.write_text(entry + previous, encoding='utf-8')
 
 # Hashing here records source identity for a unique archive; it is not a test.

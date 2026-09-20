@@ -1,8 +1,9 @@
-# 1.1.0 개발본 · 빌드 18 — Swift Playgrounds 빌드 수정
+# 1.1.0 개발본 · 빌드 19 — Swift Playgrounds 빌드 수정
 
 - 시간표의 동시 수업 배치를 안정적인 `Identifiable` 구조로 변경.
 - 반복 수업 편집 행을 별도 SwiftUI View로 분리해 바인딩 컴파일 안정성 개선.
 - 새 SwiftData 선택 속성의 초기값을 명시해 모델 생성과 마이그레이션 안정성 개선.
+- 저장 오류 상태와 Swift의 `catch` 오류 이름 충돌 제거.
 
 # 1.1.0 개발본 · 빌드 17 — 시간표와 List
 
