@@ -9,33 +9,61 @@ struct LessonScheduleFields: View {
     var body: some View {
         Section("수업 일정") {
             Toggle("수업 시작일 입력", isOn: $useStartDate)
-            if useStartDate { DatePicker("수업 시작일", selection: $startDate, displayedComponents: .date) }
+            if useStartDate {
+                DatePicker("수업 시작일", selection: $startDate, displayedComponents: .date)
+            }
             ForEach($lessons) { $lesson in
-                let lessonID = lesson.id
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Picker("요일", selection: $lesson.weekday) {
-                            ForEach(LessonSchedule.weekdays, id: \.self) { day in
-                                Text(LessonSchedule.weekdayName(day)).tag(day)
-                            }
-                        }
-                        Button("삭제", role: .destructive) { lessons.removeAll { $0.id == lessonID } }
-                            .buttonStyle(.borderless)
-                    }
-                    TextField("영역 (예: 인지 및 학습)", text: $lesson.category)
-                    DatePicker("시작", selection: Binding(get: { LessonSchedule.time(lesson.startMinute) },
-                        set: { lesson.startMinute = LessonSchedule.minute($0) }), displayedComponents: .hourAndMinute)
-                    DatePicker("종료", selection: Binding(get: { LessonSchedule.time(lesson.endMinute) },
-                        set: { lesson.endMinute = LessonSchedule.minute($0) }), displayedComponents: .hourAndMinute)
-                    if lesson.endMinute <= lesson.startMinute {
-                        Text("종료 시각은 시작 시각보다 늦어야 합니다.").font(.caption).foregroundStyle(.red)
-                    }
-                }.padding(.vertical, 4)
+                WeeklyLessonEditorRow(lesson: $lesson) {
+                    let lessonID = lesson.id
+                    lessons.removeAll { $0.id == lessonID }
+                }
             }
             Button("수업 날짜 추가", systemImage: "plus") { lessons.append(WeeklyLesson()) }
             Text("요일과 시각은 매주 반복됩니다. 휴강·보강은 시간표에서 해당 날짜의 수업을 선택해 변경합니다.")
                 .font(.footnote).foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct WeeklyLessonEditorRow: View {
+    @Binding var lesson: WeeklyLesson
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Picker("요일", selection: $lesson.weekday) {
+                    ForEach(LessonSchedule.weekdays, id: \.self) { day in
+                        Text(LessonSchedule.weekdayName(day)).tag(day)
+                    }
+                }
+                Button("삭제", role: .destructive, action: onDelete)
+                    .buttonStyle(.borderless)
+            }
+            TextField("영역 (예: 인지 및 학습)", text: $lesson.category)
+            DatePicker(
+                "시작",
+                selection: Binding(
+                    get: { LessonSchedule.time(lesson.startMinute) },
+                    set: { lesson.startMinute = LessonSchedule.minute($0) }
+                ),
+                displayedComponents: .hourAndMinute
+            )
+            DatePicker(
+                "종료",
+                selection: Binding(
+                    get: { LessonSchedule.time(lesson.endMinute) },
+                    set: { lesson.endMinute = LessonSchedule.minute($0) }
+                ),
+                displayedComponents: .hourAndMinute
+            )
+            if lesson.endMinute <= lesson.startMinute {
+                Text("종료 시각은 시작 시각보다 늦어야 합니다.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -120,14 +148,14 @@ private struct TimetableDayColumn: View {
     @Binding var selected: LessonOccurrence?
 
     // Put simultaneous lessons in separate lanes rather than covering a card.
-    private var placement: [(entry: LessonOccurrence, lane: Int)] {
+    private var placement: [TimetablePlacement] {
         var ends: [Date] = []
-        var result: [(entry: LessonOccurrence, lane: Int)] = []
+        var result: [TimetablePlacement] = []
         for entry in entries {
             let lane = ends.firstIndex { $0 <= entry.start } ?? ends.count
             let visibleEnd = max(entry.end, entry.start.addingTimeInterval(30 * 60))
             if lane == ends.count { ends.append(visibleEnd) } else { ends[lane] = visibleEnd }
-            result.append((entry, lane))
+            result.append(TimetablePlacement(entry: entry, lane: lane))
         }
         return result
     }
@@ -145,7 +173,7 @@ private struct TimetableDayColumn: View {
                             .overlay(alignment: .top) { Rectangle().fill(ABAVisualStyle.separator).frame(height: 0.5) }
                     }
                 }
-                ForEach(placement, id: \.entry.id) { item in
+                ForEach(placement) { item in
                     let entry = item.entry
                     let height = max(60, CGFloat(entry.end.timeIntervalSince(entry.start) / 60) * 2)
                     Button { selected = entry } label: {
@@ -172,6 +200,12 @@ private struct TimetableDayColumn: View {
             .overlay(alignment: .leading) { Rectangle().fill(ABAVisualStyle.separator).frame(width: 0.5) }
         }
     }
+}
+
+private struct TimetablePlacement: Identifiable {
+    let entry: LessonOccurrence
+    let lane: Int
+    var id: String { entry.id }
 }
 
 private struct LessonOccurrenceEditor: View {

@@ -16,18 +16,22 @@ for path in native.rglob('*.swift'):
 shutil.copyfile(native/'Resources/ReportTemplate.html', mirror/'Resources/ReportTemplate.html')
 
 version = '1.1.0'
-build = '17'
+build = '18'
 (root/'VERSION.txt').write_text(version+'\n', encoding='utf-8')
 package = root/'ABAProgress.swiftpm/Package.swift'
-s = package.read_text(encoding='utf-8').replace('displayVersion: "1.0.0"', f'displayVersion: "{version}"').replace('bundleVersion: "16"', f'bundleVersion: "{build}"')
+s = package.read_text(encoding='utf-8')
+s = s.replace('displayVersion: "1.0.0"', f'displayVersion: "{version}"')
+s = s.replace('bundleVersion: "16"', f'bundleVersion: "{build}"').replace('bundleVersion: "17"', f'bundleVersion: "{build}"')
 package.write_text(s, encoding='utf-8')
 project = root/'XcodeProject/ABAProgress.xcodeproj/project.pbxproj'
-s = project.read_text(encoding='utf-8').replace('CURRENT_PROJECT_VERSION = 16;', f'CURRENT_PROJECT_VERSION = {build};').replace('MARKETING_VERSION = 1.0.0;', f'MARKETING_VERSION = {version};')
+s = project.read_text(encoding='utf-8')
+s = s.replace('CURRENT_PROJECT_VERSION = 16;', f'CURRENT_PROJECT_VERSION = {build};').replace('CURRENT_PROJECT_VERSION = 17;', f'CURRENT_PROJECT_VERSION = {build};')
+s = s.replace('MARKETING_VERSION = 1.0.0;', f'MARKETING_VERSION = {version};')
 project.write_text(s, encoding='utf-8')
 
 info_path = root/'BUILD_INFO.json'
 info = json.loads(info_path.read_text(encoding='utf-8'))
-info.update(version=version, buildNumber=build, sourceCommit='74a308e + UNCOMMITTED_LOCAL_CHANGES',
+info.update(version=version, buildNumber=build, sourceCommit='codex/easy-aba-schedule-lists working tree',
     githubMain='6dda6ea', branch='codex/easy-aba-schedule-lists', distribution='PLAYGROUNDS_SOURCE_ONLY')
 info['validation'] = {'build': 'NOT_RUN_USER_REQUEST', 'tests': 'NOT_RUN_USER_REQUEST',
     'simulator': 'NOT_RUN_USER_REQUEST', 'migration': 'NOT_RUN', 'commit': 'NOT_CREATED', 'push': 'NOT_RUN'}
@@ -41,19 +45,15 @@ handoff_path.write_text(json.dumps(handoff, ensure_ascii=False, indent=2)+'\n', 
 notes = (root/'UPDATE_1_1_PLAYGROUNDS.md').read_text(encoding='utf-8')
 (root/'ABAProgress.swiftpm/README_iPad.txt').write_text(notes, encoding='utf-8')
 changelog = root/'CHANGELOG.md'
-entry = '''# 1.1.0 개발본 · 빌드 17 — 시간표와 List
+entry = '''# 1.1.0 개발본 · 빌드 18 — Swift Playgrounds 빌드 수정
 
-- 아동 → 오늘 → 기록 → 보고서 순서 및 시간표 추가.
-- 아동 상세 중복 이름 제거, 생년월일 형식 통일, 반복 수업 일정과 시작일 등록.
-- 프로그램 영역 필수, 목표와 List 제목 구분, 이전 프로그램·과제 불러오기.
-- List 완료 시 다음 List 생성 확인 및 기록을 유지하는 종료 처리.
-- 주간 시간표, 날짜별 휴강·보강, 시간 중복 표시, 접근성 목록 보기.
-- 사용자 최종 아이콘 및 아이보리·리프 그린·버터 옐로 색상 반영.
-- 사용자 요청에 따라 빌드·테스트·시뮬레이터 검증과 커밋·푸시를 실행하지 않음.
+- 시간표의 동시 수업 배치를 안정적인 `Identifiable` 구조로 변경.
+- 반복 수업 편집 행을 별도 SwiftUI View로 분리해 바인딩 컴파일 안정성 개선.
+- 새 SwiftData 선택 속성의 초기값을 명시해 모델 생성과 마이그레이션 안정성 개선.
 
 '''
 previous = changelog.read_text(encoding='utf-8')
-if not previous.startswith('# 1.1.0'):
+if not previous.startswith('# 1.1.0 개발본 · 빌드 18'):
     changelog.write_text(entry + previous, encoding='utf-8')
 
 # Hashing here records source identity for a unique archive; it is not a test.

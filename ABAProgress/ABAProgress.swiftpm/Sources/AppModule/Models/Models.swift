@@ -28,9 +28,9 @@ final class ChildProfile {
     var birthDate: Date?
     var memo: String
     var createdAt: Date
-    var lessonStartDate: Date?
-    var weeklyLessonsData: Data?
-    var lessonExceptionsData: Data?
+    var lessonStartDate: Date? = nil
+    var weeklyLessonsData: Data? = nil
+    var lessonExceptionsData: Data? = nil
 
     @Relationship(deleteRule: .cascade)
     var programs: [TherapyProgram]
@@ -41,6 +41,9 @@ final class ChildProfile {
         self.birthDate = birthDate
         self.memo = memo
         self.createdAt = Date()
+        self.lessonStartDate = nil
+        self.weeklyLessonsData = nil
+        self.lessonExceptionsData = nil
         self.programs = []
     }
 }
