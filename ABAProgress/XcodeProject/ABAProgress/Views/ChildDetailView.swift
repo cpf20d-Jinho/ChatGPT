@@ -106,7 +106,7 @@ struct ChildDetailView: View {
                         NavigationLink {
                             ProgramDetailView(child: child, program: program)
                         } label: {
-                            TodayProgramStatusRow(program: program, today: today)
+                            ProgramRow(program: program)
                         }
                     }
                     .onDelete(perform: deletePrograms)
@@ -224,94 +224,45 @@ struct ChildDetailView: View {
     }
 }
 
-private struct TodayProgramStatusRow: View {
-    let program: TherapyProgram
-    let today: Date
-
-    private var activeTargets: [TherapyTarget] {
-        guard let level = program.currentLevel else { return [] }
-        return program.targets.filter {
-            $0.levelNumber == level.levelNumber && $0.status == .active
-        }
-    }
-
-    private var completedCount: Int {
-        activeTargets.filter { target in
-            target.sessions.contains { session in
-                session.completed && Calendar.current.isDate(session.date, inSameDayAs: today)
-            }
-        }.count
-    }
-
-    private var isComplete: Bool {
-        !activeTargets.isEmpty && completedCount == activeTargets.count
-    }
-
-    private var statusTitle: String {
-        if isComplete { return "완료" }
-        if completedCount > 0 { return "진행 중" }
-        return "미기록"
-    }
-
-    private var statusIcon: String {
-        if isComplete { return ABASymbol.completed }
-        if completedCount > 0 { return ABASymbol.inProgress }
-        return ABASymbol.empty
-    }
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(program.name)
-                Text("과제 \(completedCount)/\(activeTargets.count) 완료")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if let level = program.currentLevel {
-                Text(level.label)
-                    .font(.caption.bold())
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(.thinMaterial, in: Capsule())
-            }
-            ABAStatusPill(
-                title: statusTitle,
-                systemImage: statusIcon,
-                tint: isComplete ? .green : (completedCount > 0 ? .orange : .secondary)
-            )
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private struct ProgramRow: View {
     let program: TherapyProgram
 
-    private var activeTargets: Int {
-        program.targets.filter { $0.status == .active }.count
-    }
-
     private var latestDate: Date? {
-        program.targets.flatMap(\.sessions).filter(\.hasMeaningfulData).map(\.date).max()
+        program.targets.flatMap(\.sessions).filter { $0.attemptedCount > 0 }.map(\.date).max()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(program.name)
-                .font(.headline)
-            HStack(spacing: 12) {
-                if let level = program.currentLevel { Text("\(level.label), 진행 과제 \(activeTargets)개") }
-                else { Text("진행 과제 \(activeTargets)개") }
-                if let latestDate {
-                    Text("최근 기록 \(latestDate.formatted(date: .numeric, time: .omitted))")
-                }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                identity
+                Spacer(minLength: 12)
+                recentLesson
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 10) {
+                identity
+                recentLesson
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
+    }
+
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(program.name).font(.headline)
+            Text("학습 영역: \(program.category.isEmpty ? "미등록" : program.category)")
+                .font(.subheadline).foregroundStyle(.secondary)
+        }
+    }
+
+    private var recentLesson: some View {
+        HStack(spacing: 8) {
+            Text("최근 수업")
+            Text(latestDate.map(LessonSchedule.dateText) ?? "기록 없음").monospacedDigit()
+        }
+        .font(.caption)
+        .padding(.horizontal, 12).padding(.vertical, 7)
+        .overlay { Capsule().stroke(ABAVisualStyle.leafGreen.opacity(0.6), lineWidth: 1) }
     }
 }
 

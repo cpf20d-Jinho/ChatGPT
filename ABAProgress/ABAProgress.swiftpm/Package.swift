@@ -13,8 +13,8 @@ let package = Package(
             name: "쉬운 ABA",
             targets: ["AppModule"],
             bundleIdentifier: "com.abaprogress.universal",
-            displayVersion: "1.1.0",
-            bundleVersion: "19",
+            displayVersion: "1.1.1",
+            bundleVersion: "20",
             appIcon: .asset("AppIcon"),
             accentColor: .asset("AccentColor"),
             supportedDeviceFamilies: [

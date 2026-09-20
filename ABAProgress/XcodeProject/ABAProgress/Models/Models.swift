@@ -2,6 +2,55 @@ import Foundation
 import SwiftData
 
 enum ProgramLibrary {
+    struct TaskGroup: Identifiable {
+        let id: UUID
+        let name: String
+        let goal: String
+        let targets: [TherapyTarget]
+
+        var latestDate: Date? {
+            targets.flatMap(\.sessions).filter { $0.attemptedCount > 0 }.map(\.date).max()
+        }
+    }
+
+    private struct TaskKey: Hashable {
+        let name: String
+        let goal: String
+    }
+
+    /// A presentation grouping only: existing target IDs and session relationships stay intact.
+    static func taskGroups(_ targets: [TherapyTarget]) -> [TaskGroup] {
+        let grouped = Dictionary(grouping: targets) {
+            TaskKey(name: $0.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    goal: $0.targetDescription.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return grouped.values.compactMap { items -> TaskGroup? in
+            let orderedItems = items.sorted {
+                if $0.levelNumber != $1.levelNumber { return $0.levelNumber < $1.levelNumber }
+                if $0.startDate != $1.startDate { return $0.startDate < $1.startDate }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            guard let first = orderedItems.first else { return nil }
+            return TaskGroup(id: first.id, name: first.name, goal: first.targetDescription, targets: orderedItems)
+        }.sorted {
+            let order = $0.name.compare($1.name, options: [.numeric, .caseInsensitive], locale: Locale(identifier: "ko_KR"))
+            return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
+        }
+    }
+
+    static func isRecordable(_ target: TherapyTarget, in program: TherapyProgram) -> Bool {
+        target.status == .active && program.currentLevel?.levelNumber == target.levelNumber
+    }
+
+    static func listStatus(_ target: TherapyTarget, in program: TherapyProgram) -> String {
+        if target.status == .discontinued { return "중단" }
+        if isRecordable(target, in: program) { return "진행중: List\(target.levelNumber)" }
+        if target.status == .mastered || program.levels.contains(where: {
+            $0.levelNumber == target.levelNumber && $0.status == .completed
+        }) { return "완료" }
+        return "대기: List\(target.levelNumber)"
+    }
+
     static func ordered(_ targets: [TherapyTarget]) -> [TherapyTarget] {
         targets.sorted {
             let order = $0.name.compare($1.name, options: [.numeric, .caseInsensitive], locale: Locale(identifier: "ko_KR"))

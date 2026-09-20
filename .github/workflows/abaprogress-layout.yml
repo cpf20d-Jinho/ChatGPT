@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   layout:
+    if: ${{ !contains(github.event.head_commit.message, '[debug-only]') }}
     runs-on: macos-15
     timeout-minutes: 60
     steps:

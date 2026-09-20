@@ -1,13 +1,14 @@
 {
   "project": "ABAProgress",
-  "handoffPurpose": "User requested Swift Playgrounds source-only handoff without build or tests",
-  "sourceVersion": "1.1.0",
-  "sourceBuild": "2026-09-20T12:28:49+09:00",
-  "sourceBuildHash": "fe8614d418",
+  "handoffPurpose": "Task and List navigation; Debug-only validation without rendering",
+  "sourceVersion": "1.1.1",
+  "sourceBuild": "2026-09-20T18:17:46+09:00",
+  "sourceBuildHash": "79703ee3e6",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
   "minimumOS": "iOS/iPadOS 17.0",
   "readFirst": [
+    "UPDATE_1_1_1_PLAYGROUNDS.md",
     "UPDATE_1_1_PLAYGROUNDS.md",
     "AGENTS.md",
     "CODEX_START_HERE.md",

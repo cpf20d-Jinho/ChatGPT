@@ -1,16 +1,6 @@
 import SwiftUI
 import SwiftData
 
-// Invisible alignment axis shared by the program title and recording date controls.
-private extension VerticalAlignment {
-    struct ProgramTitleCenter: AlignmentID {
-        static func defaultValue(in context: ViewDimensions) -> CGFloat {
-            context[VerticalAlignment.center]
-        }
-    }
-    static let programTitleCenter = VerticalAlignment(ProgramTitleCenter.self)
-}
-
 struct ProgramDetailView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -22,7 +12,7 @@ struct ProgramDetailView: View {
     @State private var showingLevelSettings = false
     @State private var showingEditProgram = false
     @State private var showingLevelReview = false
-    @State private var showClosedTargets = false
+    @State private var selectedTarget: TherapyTarget?
     @State private var reviewRefreshVersion = 0
     @State private var notice: (title: String, message: String)?
     @State private var showingListCompletion = false
@@ -34,13 +24,8 @@ struct ProgramDetailView: View {
         return LevelProgressionService.integrityIssues(in: program)
     }
 
-    private var activeTargets: [TherapyTarget] {
-        guard let level = currentLevel else { return [] }
-        return ProgramLibrary.ordered(program.targets.filter { $0.levelNumber == level.levelNumber && $0.status == .active })
-    }
-
-    private var closedTargets: [TherapyTarget] {
-        ProgramLibrary.ordered(program.targets.filter { $0.status != .active })
+    private var taskGroups: [ProgramLibrary.TaskGroup] {
+        ProgramLibrary.taskGroups(program.targets)
     }
 
     var body: some View {
@@ -57,60 +42,29 @@ struct ProgramDetailView: View {
                         retry: notice.title.contains("실패") ? savePendingChanges : nil
                     )
                 }
-                levelHeader
                 if !levelReviewIssues.isEmpty { levelReviewBanner }
-
-                if activeTargets.isEmpty {
-                    ContentUnavailableView(
-                        "현재 List에 진행 과제가 없습니다",
-                        systemImage: ABASymbol.targets,
-                        description: Text("과제를 추가하면 현재 \(currentLevel?.label ?? "List")에 귀속되고 즉시 Trial을 기록할 수 있습니다.")
-                    )
-                    .padding(.top, 24)
+                if taskGroups.isEmpty {
+                    ContentUnavailableView("등록된 과제가 없습니다", systemImage: ABASymbol.targets,
+                        description: Text("과제를 추가한 뒤 List의 진행중 버튼을 눌러 반응을 기록하세요."))
                 } else {
-                    ForEach(activeTargets) { target in
-                        TargetSessionCard(
-                            target: target,
-                            selectedDate: selectedDate,
-                            levelLabel: currentLevel?.label ?? "",
-                            onSessionCompleted: evaluateCurrentLevel,
-                            onDataChanged: refreshLevelIntegrity
-                        )
-                    }
-                }
-
-                if !closedTargets.isEmpty {
-                    DisclosureGroup("종결 과제 \(closedTargets.count)개", isExpanded: $showClosedTargets) {
-                        VStack(spacing: 10) {
-                            ForEach(closedTargets) { target in
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(target.displayName).font(.headline)
-                                        Text(target.status.rawValue)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    Button("현재 List에 다시 추가") {
-                                        reintroduceTarget(target)
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .disabled(currentLevel == nil)
-                                }
-                                .abaSurface(padding: 12, background: ABAVisualStyle.tertiarySurface)
-                            }
+                    ForEach(taskGroups) { group in
+                        ProgramTaskDisclosure(group: group, program: program, onReintroduce: reintroduceTarget) { target in
+                            selectedDate = ProgramLibrary.isRecordable(target, in: program)
+                                ? Calendar.current.startOfDay(for: Date())
+                                : target.sessions.filter(\.hasMeaningfulData).map(\.date).max() ?? Calendar.current.startOfDay(for: Date())
+                            selectedTarget = target
                         }
-                        .padding(.top, 8)
                     }
-                    .abaSurface(background: Color(uiColor: .systemBackground))
                 }
+                if currentLevel == nil { levelHeader }
+
             }
             .padding()
             .frame(maxWidth: ABAVisualStyle.contentMaxWidth)
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
-        .navigationTitle(program.name)
+        .navigationTitle(child.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -138,12 +92,8 @@ struct ProgramDetailView: View {
             }
         }
         .onAppear { ensureInitialLevel() }
-        .confirmationDialog("현재 List를 완료하고 다음 List를 만들까요?", isPresented: $showingListCompletion, titleVisibility: .visible) {
-            Button("완료 후 다음 List 생성") { finishList(createNext: true) }
-            Button("현재 List만 완료") { finishList(createNext: false) }
-            Button("취소", role: .cancel) { }
-        } message: {
-            Text("새 List에는 이전 시행 기록을 복사하지 않습니다. 과제 추가에서 이전 과제와 List 제목을 불러올 수 있습니다.")
+        .navigationDestination(item: $selectedTarget) { target in
+            recordingScreen(target)
         }
         .sheet(isPresented: $showingAddTarget) {
             if let currentLevel {
@@ -165,23 +115,51 @@ struct ProgramDetailView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .programTitleCenter, spacing: 16) {
-                    programIdentity
-                    Spacer()
-                    recordingDateControls
-                        .alignmentGuide(.programTitleCenter) { $0[VerticalAlignment.center] }
+        programIdentity
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .abaSurface()
+    }
+
+    private func recordingScreen(_ target: TherapyTarget) -> some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                recordingDateControls
+                ABASectionHeading(title: "정반응 기록", help: "NA → + → − → NA 순서로 바뀝니다. NA는 정반응률에서 제외하며 변경 내용은 자동 저장됩니다.")
+                if ProgramLibrary.isRecordable(target, in: program) || target.sessions.contains(where: {
+                    $0.hasMeaningfulData && Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
+                }) {
+                    TargetSessionCard(target: target, selectedDate: selectedDate,
+                        levelLabel: "List\(target.levelNumber)",
+                        historicalEditMode: !ProgramLibrary.isRecordable(target, in: program),
+                        onSessionCompleted: evaluateCurrentLevel, onDataChanged: refreshLevelIntegrity)
+                        .id(target.id)
+                } else {
+                    ContentUnavailableView("이 날짜에 기록이 없습니다", systemImage: ABASymbol.empty,
+                        description: Text("완료·중단된 List는 기존 기록이 있는 날짜를 선택해 확인할 수 있습니다."))
                 }
-                VStack(alignment: .leading, spacing: 10) {
-                    programIdentity
-                    recordingDateControls
+                if let notice {
+                    Text(notice.message).font(.footnote).foregroundStyle(.secondary)
+                }
+                if ProgramLibrary.isRecordable(target, in: program) { levelHeader }
+                if !levelReviewIssues.isEmpty {
+                    Label(levelReviewIssues.joined(separator: "\n"), systemImage: ABASymbol.warning)
+                        .font(.footnote).foregroundStyle(.orange)
                 }
             }
-
-            ABASectionHeading(title: "반응 기록", help: "버튼을 누르면 NA → + → − → NA 순서로 바뀝니다. +는 독립 정반응, −는 촉구반응입니다. NA는 미실시 또는 미기록 상태이며 정반응률 계산에서 제외합니다. 길게 누르면 NA로 초기화합니다. 변경 내용은 자동 저장됩니다.")
+            .padding()
+            .frame(maxWidth: ABAVisualStyle.contentMaxWidth)
+            .frame(maxWidth: .infinity)
         }
-        .abaSurface()
+        .background(ABAVisualStyle.groupedBackground)
+        .navigationTitle(target.listTitle.isEmpty ? "List\(target.levelNumber)" : target.listTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("현재 List를 완료하고 다음 List를 만들까요?", isPresented: $showingListCompletion, titleVisibility: .visible) {
+            Button("완료 후 다음 List 생성") { finishList(createNext: true) }
+            Button("현재 List만 완료") { finishList(createNext: false) }
+            Button("취소", role: .cancel) { }
+        } message: {
+            Text("새 List에는 이전 시행 기록을 복사하지 않습니다. 과제 추가에서 이전 과제를 불러올 수 있습니다.")
+        }
     }
 
     private var recordingDateControls: some View {
@@ -200,13 +178,9 @@ struct ProgramDetailView: View {
 
     private var programIdentity: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(child.name)
-                .font(.caption)
-                .foregroundStyle(.secondary)
             Text(program.name)
                 .font(.title2.bold())
-                .alignmentGuide(.programTitleCenter) { $0[VerticalAlignment.center] }
-            if !program.category.isEmpty { Text(program.category).font(.subheadline).foregroundStyle(.secondary) }
+            Text("학습 영역: \(program.category.isEmpty ? "미등록" : program.category)").font(.subheadline).foregroundStyle(.secondary)
         }
     }
 
@@ -328,6 +302,111 @@ struct ProgramDetailView: View {
             modelContext.rollback()
             notice = ("저장 실패", "변경 내용을 저장하지 못해 마지막 저장 상태로 되돌렸습니다.")
         }
+    }
+}
+
+private struct ProgramTaskDisclosure: View {
+    let group: ProgramLibrary.TaskGroup
+    let program: TherapyProgram
+    let onReintroduce: (TherapyTarget) -> Void
+    let onSelect: (TherapyTarget) -> Void
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { isExpanded.toggle() } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 16) {
+                            identity
+                            Spacer(minLength: 12)
+                            recentDate
+                        }
+                        VStack(alignment: .leading, spacing: 8) {
+                            identity
+                            recentDate
+                        }
+                    }
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.body.weight(.medium)).foregroundStyle(ABAVisualStyle.leafGreen)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(group.name), \(group.goal)")
+            .accessibilityValue(isExpanded ? "펼쳐짐" : "접힘")
+            .accessibilityHint("List 목록을 펼치거나 접습니다")
+            if isExpanded {
+                Divider().padding(.vertical, 12)
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(group.targets) { target in
+                        ProgramListRow(target: target, program: program) { onSelect(target) }
+                            .contextMenu {
+                                if !ProgramLibrary.isRecordable(target, in: program), program.currentLevel != nil {
+                                    Button("현재 List에 다시 추가") { onReintroduce(target) }
+                                }
+                            }
+                    }
+                }
+            }
+        }
+        .abaSurface()
+    }
+
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(group.name).font(.headline)
+            if !group.goal.isEmpty {
+                Text(group.goal).font(.subheadline).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var recentDate: some View {
+        Text("최근 기록 \(group.latestDate.map(LessonSchedule.dateText) ?? "없음")")
+            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+    }
+}
+
+private struct ProgramListRow: View {
+    let target: TherapyTarget
+    let program: TherapyProgram
+    let onSelect: () -> Void
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                title
+                Spacer(minLength: 12)
+                statusButton
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                title
+                statusButton
+            }
+        }
+    }
+
+    private var title: some View {
+        Text(target.listTitle.isEmpty ? "List\(target.levelNumber)" : target.listTitle)
+            .font(.body).fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var statusButton: some View {
+        Button(action: onSelect) {
+            Text(ProgramLibrary.listStatus(target, in: program))
+                .font(.subheadline.weight(.medium))
+                .padding(.horizontal, 16).padding(.vertical, 8)
+                .overlay { Capsule().stroke(ABAVisualStyle.leafGreen, lineWidth: 1) }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(ABAVisualStyle.leafGreen)
+        .accessibilityLabel("\(target.listTitle.isEmpty ? target.name : target.listTitle), \(ProgramLibrary.listStatus(target, in: program)), List\(target.levelNumber)")
+        .accessibilityHint(ProgramLibrary.isRecordable(target, in: program) ? "정반응 기록 화면 열기" : "기존 기록 확인")
     }
 }
 

@@ -1,0 +1,53 @@
+name: Easy ABA Debug only
+on:
+  push:
+    branches: [codex/**]
+    paths: [ABAProgress/**, .github/workflows/abaprogress-debug.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: easy-aba-debug-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  debug:
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[debug-only]') }}
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: python3 ABAProgress/QA/select_xcode.py
+      - name: Verify Playgrounds source parity
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('ABAProgress')
+          native = root / 'XcodeProject/ABAProgress'
+          mirror = root / 'ABAProgress.swiftpm/Sources/AppModule'
+          for p in native.rglob('*.swift'):
+              assert p.read_text() == (mirror / p.relative_to(native)).read_text(), str(p)
+          print('All Swift Playgrounds sources match the Debug build sources')
+          PY
+      - name: Debug simulator build (no rendering or app launch)
+        run: |
+          set -o pipefail
+          xcodebuild -project ABAProgress/XcodeProject/ABAProgress.xcodeproj \
+            -scheme ABAProgress -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/EasyABADebug" CODE_SIGNING_ALLOWED=NO build \
+            2>&1 | tee "$RUNNER_TEMP/easy-aba-debug.log"
+      - name: Clinical rules
+        run: swift ABAProgress/QA/scenario_tests.swift
+      - name: Task grouping and List navigation rules
+        run: |
+          swiftc -target "$(uname -m)-apple-macos14.0" \
+            ABAProgress/XcodeProject/ABAProgress/Models/Models.swift \
+            ABAProgress/QA/program-navigation-tests.swift -o "$RUNNER_TEMP/program-navigation-tests"
+          "$RUNNER_TEMP/program-navigation-tests"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: easy-aba-debug-log
+          path: ${{ runner.temp }}/easy-aba-debug.log
+          retention-days: 7

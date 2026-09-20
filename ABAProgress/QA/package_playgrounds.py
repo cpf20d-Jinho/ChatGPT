@@ -1,11 +1,17 @@
 """Assemble a source-only Playgrounds handoff. Does not build or run tests."""
 import datetime
+import argparse
+import re
 import json
 import shutil
 import subprocess
 import zipfile
 from pathlib import Path
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug-result', default='PENDING', choices=['PENDING', 'PASSED'])
+parser.add_argument('--run-url', default='')
+args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 native = root / 'XcodeProject/ABAProgress'
 mirror = root / 'ABAProgress.swiftpm/Sources/AppModule'
@@ -15,46 +21,47 @@ for path in native.rglob('*.swift'):
     shutil.copyfile(path, target)
 shutil.copyfile(native/'Resources/ReportTemplate.html', mirror/'Resources/ReportTemplate.html')
 
-version = '1.1.0'
-build = '19'
+version = '1.1.1'
+build = '20'
 (root/'VERSION.txt').write_text(version+'\n', encoding='utf-8')
 package = root/'ABAProgress.swiftpm/Package.swift'
 s = package.read_text(encoding='utf-8')
-s = s.replace('displayVersion: "1.0.0"', f'displayVersion: "{version}"')
-s = s.replace('bundleVersion: "16"', f'bundleVersion: "{build}"').replace('bundleVersion: "17"', f'bundleVersion: "{build}"').replace('bundleVersion: "18"', f'bundleVersion: "{build}"')
+s = re.sub(r'displayVersion: "[^"]+"', f'displayVersion: "{version}"', s)
+s = re.sub(r'bundleVersion: "[^"]+"', f'bundleVersion: "{build}"', s)
 package.write_text(s, encoding='utf-8')
 project = root/'XcodeProject/ABAProgress.xcodeproj/project.pbxproj'
 s = project.read_text(encoding='utf-8')
-s = s.replace('CURRENT_PROJECT_VERSION = 16;', f'CURRENT_PROJECT_VERSION = {build};').replace('CURRENT_PROJECT_VERSION = 17;', f'CURRENT_PROJECT_VERSION = {build};').replace('CURRENT_PROJECT_VERSION = 18;', f'CURRENT_PROJECT_VERSION = {build};')
-s = s.replace('MARKETING_VERSION = 1.0.0;', f'MARKETING_VERSION = {version};')
+s = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', f'CURRENT_PROJECT_VERSION = {build};', s)
+s = re.sub(r'MARKETING_VERSION = [^;]+;', f'MARKETING_VERSION = {version};', s)
 project.write_text(s, encoding='utf-8')
 
 info_path = root/'BUILD_INFO.json'
 info = json.loads(info_path.read_text(encoding='utf-8'))
-info.update(version=version, buildNumber=build, sourceCommit='codex/easy-aba-schedule-lists working tree',
+info.update(version=version, buildNumber=build, sourceCommit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
     githubMain='6dda6ea', branch='codex/easy-aba-schedule-lists', distribution='PLAYGROUNDS_SOURCE_ONLY')
-info['validation'] = {'build': 'NOT_RUN_USER_REQUEST', 'tests': 'NOT_RUN_USER_REQUEST',
-    'simulator': 'NOT_RUN_USER_REQUEST', 'migration': 'NOT_RUN', 'commit': 'NOT_CREATED', 'push': 'NOT_RUN'}
+info['validation'] = {'debugBuild': args.debug_result, 'clinicalAndNavigationChecks': args.debug_result,
+    'runURL': args.run_url, 'imageRendering': 'NOT_RUN_USER_REQUEST',
+    'simulatorInteraction': 'NOT_RUN_USER_REQUEST', 'playgroundsDeviceRun': 'USER_VERIFICATION_REQUIRED'}
 info_path.write_text(json.dumps(info, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 handoff_path = root/'HANDOFF_MANIFEST.json'
 handoff = json.loads(handoff_path.read_text(encoding='utf-8'))
-handoff['handoffPurpose'] = 'User requested Swift Playgrounds source-only handoff without build or tests'
-handoff['readFirst'] = list(dict.fromkeys(['UPDATE_1_1_PLAYGROUNDS.md'] + handoff['readFirst']))
+handoff['handoffPurpose'] = 'Task and List navigation; Debug-only validation without rendering'
+handoff['readFirst'] = list(dict.fromkeys(['UPDATE_1_1_1_PLAYGROUNDS.md'] + handoff['readFirst']))
 handoff_path.write_text(json.dumps(handoff, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 
-notes = (root/'UPDATE_1_1_PLAYGROUNDS.md').read_text(encoding='utf-8')
+notes = (root/'UPDATE_1_1_1_PLAYGROUNDS.md').read_text(encoding='utf-8')
 (root/'ABAProgress.swiftpm/README_iPad.txt').write_text(notes, encoding='utf-8')
 changelog = root/'CHANGELOG.md'
-entry = '''# 1.1.0 개발본 · 빌드 19 — Swift Playgrounds 빌드 수정
+entry = '''# 1.1.1 · 빌드 20 — 과제와 List 탐색
 
-- 시간표의 동시 수업 배치를 안정적인 `Identifiable` 구조로 변경.
-- 반복 수업 편집 행을 별도 SwiftUI View로 분리해 바인딩 컴파일 안정성 개선.
-- 새 SwiftData 선택 속성의 초기값을 명시해 모델 생성과 마이그레이션 안정성 개선.
-- 저장 오류 상태와 Swift의 `catch` 오류 이름 충돌 제거.
+- 아동 프로그램 박스를 프로그램명·학습 영역·최근 수업일로 간소화.
+- 프로그램 화면에 과제명·목표별 접이식 List 목록 표시.
+- 진행중 버튼으로 정반응 편집기 진입. 완료·중단 List의 기존 기록 유지.
+- 기존 저장 모델과 임상 판정 유지. Debug 컴파일·규칙 검사만 수행.
 
 '''
 previous = changelog.read_text(encoding='utf-8')
-if not previous.startswith('# 1.1.0 개발본 · 빌드 19'):
+if not previous.startswith('# 1.1.1 · 빌드 20'):
     changelog.write_text(entry + previous, encoding='utf-8')
 
 # Hashing here records source identity for a unique archive; it is not a test.
@@ -68,6 +75,6 @@ with zipfile.ZipFile(archive, 'x', zipfile.ZIP_DEFLATED) as zipped:
     for path in sorted((root/'ABAProgress.swiftpm').rglob('*')):
         if path.is_file() and not any(part in {'.build', '.swiftpm', '__pycache__'} for part in path.relative_to(root/'ABAProgress.swiftpm').parts):
             zipped.write(path, Path('Easy_ABA.swiftpm') / path.relative_to(root/'ABAProgress.swiftpm'))
-    zipped.write(root/'UPDATE_1_1_PLAYGROUNDS.md', '시작하기.md')
+    zipped.write(root/'UPDATE_1_1_1_PLAYGROUNDS.md', '시작하기.md')
     zipped.write(root/'BUILD_INFO.json', 'BUILD_INFO.json')
 print(archive)
