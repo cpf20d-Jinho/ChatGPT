@@ -126,12 +126,14 @@ struct ProgramDetailView: View {
                 recordingDateControls
                 ABASectionHeading(title: "정반응 기록", help: "NA → + → − → NA 순서로 바뀝니다. NA는 정반응률에서 제외하며 변경 내용은 자동 저장됩니다.")
                 if ProgramLibrary.isRecordable(target, in: program) || target.sessions.contains(where: {
-                    $0.hasMeaningfulData && Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
+                    Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
                 }) {
                     TargetSessionCard(target: target, selectedDate: selectedDate,
                         levelLabel: "List\(target.levelNumber)",
                         historicalEditMode: !ProgramLibrary.isRecordable(target, in: program),
-                        onSessionCompleted: evaluateCurrentLevel, onDataChanged: refreshLevelIntegrity)
+                        onSessionCompleted: {
+                            if ProgramLibrary.isRecordable(target, in: program) { evaluateCurrentLevel() }
+                        }, onDataChanged: refreshLevelIntegrity)
                         .id(target.id)
                 } else {
                     ContentUnavailableView("이 날짜에 기록이 없습니다", systemImage: ABASymbol.empty,
