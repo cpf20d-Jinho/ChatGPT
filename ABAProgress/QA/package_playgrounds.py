@@ -21,8 +21,8 @@ for path in native.rglob('*.swift'):
     shutil.copyfile(path, target)
 shutil.copyfile(native/'Resources/ReportTemplate.html', mirror/'Resources/ReportTemplate.html')
 
-version = '1.1.1'
-build = '20'
+version = '1.1.2'
+build = '21'
 (root/'VERSION.txt').write_text(version+'\n', encoding='utf-8')
 package = root/'ABAProgress.swiftpm/Package.swift'
 s = package.read_text(encoding='utf-8')
@@ -46,22 +46,21 @@ info_path.write_text(json.dumps(info, ensure_ascii=False, indent=2)+'\n', encodi
 handoff_path = root/'HANDOFF_MANIFEST.json'
 handoff = json.loads(handoff_path.read_text(encoding='utf-8'))
 handoff['handoffPurpose'] = 'Task and List navigation; Debug-only validation without rendering'
-handoff['readFirst'] = list(dict.fromkeys(['UPDATE_1_1_1_PLAYGROUNDS.md'] + handoff['readFirst']))
+handoff['readFirst'] = list(dict.fromkeys(['UPDATE_1_1_2_PLAYGROUNDS.md'] + handoff['readFirst']))
 handoff_path.write_text(json.dumps(handoff, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 
-notes = (root/'UPDATE_1_1_1_PLAYGROUNDS.md').read_text(encoding='utf-8')
+notes = (root/'UPDATE_1_1_2_PLAYGROUNDS.md').read_text(encoding='utf-8')
 (root/'ABAProgress.swiftpm/README_iPad.txt').write_text(notes, encoding='utf-8')
 changelog = root/'CHANGELOG.md'
-entry = '''# 1.1.1 · 빌드 20 — 과제와 List 탐색
+entry = '''# 1.1.2 · 빌드 21 — 기록 버튼과 도움말 정리
 
-- 아동 프로그램 박스를 프로그램명·학습 영역·최근 수업일로 간소화.
-- 프로그램 화면에 과제명·목표별 접이식 List 목록 표시.
-- 진행중 버튼으로 정반응 편집기 진입. 완료·중단 List의 기존 기록 유지.
-- 기존 저장 모델과 임상 판정 유지. Debug 컴파일·규칙 검사만 수행.
+- 진행 중 List의 정반응률 체크 버튼을 리프 그린 주요 버튼으로 강화.
+- 과제 추가 화면에서 귀속 List 표시 제거.
+- 모든 도움말 물음표를 해당 제목 바로 옆에 배치.
 
 '''
 previous = changelog.read_text(encoding='utf-8')
-if not previous.startswith('# 1.1.1 · 빌드 20'):
+if not previous.startswith('# 1.1.2 · 빌드 21'):
     changelog.write_text(entry + previous, encoding='utf-8')
 
 # Hashing here records source identity for a unique archive; it is not a test.
@@ -75,6 +74,6 @@ with zipfile.ZipFile(archive, 'x', zipfile.ZIP_DEFLATED) as zipped:
     for path in sorted((root/'ABAProgress.swiftpm').rglob('*')):
         if path.is_file() and not any(part in {'.build', '.swiftpm', '__pycache__'} for part in path.relative_to(root/'ABAProgress.swiftpm').parts):
             zipped.write(path, Path('Easy_ABA.swiftpm') / path.relative_to(root/'ABAProgress.swiftpm'))
-    zipped.write(root/'UPDATE_1_1_1_PLAYGROUNDS.md', '시작하기.md')
+    zipped.write(root/'UPDATE_1_1_2_PLAYGROUNDS.md', '시작하기.md')
     zipped.write(root/'BUILD_INFO.json', 'BUILD_INFO.json')
 print(archive)

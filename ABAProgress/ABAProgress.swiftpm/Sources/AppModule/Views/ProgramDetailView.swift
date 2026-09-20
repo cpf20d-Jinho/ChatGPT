@@ -191,8 +191,8 @@ struct ProgramDetailView: View {
             HStack {
                 Text(currentLevel?.label ?? "List 없음")
                     .font(.title3.bold())
-                Spacer()
                 ABAHelpButton(title: "List 종료 기준", message: "현재 List의 모든 진행 과제가 설정한 정반응률을 같은 기록일에 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다. 설정한 연속 기록일 기준을 충족하면 현재 List을 종료하고 다음 List 생성 여부를 확인합니다.")
+                Spacer()
             }
 
             if let level = currentLevel {
@@ -398,17 +398,47 @@ private struct ProgramListRow: View {
 
     private var statusButton: some View {
         Button(action: onSelect) {
-            Text(ProgramLibrary.listStatus(target, in: program))
-                .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 16).padding(.vertical, 8)
-                .overlay { Capsule().stroke(ABAVisualStyle.leafGreen, lineWidth: 1) }
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
+            HStack(spacing: 8) {
+                Image(systemName: ProgramLibrary.isRecordable(target, in: program) ? "checkmark.circle.fill" : "clock.arrow.circlepath")
+                VStack(alignment: .leading, spacing: 1) {
+                    if ProgramLibrary.isRecordable(target, in: program) {
+                        Text("정반응률 체크")
+                            .font(.subheadline.bold())
+                    }
+                    Text(ProgramLibrary.listStatus(target, in: program))
+                        .font(ProgramLibrary.isRecordable(target, in: program) ? .caption : .subheadline.weight(.medium))
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+            }
+            .frame(minHeight: 44)
+            .padding(.horizontal, 14)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(ABAVisualStyle.leafGreen)
+        .buttonStyle(ProgramListActionButtonStyle(prominent: ProgramLibrary.isRecordable(target, in: program)))
         .accessibilityLabel("\(target.listTitle.isEmpty ? target.name : target.listTitle), \(ProgramLibrary.listStatus(target, in: program)), List\(target.levelNumber)")
         .accessibilityHint(ProgramLibrary.isRecordable(target, in: program) ? "정반응 기록 화면 열기" : "기존 기록 확인")
+    }
+}
+
+private struct ProgramListActionButtonStyle: ButtonStyle {
+    let prominent: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(prominent ? Color.white : ABAVisualStyle.leafGreen)
+            .background(
+                prominent
+                    ? ABAVisualStyle.leafGreen.opacity(configuration.isPressed ? 0.78 : 1)
+                    : ABAVisualStyle.ivory.opacity(configuration.isPressed ? 0.7 : 1),
+                in: Capsule()
+            )
+            .overlay {
+                Capsule().strokeBorder(ABAVisualStyle.leafGreen, lineWidth: prominent ? 0 : 1.5)
+            }
+            .shadow(color: prominent ? ABAVisualStyle.leafGreen.opacity(0.22) : .clear, radius: 5, y: 2)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -685,10 +715,10 @@ struct TargetSessionCard: View {
                 }
             }
             if !target.targetDescription.isEmpty {
-                HStack {
+                HStack(spacing: 4) {
                     Text("목표").font(.subheadline).foregroundStyle(.secondary)
-                    Spacer()
                     ABAHelpButton(title: target.name, message: target.targetDescription)
+                    Spacer(minLength: 0)
                 }
             }
         }
@@ -1108,21 +1138,22 @@ private struct AddTargetView: View {
                             }
                         }
                     }
-                    LabeledContent("귀속 List", value: level.label)
                     TextField("과제명", text: $name)
                     TextField("목표", text: $description, axis: .vertical)
                     TextField("\(level.label) 제목", text: $listTitle)
                 }
 
-                Section("기록") {
+                Section {
                     Stepper("최대 시행 횟수: \(maxTrials)", value: $maxTrials, in: 1...10)
-                    ABASectionHeading(title: "기록 방식", help: "NA → + → − 순서로 눌러 기록합니다. +는 독립 정반응, −는 촉구반응입니다. NA는 정반응률 계산에서 제외됩니다.")
+                } header: {
+                    ABASectionHeading(title: "기록", help: "NA → + → − 순서로 눌러 기록합니다. +는 독립 정반응, −는 촉구반응입니다. NA는 정반응률 계산에서 제외됩니다.")
                 }
 
-                Section("List 종료 기준") {
+                Section {
                     LabeledContent("정반응률", value: "\(Int(level.criterionPercent))%")
                     LabeledContent("연속 기록일", value: "\(level.requiredDays)일")
-                    ABASectionHeading(title: "판정 방법", help: "과제별 개별 기준 대신 \(level.label)의 공통 기준을 사용합니다. 같은 List의 모든 진행 과제가 같은 기록일에 기준을 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다.")
+                } header: {
+                    ABASectionHeading(title: "List 종료 기준", help: "과제별 개별 기준 대신 \(level.label)의 공통 기준을 사용합니다. 같은 List의 모든 진행 과제가 같은 기록일에 기준을 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다.")
                 }
             }
             .navigationTitle("과제 추가")
@@ -1177,6 +1208,10 @@ private struct LevelSettingsView: View {
                 }
 
                 Section {
+                    Text("현재 List의 모든 진행 과제가 기준을 충족하면 완료할 수 있습니다.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } header: {
                     ABASectionHeading(title: "List 종료 안내", help: "현재 List에서 모든 진행 과제가 같은 기록일에 기준 정반응률을 달성하고, 그 상태가 설정한 기록일 수만큼 연속되면 List 완료 기준을 충족합니다. 완료할 때 다음 List 생성 여부를 확인합니다.")
                 }
             }

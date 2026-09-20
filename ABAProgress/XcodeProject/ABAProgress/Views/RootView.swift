@@ -751,8 +751,9 @@ struct ABASectionHeading: View {
     let help: String
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text(title).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+            Text(title).font(.headline)
             ABAHelpButton(title: title, message: help)
+            Spacer(minLength: 0)
         }
     }
 }

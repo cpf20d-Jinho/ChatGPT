@@ -1,13 +1,14 @@
 {
   "project": "ABAProgress",
   "handoffPurpose": "Task and List navigation; Debug-only validation without rendering",
-  "sourceVersion": "1.1.1",
-  "sourceBuild": "2026-09-20T18:23:39+09:00",
-  "sourceBuildHash": "d0d6d996b9",
+  "sourceVersion": "1.1.2",
+  "sourceBuild": "2026-09-20T18:36:44+09:00",
+  "sourceBuildHash": "9edec1bfd5",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
   "minimumOS": "iOS/iPadOS 17.0",
   "readFirst": [
+    "UPDATE_1_1_2_PLAYGROUNDS.md",
     "UPDATE_1_1_1_PLAYGROUNDS.md",
     "UPDATE_1_1_PLAYGROUNDS.md",
     "AGENTS.md",
