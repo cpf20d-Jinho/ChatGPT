@@ -1,13 +1,19 @@
 import SwiftUI
 import Charts
 
+private struct LearningReportGroup: Identifiable {
+    let program: TherapyProgram
+    let task: ProgramLibrary.TaskGroup
+    var id: UUID { task.id }
+}
+
 struct ReportView: View {
     let child: ChildProfile
 
     @State private var startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var endDate = Date()
     @State private var selectedProgramIDs: Set<UUID> = []
-    @State private var expandedProgramIDs: Set<UUID> = []
+    @State private var expandedTaskIDs: Set<UUID> = []
     @State private var initializedExpansion = false
     @State private var shareURL: URL?
     @State private var exportError: String?
@@ -19,6 +25,14 @@ struct ReportView: View {
     private var selectedPrograms: [TherapyProgram] {
         programs.filter { selectedProgramIDs.contains($0.id) }
     }
+
+    private var selectedTasks: [LearningReportGroup] {
+        selectedPrograms.flatMap { program in
+            ProgramLibrary.taskGroups(program.targets).map { LearningReportGroup(program: program, task: $0) }
+        }.sorted { $0.task.name.localizedStandardCompare($1.task.name) == .orderedAscending }
+    }
+
+    private var selectedTaskIDs: Set<UUID> { Set(selectedTasks.map(\.id)) }
 
     private var incompleteSessionCount: Int {
         let calendar = Calendar.current
@@ -57,34 +71,38 @@ struct ReportView: View {
                         description: Text("한 개 이상의 프로그램을 선택하면 경과 그래프를 확인할 수 있습니다.")
                     )
                 } else {
-                    ABASectionHeading(title: "프로그램별 경과", help: "프로그램 이름을 눌러 그래프와 학습 내용을 접거나 펼칠 수 있습니다. 화면에서 접어도 선택된 프로그램은 보고서와 PDF에 포함됩니다.")
+                    ABASectionHeading(title: "학습 경과", help: "과제명을 눌러 List별 그래프를 펼칠 수 있습니다. 각 그래프는 해당 List의 기록만 사용하며, 아래에 List 제목을 표시합니다. 접어도 보고서에는 포함됩니다.")
                     HStack(spacing: 12) {
                         Button("모두 펼치기") {
-                            expandedProgramIDs.formUnion(selectedProgramIDs)
+                            expandedTaskIDs.formUnion(selectedTaskIDs)
                         }
-                        .disabled(selectedProgramIDs.isSubset(of: expandedProgramIDs))
+                        .disabled(selectedTaskIDs.isSubset(of: expandedTaskIDs))
                         Button("모두 접기") {
-                            expandedProgramIDs.subtract(selectedProgramIDs)
+                            expandedTaskIDs.subtract(selectedTaskIDs)
                         }
-                        .disabled(expandedProgramIDs.isDisjoint(with: selectedProgramIDs))
+                        .disabled(expandedTaskIDs.isDisjoint(with: selectedTaskIDs))
                     }
                     .buttonStyle(.bordered)
-                    ForEach(selectedPrograms) { program in
+                    ForEach(selectedTasks) { item in
                         DisclosureGroup(isExpanded: Binding(
-                            get: { expandedProgramIDs.contains(program.id) },
+                            get: { expandedTaskIDs.contains(item.id) },
                             set: { expanded in
-                                if expanded { expandedProgramIDs.insert(program.id) }
-                                else { expandedProgramIDs.remove(program.id) }
+                                if expanded { expandedTaskIDs.insert(item.id) }
+                                else { expandedTaskIDs.remove(item.id) }
                             }
                         )) {
-                            if expandedProgramIDs.contains(program.id) {
-                                ProgramReportSection(child: child, program: program, startDate: startDate, endDate: endDate)
+                            if expandedTaskIDs.contains(item.id) {
+                                ProgramReportSection(child: child, program: item.program, task: item.task,
+                                                     startDate: startDate, endDate: endDate)
                                     .padding(.top, 12)
                             }
                         } label: {
-                            Text(program.name)
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.task.name).font(.headline)
+                                Text(item.program.category + " · " + item.program.name)
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         }
                         .abaSurface()
                     }
@@ -109,7 +127,7 @@ struct ReportView: View {
                 selectedProgramIDs = Set(programs.map(\.id))
             }
             if !initializedExpansion {
-                if let first = selectedPrograms.first { expandedProgramIDs.insert(first.id) }
+                if let first = selectedTasks.first { expandedTaskIDs.insert(first.id) }
                 initializedExpansion = true
             }
         }
@@ -142,7 +160,7 @@ struct ReportView: View {
                 }
             }
 
-            ABASectionHeading(title: "프로그램 선택", help: "선택한 프로그램의 완료된 치료 기록을 지정 기간에 맞춰 집계합니다. 그래프에는 실제 기록일만 표시합니다. 프로그램을 누르면 보고서 포함 여부가 바뀝니다.")
+            ABASectionHeading(title: "프로그램 필터", help: "선택한 프로그램의 완료된 치료 기록을 지정 기간에 맞춰 집계합니다. 그래프에는 실제 기록일만 표시합니다. 프로그램을 누르면 보고서 포함 여부가 바뀝니다.")
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 8) {
                     ForEach(programs) { program in
@@ -241,67 +259,32 @@ struct ReportView: View {
 private struct ProgramReportSection: View {
     let child: ChildProfile
     let program: TherapyProgram
+    let task: ProgramLibrary.TaskGroup
     let startDate: Date
     let endDate: Date
 
-    private var targets: [TherapyTarget] {
-        program.targets.filter { target in
-            !chartEntries(for: target).isEmpty
-        }
-        .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
-    }
-
-    private var levelReviewIssues: [String] {
-        LevelProgressionService.integrityIssues(in: program)
-    }
-
-    private var goal: ReportGoal? {
-        ReportDocument.build(
-            child: child,
-            start: startDate,
-            end: endDate,
-            programs: [program],
-            draft: ReportDraft()
-        ).goals.first
+    private var goals: [ReportGoal] {
+        let ids = Set(task.targets.map { $0.id.uuidString })
+        return ReportDocument.build(child: child, start: startDate, end: endDate,
+                                    programs: [program], draft: ReportDraft()).goals.filter { ids.contains($0.id) }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if !levelReviewIssues.isEmpty {
-                Label("List 판정 검토 필요", systemImage: ABASymbol.review)
-                    .font(.footnote.bold())
-                    .foregroundStyle(.orange)
+            if !task.goal.isEmpty {
+                Text(task.goal).font(.subheadline).foregroundStyle(.secondary)
             }
-
-            if targets.isEmpty {
-                Text("선택한 기간에 기록된 과제가 없습니다.")
-                    .foregroundStyle(.secondary)
-            } else if let goal {
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(ABAVisualStyle.brand.opacity(0.55))
-                        .frame(width: 3, height: 24)
-                    Text(goal.group)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
-
+            if !LevelProgressionService.integrityIssues(in: program).isEmpty {
+                Label("List 판정 검토 필요", systemImage: ABASymbol.review)
+                    .font(.footnote.bold()).foregroundStyle(.orange)
+            }
+            if goals.isEmpty {
+                Text("선택한 기간에 완료된 학습 기록이 없습니다.").foregroundStyle(.secondary)
+            }
+            ForEach(goals) { goal in
                 ProgramLevelProgressChart(child: child, program: program, goal: goal)
             }
         }
-    }
-
-    private func chartEntries(for target: TherapyTarget) -> [ReportPoint] {
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: startDate)
-        let end = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: endDate)) ?? endDate
-        return target.sessions
-            .filter { $0.completed && $0.hasMeaningfulData && $0.date >= start && $0.date < end && $0.accuracy != nil }
-            .sorted { $0.date < $1.date }
-            .enumerated()
-            .map { index, session in
-                ReportPoint(id: session.id, index: index, date: session.date, accuracy: session.accuracy ?? 0)
-            }
     }
 }
 
@@ -402,7 +385,7 @@ private struct ProgramLevelProgressChart: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(goal.name)
+                    Text("정반응률")
                         .font(.headline)
                     Text(dataDescription)
                         .font(.caption)
@@ -410,7 +393,7 @@ private struct ProgramLevelProgressChart: View {
                 }
                 Spacer()
                 ABAStatusPill(
-                    title: isCompleted ? "완료" : "진행중",
+                    title: isCompleted ? "기간 내 준거 달성" : "학습 중",
                     systemImage: isCompleted ? ABASymbol.mastered : ABASymbol.active,
                     tint: isCompleted ? .green : .blue
                 )
@@ -494,8 +477,8 @@ private struct ProgramLevelProgressChart: View {
                     plot.background(Color(uiColor: .systemBackground).opacity(0.7))
                 }
                 .frame(height: 220)
-                .accessibilityLabel("\(goal.name) 기록일별 정반응률 그래프")
-                .accessibilityValue("List \(series.count)개, 실제 기록일 \(points.count)개. 가로 점선은 숙달 기준이고 세로 점선은 다음 List의 새 집계 시작입니다.")
+                .accessibilityLabel("\(goal.name) \(levels.map { "List\($0) \(learningText(for: $0))" }.joined(separator: ", ")) 정반응률 그래프")
+                .accessibilityValue("실제 기록일 \(points.count)개. 가로 점선은 숙달 기준입니다.")
             }
             .padding(12)
             .background(ABAVisualStyle.tertiarySurface)
@@ -503,7 +486,7 @@ private struct ProgramLevelProgressChart: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .center, spacing: 12) {
-                    Text("학습 내용")
+                    Text("List 제목")
                         .font(.subheadline.weight(.semibold))
                     Spacer(minLength: 8)
                     NavigationLink {
@@ -512,7 +495,7 @@ private struct ProgramLevelProgressChart: View {
                         Label("학습 내용 수정", systemImage: "square.and.pencil")
                             .font(.subheadline.weight(.semibold))
                     }
-                    .accessibilityHint("프로그램 과제명과 설명을 수정하면 보고서의 학습 내용에 반영됩니다.")
+                    .accessibilityHint("해당 과제의 List 제목을 수정하면 그래프 아래에 반영됩니다.")
                 }
                 ForEach(levels, id: \.self) { level in
                     HStack(alignment: .top, spacing: 10) {

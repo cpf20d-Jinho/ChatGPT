@@ -54,7 +54,7 @@ struct InterimReportPoint: Codable, Identifiable {
     }
 }
 
-struct ReportGoal: Codable {
+struct ReportGoal: Codable, Identifiable {
     let id: String
     let name: String
     let domain: String
@@ -91,7 +91,7 @@ struct ReportDocument: Codable {
     var stoCount: Int { goals.reduce(0) { $0 + Set($1.points.map(\.level)).count } }
     var masteredCount: Int { goals.reduce(0) { $0 + $1.masteredLevels.count } }
 
-    // Equal weighting of observed program-level goals, not pooled trial counts.
+    // Each series is one task's List record, never an average across tasks.
     var domains: [(name: String, count: Int, first: Double, recent: Double)] {
         Dictionary(grouping: goals, by: \.domain).map { name, goals in
             let series = goals.flatMap { goal in
@@ -135,21 +135,20 @@ struct ReportDocument: Codable {
         let lower = calendar.startOfDay(for: start)
         let upper = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: end))!
         var incomplete = 0
-        let goals = programs.map { program -> ReportGoal in
+        let goals = programs.flatMap { program -> [ReportGoal] in
+          ProgramLibrary.ordered(program.targets).map { target -> ReportGoal in
             var points: [InterimReportPoint] = []
             var learning: [String: String] = [:]
             var criteria: [String: Double] = [:]
             var mastered: [Int] = []
-            let levels = Set(program.targets.map(\.levelNumber)).sorted()
+            let levels = [target.levelNumber]
             for level in levels {
-                let targets = program.targets.filter { $0.levelNumber == level }
+                let targets = [target]
                 let definition = program.levels.first { $0.levelNumber == level }
                 let criterion = definition?.criterionPercent ?? 80
                 let required = definition?.requiredDays ?? 2
                 criteria[String(level)] = criterion
-                learning[String(level)] = targets.map {
-                    $0.targetDescription.isEmpty ? $0.displayName : "\($0.displayName): \($0.targetDescription)"
-                }.joined(separator: ", ")
+                learning[String(level)] = target.listTitle.isEmpty ? "제목 없음" : target.listTitle
                 let sessions = targets.flatMap(\.sessions).filter { $0.date >= lower && $0.date < upper }
                 incomplete += sessions.filter { !$0.completed && $0.hasMeaningfulData }.count
                 let recorded = sessions.filter { $0.completed && $0.accuracy != nil }
@@ -188,13 +187,14 @@ struct ReportDocument: Codable {
                 if met { mastered.append(level) }
             }
             return ReportGoal(
-                id: program.id.uuidString, name: program.name,
+                id: target.id.uuidString, name: target.name,
                 domain: program.category.isEmpty ? "미분류" : program.category,
-                group: draft.groupByProgram[program.id.uuidString] ?? "기타 목표",
+                group: draft.groupByProgram[target.id.uuidString] ?? draft.groupByProgram[program.id.uuidString] ?? "기타 목표",
                 points: points.sorted { $0.date == $1.date ? $0.level < $1.level : $0.date < $1.date },
                 learning: learning, criteria: criteria, masteredLevels: mastered,
-                binary: program.targets.count == 1 && program.targets.first?.maxTrials == 1
+                binary: target.maxTrials == 1
             )
+          }
         }.filter { !$0.points.isEmpty }
         return ReportDocument(childName: child.name, birthDate: child.birthDate.map(date) ?? "",
                               start: date(start), end: date(end), goals: goals,

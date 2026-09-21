@@ -57,12 +57,9 @@ struct ReportPDFExporter {
                     .map { ($0, reportEntries(target: $0, startDate: startDate, endDate: endDate)) }
                     .filter { !$0.1.isEmpty }
                 guard !targets.isEmpty else { continue }
-                ensureSpace(40)
-                drawText(program.name, at: CGRect(x: margin, y: y, width: contentWidth, height: 26), font: .boldSystemFont(ofSize: 17))
-                y += 32
 
                 for (target, entries) in targets {
-                    ensureSpace(255)
+                    ensureSpace(285)
                     drawText(target.name, at: CGRect(x: margin, y: y, width: contentWidth, height: 22), font: .boldSystemFont(ofSize: 13))
                     y += 20
                     let avg = entries.map(\.accuracy).reduce(0, +) / Double(entries.count)
@@ -72,6 +69,8 @@ struct ReportPDFExporter {
                     let graphRect = CGRect(x: margin, y: y, width: contentWidth, height: 175)
                     drawGraph(entries: entries, mastery: target.masteryPercent, in: graphRect, context: context.cgContext)
                     y += 186
+                    drawText("List\(target.levelNumber) · \(target.listTitle.isEmpty ? "제목 없음" : target.listTitle)", at: CGRect(x: margin, y: y, width: contentWidth, height: 28), font: .systemFont(ofSize: 11))
+                    y += 30
                     let dates = entries.map { "\(displayShortDate($0.date)) \(Int($0.accuracy.rounded()))%" }.joined(separator: "   ")
                     drawText(dates, at: CGRect(x: margin, y: y, width: contentWidth, height: 28), font: .systemFont(ofSize: 8), color: .darkGray)
                     y += 34

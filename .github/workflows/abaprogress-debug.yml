@@ -46,6 +46,16 @@ jobs:
             ABAProgress/XcodeProject/ABAProgress/Services/LessonSchedule.swift \
             ABAProgress/QA/program-navigation-tests.swift -o "$RUNNER_TEMP/program-navigation-tests"
           "$RUNNER_TEMP/program-navigation-tests"
+      - name: Learning List report calculations and privacy
+        run: |
+          swiftc -target "$(uname -m)-apple-macos14.0" \
+            ABAProgress/XcodeProject/ABAProgress/Models/Models.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/ReportDocument.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/ReportAIClient.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/ReportWebEditing.swift \
+            ABAProgress/QA/report-calculation-tests.swift -o "$RUNNER_TEMP/report-calculation-tests"
+          "$RUNNER_TEMP/report-calculation-tests"
+          node ABAProgress/QA/report-template.test.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

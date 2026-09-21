@@ -21,8 +21,8 @@ for path in native.rglob('*.swift'):
     shutil.copyfile(path, target)
 shutil.copyfile(native/'Resources/ReportTemplate.html', mirror/'Resources/ReportTemplate.html')
 
-version = '1.1.3'
-build = '22'
+version = '1.1.4'
+build = '23'
 (root/'VERSION.txt').write_text(version+'\n', encoding='utf-8')
 package = root/'ABAProgress.swiftpm/Package.swift'
 s = package.read_text(encoding='utf-8')
@@ -45,22 +45,22 @@ info['validation'] = {'debugBuild': args.debug_result, 'clinicalAndNavigationChe
 info_path.write_text(json.dumps(info, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 handoff_path = root/'HANDOFF_MANIFEST.json'
 handoff = json.loads(handoff_path.read_text(encoding='utf-8'))
-handoff['handoffPurpose'] = 'Today lesson preparation cards; Debug-only validation without rendering'
-handoff['readFirst'] = list(dict.fromkeys(['UPDATE_1_1_3_PLAYGROUNDS.md'] + handoff['readFirst']))
+handoff['handoffPurpose'] = 'Task and List learning progress; Debug-only validation without rendering'
+handoff['readFirst'] = list(dict.fromkeys(['UPDATE_1_1_4_PLAYGROUNDS.md'] + handoff['readFirst']))
 handoff_path.write_text(json.dumps(handoff, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
 
-notes = (root/'UPDATE_1_1_3_PLAYGROUNDS.md').read_text(encoding='utf-8')
+notes = (root/'UPDATE_1_1_4_PLAYGROUNDS.md').read_text(encoding='utf-8')
 (root/'ABAProgress.swiftpm/README_iPad.txt').write_text(notes, encoding='utf-8')
 changelog = root/'CHANGELOG.md'
-entry = '''# 1.1.3 · 빌드 22 — 오늘 수업 준비 정보
+entry = '''# 1.1.4 · 빌드 23 — 과제와 List별 학습 경과
 
-- 오늘 카드의 완료 수, 평균, List·미기록 표시 제거.
-- 오늘 시간표의 영역에 해당하는 프로그램을 한 박스에 표시하고 휴강·보강 반영.
-- 최근 실제 수업 날짜와 수업 시간 표시, 카드 전체를 눌러 아동 상세 진입.
+- 학습 경과를 과제명 중심으로 표시하고 List별 독립 그래프와 제목 제공.
+- 보고서·PDF·AI 숫자 계열에서 프로그램 단위의 과제 혼합 평균 제거.
+- 학습 List별 평가군 분류와 준거 달성 표시, 기존 분류와 기록 보존.
 
 '''
 previous = changelog.read_text(encoding='utf-8')
-if not previous.startswith('# 1.1.3 · 빌드 22'):
+if not previous.startswith('# 1.1.4 · 빌드 23'):
     changelog.write_text(entry + previous, encoding='utf-8')
 
 # Hashing here records source identity for a unique archive; it is not a test.
@@ -74,6 +74,6 @@ with zipfile.ZipFile(archive, 'x', zipfile.ZIP_DEFLATED) as zipped:
     for path in sorted((root/'ABAProgress.swiftpm').rglob('*')):
         if path.is_file() and not any(part in {'.build', '.swiftpm', '__pycache__'} for part in path.relative_to(root/'ABAProgress.swiftpm').parts):
             zipped.write(path, Path('Easy_ABA.swiftpm') / path.relative_to(root/'ABAProgress.swiftpm'))
-    zipped.write(root/'UPDATE_1_1_3_PLAYGROUNDS.md', '시작하기.md')
+    zipped.write(root/'UPDATE_1_1_4_PLAYGROUNDS.md', '시작하기.md')
     zipped.write(root/'BUILD_INFO.json', 'BUILD_INFO.json')
 print(archive)

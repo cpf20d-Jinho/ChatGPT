@@ -20,6 +20,10 @@ vm.createContext(ctx);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)
 ctx.fixture=doc;
 const result=vm.runInContext("renderReport(fixture)",ctx);
 assert.equal(result.stoCount,22);assert.equal(result.sections,10);
+assert(element.innerHTML.includes('<h2>학습 경과</h2>'));
+assert(element.innerHTML.includes('<div class="learning">List 제목'));
+assert(element.innerHTML.includes('>List1</span>'));
+assert(!/<path d="[^"]*List/.test(element.innerHTML), "SVG drawing commands must not be renamed with List labels");
 assert(!element.innerHTML.includes('<h3>치료사 종합 소견</h3>'));
 assert(!element.innerHTML.includes('<th>생년월일</th>'));
 assert(element.innerHTML.includes('<section class="page narrative"><h2>치료 경과 및 다음 계획</h2>'));
