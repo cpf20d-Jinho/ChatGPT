@@ -285,171 +285,74 @@ private struct TodayChildCard: View {
     let child: ChildProfile
     let today: Date
 
-    private var programs: [TherapyProgram] { child.programs.sorted { $0.createdAt < $1.createdAt } }
-
-    private var recordablePrograms: [TherapyProgram] {
-        programs.filter { program in
-            guard let level = program.currentLevel else { return false }
-            return program.targets.contains {
-                $0.levelNumber == level.levelNumber && $0.status == .active
-            }
-        }
-    }
-
-    private var completedProgramCount: Int {
-        recordablePrograms.filter { program in
-            guard let level = program.currentLevel else { return false }
-            let targets = program.targets.filter { $0.levelNumber == level.levelNumber && $0.status == .active }
-            guard !targets.isEmpty else { return false }
-            return targets.allSatisfy { target in
-                target.sessions.contains { $0.completed && Calendar.current.isDate($0.date, inSameDayAs: today) }
-            }
-        }.count
-    }
-
-    private var todayAccuracies: [Double] {
-        child.programs.flatMap(\.targets).flatMap(\.sessions)
-            .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
-            .compactMap(\.accuracy)
-    }
-
-    private var average: Double? {
-        guard !todayAccuracies.isEmpty else { return nil }
-        return todayAccuracies.reduce(0, +) / Double(todayAccuracies.count)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
+        let summary = TodayLessonSummary(child: child, date: today)
+        NavigationLink {
+            ChildDetailView(child: child)
+        } label: {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
                     Text(child.name).font(.title3.bold())
-                    Text("오늘 진행 현황")
-                        .font(.caption)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                 }
-                Spacer()
-                NavigationLink {
-                    ChildDetailView(child: child)
-                } label: {
-                    Label("아동 열기", systemImage: ABASymbol.open)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("최근 수업 날짜").font(.caption).foregroundStyle(.secondary)
+                    Text(summary.latestTreatmentDate.map(LessonSchedule.dateText) ?? "수업 기록 없음")
+                        .font(.subheadline)
                 }
-                    .buttonStyle(.bordered)
-            }
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
-                spacing: 12
-            ) {
-                MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: ABASymbol.today)
-                MetricTile(title: "오늘 입력 평균", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: ABASymbol.accuracy)
-            }
-
-            if !recordablePrograms.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(Array(recordablePrograms.enumerated()), id: \.element.id) { index, program in
-                        NavigationLink {
-                            ProgramDetailView(child: child, program: program)
-                        } label: {
-                            TodayProgramStatusCompact(program: program, today: today)
-                                .contentShape(Rectangle())
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("수업 시간").font(.caption).foregroundStyle(.secondary)
+                    if summary.lessons.isEmpty {
+                        Text(child.weeklyLessons.isEmpty ? "수업 시간 미등록" : "오늘 예정된 수업 없음")
+                            .font(.subheadline)
+                    } else {
+                        ForEach(summary.lessons) { lesson in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(LessonSchedule.timeText(LessonSchedule.minute(lesson.start)))–\(LessonSchedule.timeText(LessonSchedule.minute(lesson.end)))")
+                                    .monospacedDigit()
+                                    .strikethrough(lesson.isCancelled)
+                                Text("\(lesson.category)\(lesson.isCancelled ? " · 휴강" : (lesson.isMakeup ? " · 보강" : ""))")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
                         }
-                        .buttonStyle(.plain)
-                        if index < recordablePrograms.count - 1 { Divider() }
                     }
                 }
-            }
 
-            if programs.count > recordablePrograms.count {
-                NavigationLink {
-                    ChildDetailView(child: child)
-                } label: {
-                    Text("완료되었거나 과제가 없는 프로그램 \(programs.count - recordablePrograms.count)개 보기")
-                        .font(.footnote)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("오늘 진행할 프로그램").font(.subheadline.bold())
+                    if summary.programs.isEmpty {
+                        Text(summary.lessons.contains { !$0.isCancelled }
+                             ? "이 수업 영역에 진행할 프로그램이 없습니다"
+                             : "오늘 예정된 프로그램이 없습니다")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(summary.programs) { program in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(program.name).font(.body.weight(.medium))
+                                Text(program.category).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(ABAVisualStyle.tertiarySurface, in: .rect(cornerRadius: 12))
             }
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .abaSurface()
+            .contentShape(Rectangle())
         }
-        .abaSurface()
-        .accessibilityElement(children: .contain)
-    }
-}
-
-private struct MetricTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(title, systemImage: systemImage)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value).font(.title2.bold())
-        }
-        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-        .padding(12)
-        .background(ABAVisualStyle.tertiarySurface, in: .rect(cornerRadius: 12))
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct TodayProgramStatusCompact: View {
-    let program: TherapyProgram
-    let today: Date
-
-    private var activeTargets: [TherapyTarget] {
-        guard let level = program.currentLevel else { return [] }
-        return program.targets.filter { $0.levelNumber == level.levelNumber && $0.status == .active }
-    }
-
-    private var completedCount: Int {
-        activeTargets.filter { target in
-            target.sessions.contains { $0.completed && Calendar.current.isDate($0.date, inSameDayAs: today) }
-        }.count
-    }
-
-    private var inProgressCount: Int {
-        activeTargets.filter { target in
-            target.sessions.contains {
-                $0.hasMeaningfulData && !$0.completed && Calendar.current.isDate($0.date, inSameDayAs: today)
-            }
-        }.count
-    }
-
-    private var statusText: String {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return "완료" }
-        if inProgressCount > 0 || completedCount > 0 { return "진행 중" }
-        if activeTargets.isEmpty { return "과제 없음" }
-        return "미기록"
-    }
-
-    private var statusIcon: String {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return ABASymbol.completed }
-        if inProgressCount > 0 || completedCount > 0 { return ABASymbol.inProgress }
-        if activeTargets.isEmpty { return ABASymbol.warning }
-        return ABASymbol.empty
-    }
-
-    private var statusTint: Color {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return .green }
-        if inProgressCount > 0 || completedCount > 0 { return .orange }
-        return .secondary
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(program.name)
-            Spacer()
-            if let level = program.currentLevel {
-                Text(level.label).font(.caption.bold()).foregroundStyle(.secondary)
-            }
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("\(completedCount)/\(activeTargets.count)")
-                    .font(.subheadline.monospacedDigit())
-                ABAStatusPill(title: statusText, systemImage: statusIcon, tint: statusTint)
-            }
-        }
-        .padding(.vertical, 9)
-        .accessibilityElement(children: .combine)
+        .accessibilityHint("아동 상세 정보 열기")
     }
 }
 

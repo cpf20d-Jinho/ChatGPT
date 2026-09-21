@@ -43,6 +43,34 @@ struct LessonOccurrence: Identifiable {
     var status: String { isMakeup ? "보강" : (isCancelled ? "휴강" : "수업") }
 }
 
+struct TodayLessonSummary {
+    let lessons: [LessonOccurrence]
+    let programs: [TherapyProgram]
+    let latestTreatmentDate: Date?
+
+    init(child: ChildProfile, date: Date) {
+        let calendar = Calendar.current
+        lessons = LessonSchedule.occurrences(children: [child], week: date)
+            .filter { calendar.isDate($0.start, inSameDayAs: date) }
+        let categories = Set(lessons.filter { !$0.isCancelled }.map { Self.categoryKey($0.category) })
+        programs = child.programs.filter { program in
+            categories.contains(Self.categoryKey(program.category)) &&
+                program.targets.contains { ProgramLibrary.isRecordable($0, in: program) }
+        }.sorted {
+            let order = $0.name.compare($1.name, locale: Locale(identifier: "ko_KR"))
+            return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
+        }
+        let day = calendar.startOfDay(for: date)
+        latestTreatmentDate = child.programs.flatMap(\.targets).flatMap(\.sessions)
+            .filter { $0.attemptedCount > 0 && calendar.startOfDay(for: $0.date) <= day }
+            .map(\.date).max()
+    }
+
+    private static func categoryKey(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+}
+
 enum LessonSchedule {
     static let weekdays = [2, 3, 4, 5, 6, 7, 1]
     static func weekdayName(_ day: Int) -> String { ["일", "월", "화", "수", "목", "금", "토"][max(1, min(day, 7)) - 1] }

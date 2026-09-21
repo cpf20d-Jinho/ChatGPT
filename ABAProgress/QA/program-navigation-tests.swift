@@ -36,6 +36,48 @@ struct ProgramNavigationTests {
         car.status = .discontinued
         precondition(ProgramLibrary.listStatus(car, in: program) == "중단")
         precondition(car.sessions.count == 1 && plane.sessions[0].id == recorded.id, "Grouping never mutates sessions")
-        print("PASS: task grouping, stable identity, List status, history preservation, recent treatment dates")
+        checkTodaySummary()
+        print("PASS: task grouping, List navigation, history preservation, today schedules and programs")
+    }
+
+    static func checkTodaySummary() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        let child = ChildProfile(name: "검사 아동")
+        let program = TherapyProgram(name: "ELCAR", category: "인지 및 학습")
+        let target = TherapyTarget(name: "블럭모방")
+        program.targets = [target]
+        let unrelated = TherapyProgram(name: "다른 영역", category: "언어")
+        unrelated.targets = [TherapyTarget(name: "이름 말하기")]
+        child.programs = [unrelated, program]
+        let recorded = TherapySession(date: yesterday)
+        recorded.trials = [TrialRecord(trialNumber: 1, response: .correct)]
+        let future = TherapySession(date: tomorrow)
+        future.trials = [TrialRecord(trialNumber: 1, response: .correct)]
+        target.sessions = [recorded, TherapySession(date: today), future]
+        precondition(TodayLessonSummary(child: child, date: today).programs.isEmpty)
+        let lesson = WeeklyLesson(weekday: calendar.component(.weekday, from: today),
+                                  startMinute: 780, endMinute: 830, category: "인지 및 학습")
+        child.weeklyLessons = [lesson]
+        let regular = TodayLessonSummary(child: child, date: today)
+        precondition(regular.programs.map(\.id) == [program.id], "Only today's matching active programs")
+        precondition(regular.latestTreatmentDate == recorded.date, "Ignore empty and future records")
+        precondition(regular.lessons.count == 1 && LessonSchedule.minute(regular.lessons[0].start) == 780)
+        child.lessonExceptions = [LessonException(lessonID: lesson.id, originalDate: today,
+            category: lesson.category, originalStartMinute: 780, originalEndMinute: 830,
+            makeupStart: LessonSchedule.time(900, on: tomorrow), makeupEnd: LessonSchedule.time(950, on: tomorrow))]
+        let cancelled = TodayLessonSummary(child: child, date: today)
+        precondition(cancelled.programs.isEmpty && cancelled.lessons[0].isCancelled)
+        let makeup = TodayLessonSummary(child: child, date: tomorrow)
+        precondition(makeup.programs.map(\.id) == [program.id] && makeup.lessons[0].isMakeup)
+        precondition(LessonSchedule.minute(makeup.lessons[0].start) == 900)
+        program.levels[0].status = .completed
+        precondition(TodayLessonSummary(child: child, date: tomorrow).programs.isEmpty)
+        precondition(target.sessions.count == 3, "Summaries must preserve all records")
+        child.lessonExceptions = []
+        child.lessonStartDate = tomorrow
+        precondition(TodayLessonSummary(child: child, date: today).lessons.isEmpty)
     }
 }

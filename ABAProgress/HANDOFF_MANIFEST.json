@@ -1,13 +1,14 @@
 {
   "project": "ABAProgress",
-  "handoffPurpose": "Task and List navigation; Debug-only validation without rendering",
-  "sourceVersion": "1.1.2",
-  "sourceBuild": "2026-09-20T18:40:13+09:00",
-  "sourceBuildHash": "9edec1bfd5",
+  "handoffPurpose": "Today lesson preparation cards; Debug-only validation without rendering",
+  "sourceVersion": "1.1.3",
+  "sourceBuild": "2026-09-21T23:27:16+09:00",
+  "sourceBuildHash": "f0804cc4d6",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
   "minimumOS": "iOS/iPadOS 17.0",
   "readFirst": [
+    "UPDATE_1_1_3_PLAYGROUNDS.md",
     "UPDATE_1_1_2_PLAYGROUNDS.md",
     "UPDATE_1_1_1_PLAYGROUNDS.md",
     "UPDATE_1_1_PLAYGROUNDS.md",

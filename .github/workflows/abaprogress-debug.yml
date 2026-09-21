@@ -43,6 +43,7 @@ jobs:
         run: |
           swiftc -target "$(uname -m)-apple-macos14.0" \
             ABAProgress/XcodeProject/ABAProgress/Models/Models.swift \
+            ABAProgress/XcodeProject/ABAProgress/Services/LessonSchedule.swift \
             ABAProgress/QA/program-navigation-tests.swift -o "$RUNNER_TEMP/program-navigation-tests"
           "$RUNNER_TEMP/program-navigation-tests"
       - uses: actions/upload-artifact@v4
