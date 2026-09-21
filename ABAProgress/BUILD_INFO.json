@@ -3,12 +3,12 @@
   "displayName": "쉬운 ABA",
   "version": "1.1.4",
   "buildNumber": "23",
-  "buildTimeKST": "2026-09-21T23:43:17+09:00",
+  "buildTimeKST": "2026-09-21T23:47:51+09:00",
   "buildHash": "7e757cb9ae",
   "sourceSHA256": "7e757cb9ae4b00e2ffe86deba751856cf87c5ef56c08dc9047f0584cf1c8a284",
-  "candidateID": "v1.1.4_20260921T234317+0900_7e757cb9ae",
+  "candidateID": "v1.1.4_20260921T234751+0900_7e757cb9ae",
   "previousBuild": "v1.0.0_20260912T1642320900_530f4d88d6",
-  "sourceCommit": "8c0e65b9465304d3bd4b43775150307d4c1824f3",
+  "sourceCommit": "5dfdba528e928e91237b6ccf2150a81c24c4dd73",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
     "deviceFamilies": [
@@ -17,9 +17,9 @@
     ]
   },
   "validation": {
-    "debugBuild": "PENDING",
-    "clinicalAndNavigationChecks": "PENDING",
-    "runURL": "",
+    "debugBuild": "PASSED",
+    "clinicalAndNavigationChecks": "PASSED",
+    "runURL": "https://github.com/cpf20d-Jinho/ChatGPT/actions/runs/35614102687",
     "imageRendering": "NOT_RUN_USER_REQUEST",
     "simulatorInteraction": "NOT_RUN_USER_REQUEST",
     "playgroundsDeviceRun": "USER_VERIFICATION_REQUIRED"
