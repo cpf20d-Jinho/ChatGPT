@@ -2,7 +2,7 @@
   "project": "ABAProgress",
   "handoffPurpose": "Today lesson preparation cards; Debug-only validation without rendering",
   "sourceVersion": "1.1.3",
-  "sourceBuild": "2026-09-21T23:27:16+09:00",
+  "sourceBuild": "2026-09-21T23:30:57+09:00",
   "sourceBuildHash": "f0804cc4d6",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
