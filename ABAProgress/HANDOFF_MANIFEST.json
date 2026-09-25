@@ -2,7 +2,7 @@
   "project": "ABAProgress",
   "handoffPurpose": "Adaptive timetable, recorded lesson duration and consistent ivory pages; Debug-only validation without rendering",
   "sourceVersion": "1.1.5",
-  "sourceBuild": "2026-09-22T00:08:35+09:00",
+  "sourceBuild": "2026-09-25T14:23:14+09:00",
   "sourceBuildHash": "6a20df46db",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
