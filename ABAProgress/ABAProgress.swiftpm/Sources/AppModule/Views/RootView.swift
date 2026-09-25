@@ -68,6 +68,7 @@ private struct RegularRootView: View {
                 }
             }
             .listStyle(.sidebar)
+            .abaPageBackground()
             .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -166,6 +167,7 @@ struct ChildrenListView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle("아동")
         .searchable(text: $searchText, prompt: "아동 이름 검색")
         .toolbar {
@@ -277,6 +279,7 @@ struct TodayOverviewView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle("오늘")
     }
 }
@@ -384,6 +387,7 @@ struct ReportHomeView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle("보고서")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -419,6 +423,7 @@ struct AddChildView: View {
                 }
                 LessonScheduleFields(useStartDate: $useStartDate, startDate: $lessonStartDate, lessons: $lessons)
             }
+            .abaPageBackground()
             .navigationTitle("아동 추가")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
@@ -508,8 +513,8 @@ enum ABAVisualStyle {
     static let cornerRadius: CGFloat = 16
     static let contentMaxWidth: CGFloat = 980
     static let groupedBackground = ivory
-    static let secondarySurface = Color("PaletteSurface")
-    static let tertiarySurface = Color("PaletteRaised")
+    static let secondarySurface = ivory
+    static let tertiarySurface = ivory
     static let separator = leafGreen.opacity(0.45)
     /// Shared, non-rendered form tracks. Every regular-width editor aligns to these axes.
     static let formLabelWidth: CGFloat = 168
@@ -532,6 +537,13 @@ private struct ABASurfaceModifier: ViewModifier {
 }
 
 extension View {
+    func abaPageBackground() -> some View {
+        self.scrollContentBackground(.hidden)
+            .background(ABAVisualStyle.ivory.ignoresSafeArea())
+            .toolbarBackground(ABAVisualStyle.ivory, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+    }
+
     func abaSurface(
         padding: CGFloat = 16,
         background: Color = ABAVisualStyle.secondarySurface

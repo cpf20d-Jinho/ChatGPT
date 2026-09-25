@@ -53,6 +53,7 @@ struct ReportWebEditorView: View {
                 if busy { ProgressView("처리 중…") }
                 if let message { Section { Text(message).accessibilityAddTraits(.updatesFrequently) } }
             }
+            .abaPageBackground()
             .navigationTitle("보고서 웹 편집")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() }.disabled(busy) } }
             .interactiveDismissDisabled(busy)

@@ -14,52 +14,19 @@ struct ChildDetailView: View {
         child.programs.sorted { $0.createdAt < $1.createdAt }
     }
 
-    private var recordablePrograms: [TherapyProgram] {
-        programs.filter { program in
-            guard let level = program.currentLevel else { return false }
-            return program.targets.contains {
-                $0.levelNumber == level.levelNumber && $0.status == .active
-            }
-        }
-    }
-
-    private var today: Date { Calendar.current.startOfDay(for: Date()) }
-
-    private var todayCompletedProgramCount: Int {
-        recordablePrograms.filter { program in
-            guard let level = program.currentLevel else { return false }
-            let activeTargets = program.targets.filter {
-                $0.levelNumber == level.levelNumber && $0.status == .active
-            }
-            guard !activeTargets.isEmpty else { return false }
-            return activeTargets.allSatisfy { target in
-                target.sessions.contains { session in
-                    session.completed && Calendar.current.isDate(session.date, inSameDayAs: today)
-                }
-            }
-        }.count
-    }
-
-    private var todayAccuracies: [Double] {
-        programs
-            .flatMap(\.targets)
-            .flatMap(\.sessions)
-            .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
-            .compactMap(\.accuracy)
-    }
-
-    private var todayAverageAccuracy: Double? {
-        guard !todayAccuracies.isEmpty else { return nil }
-        return todayAccuracies.reduce(0, +) / Double(todayAccuracies.count)
-    }
-
     var body: some View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .firstTextBaseline, spacing: 12) { childIdentity }
-                        VStack(alignment: .leading, spacing: 4) { childIdentity }
+                    Text(child.name)
+                        .font(.largeTitle.bold())
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .accessibilityAddTraits(.isHeader)
+                    if let birthDate = child.birthDate {
+                        Text(LessonSchedule.dateText(birthDate))
+                            .frame(maxWidth: .infinity)
+                            .foregroundStyle(.secondary)
                     }
                     if let start = child.lessonStartDate {
                         Text("수업 시작 \(LessonSchedule.dateText(start))").font(.subheadline).foregroundStyle(.secondary)
@@ -77,21 +44,15 @@ struct ChildDetailView: View {
                 .accessibilityElement(children: .combine)
             }
 
-            Section("오늘 현황") {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 24) {
-                        todayCompletionMetric
-                        Divider()
-                        todayAccuracyMetric
-                    }
-                    VStack(alignment: .leading, spacing: 12) {
-                        todayCompletionMetric
-                        Divider()
-                        todayAccuracyMetric
-                    }
+            Section("오늘 수업") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("진행한 수업 시간").font(.subheadline)
+                    Text("\(LessonSchedule.recordedMinutes(child: child, date: Date()))분")
+                        .font(.title2.bold()).monospacedDigit()
+                    Text("시간표 기준 · 기록이 있는 수업의 예정 시간을 합산")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 6)
-
             }
 
             Section("프로그램") {
@@ -121,6 +82,7 @@ struct ChildDetailView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -165,45 +127,6 @@ struct ChildDetailView: View {
         } message: {
             Text(saveError ?? "")
         }
-    }
-
-    @ViewBuilder private var childIdentity: some View {
-        Text(child.name).font(.title2.bold())
-        if let birthDate = child.birthDate {
-            Text(LessonSchedule.dateText(birthDate)).foregroundStyle(.secondary)
-                .accessibilityLabel("생년월일 \(LessonSchedule.dateText(birthDate))")
-        }
-    }
-
-    private var todayCompletionMetric: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("완료 프로그램")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("\(todayCompletedProgramCount) / \(recordablePrograms.count)")
-                .font(.title3.bold())
-                .monospacedDigit()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private var todayAccuracyMetric: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("오늘 입력 평균")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if let todayAverageAccuracy {
-                Text("\(todayAverageAccuracy, format: .number.precision(.fractionLength(0...1)))%")
-                    .font(.title3.bold())
-                    .monospacedDigit()
-            } else {
-                Text("기록 없음")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func deletePrograms(at offsets: IndexSet) {
@@ -329,6 +252,7 @@ private struct AddProgramView: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }
+            .abaPageBackground()
             .navigationTitle("프로그램 추가")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
@@ -393,6 +317,7 @@ private struct EditChildView: View {
                 }
                 LessonScheduleFields(useStartDate: $useStartDate, startDate: $lessonStartDate, lessons: $lessons)
             }
+            .abaPageBackground()
             .navigationTitle("아동 정보 수정")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }

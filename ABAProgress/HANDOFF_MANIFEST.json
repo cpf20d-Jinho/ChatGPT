@@ -1,13 +1,14 @@
 {
   "project": "ABAProgress",
-  "handoffPurpose": "Task and List learning progress; Debug-only validation without rendering",
-  "sourceVersion": "1.1.4",
-  "sourceBuild": "2026-09-21T23:47:51+09:00",
-  "sourceBuildHash": "7e757cb9ae",
+  "handoffPurpose": "Adaptive timetable, recorded lesson duration and consistent ivory pages; Debug-only validation without rendering",
+  "sourceVersion": "1.1.5",
+  "sourceBuild": "2026-09-22T00:08:35+09:00",
+  "sourceBuildHash": "6a20df46db",
   "primaryXcodeProject": "XcodeProject/ABAProgress.xcodeproj",
   "playgroundsProject": "ABAProgress.swiftpm",
   "minimumOS": "iOS/iPadOS 17.0",
   "readFirst": [
+    "UPDATE_1_1_5_PLAYGROUNDS.md",
     "UPDATE_1_1_4_PLAYGROUNDS.md",
     "UPDATE_1_1_3_PLAYGROUNDS.md",
     "UPDATE_1_1_2_PLAYGROUNDS.md",

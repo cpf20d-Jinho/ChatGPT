@@ -65,17 +65,27 @@ struct ProgramNavigationTests {
         precondition(regular.programs.map(\.id) == [program.id], "Only today's matching active programs")
         precondition(regular.latestTreatmentDate == recorded.date, "Ignore empty and future records")
         precondition(regular.lessons.count == 1 && LessonSchedule.minute(regular.lessons[0].start) == 780)
+        precondition(LessonSchedule.recordedMinutes(child: child, date: today) == 0, "Empty session is not a lesson")
+        let todayRecord = TherapySession(date: today)
+        todayRecord.trials = [TrialRecord(trialNumber: 1, response: .prompted)]
+        target.sessions.append(todayRecord)
+        precondition(LessonSchedule.recordedMinutes(child: child, date: today) == 50)
+        child.weeklyLessons.append(WeeklyLesson(weekday: lesson.weekday, startMinute: 800, endMinute: 850, category: lesson.category))
+        precondition(LessonSchedule.recordedMinutes(child: child, date: today) == 70, "Overlapping time is counted once")
+        child.weeklyLessons = [lesson]
         child.lessonExceptions = [LessonException(lessonID: lesson.id, originalDate: today,
             category: lesson.category, originalStartMinute: 780, originalEndMinute: 830,
             makeupStart: LessonSchedule.time(900, on: tomorrow), makeupEnd: LessonSchedule.time(950, on: tomorrow))]
         let cancelled = TodayLessonSummary(child: child, date: today)
         precondition(cancelled.programs.isEmpty && cancelled.lessons[0].isCancelled)
+        precondition(LessonSchedule.recordedMinutes(child: child, date: today) == 0, "Cancelled lesson excluded")
         let makeup = TodayLessonSummary(child: child, date: tomorrow)
         precondition(makeup.programs.map(\.id) == [program.id] && makeup.lessons[0].isMakeup)
         precondition(LessonSchedule.minute(makeup.lessons[0].start) == 900)
+        precondition(LessonSchedule.recordedMinutes(child: child, date: tomorrow) == 50, "Makeup time included")
         program.levels[0].status = .completed
         precondition(TodayLessonSummary(child: child, date: tomorrow).programs.isEmpty)
-        precondition(target.sessions.count == 3, "Summaries must preserve all records")
+        precondition(target.sessions.count == 4, "Summaries must preserve all records")
         child.lessonExceptions = []
         child.lessonStartDate = tomorrow
         precondition(TodayLessonSummary(child: child, date: today).lessons.isEmpty)

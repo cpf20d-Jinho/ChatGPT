@@ -72,6 +72,28 @@ struct TodayLessonSummary {
 }
 
 enum LessonSchedule {
+    /// Scheduled duration for recorded categories, not measured wall-clock therapy time.
+    static func recordedMinutes(child: ChildProfile, date: Date) -> Int {
+        let calendar = Calendar.current
+        let key: (String) -> String = { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        let categories = Set(child.programs.filter { program in
+            program.targets.flatMap(\.sessions).contains {
+                $0.attemptedCount > 0 && calendar.isDate($0.date, inSameDayAs: date)
+            }
+        }.map { key($0.category) })
+        let lessons = occurrences(children: [child], week: date).filter {
+            !$0.isCancelled && calendar.isDate($0.start, inSameDayAs: date) && categories.contains(key($0.category))
+        }
+        var finish: Date?
+        var seconds: TimeInterval = 0
+        for lesson in lessons {
+            let begin = max(lesson.start, finish ?? lesson.start)
+            seconds += max(0, lesson.end.timeIntervalSince(begin))
+            finish = max(finish ?? lesson.end, lesson.end)
+        }
+        return Int(seconds / 60)
+    }
+
     static let weekdays = [2, 3, 4, 5, 6, 7, 1]
     static func weekdayName(_ day: Int) -> String { ["일", "월", "화", "수", "목", "금", "토"][max(1, min(day, 7)) - 1] }
     static func dateText(_ date: Date) -> String {

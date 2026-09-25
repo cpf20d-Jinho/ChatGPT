@@ -120,6 +120,7 @@ struct ReportView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle("경과 보고서")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -252,7 +253,7 @@ struct ReportView: View {
                 .controlSize(.large)
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.ivory)
     }
 }
 
@@ -426,7 +427,7 @@ private struct ProgramLevelProgressChart: View {
                             .foregroundStyle(color)
                             .symbol {
                                 Circle()
-                                    .fill(point.recordedCount < point.applicableCount ? Color(uiColor: .systemBackground) : color)
+                                    .fill(point.recordedCount < point.applicableCount ? ABAVisualStyle.ivory : color)
                                     .stroke(color, lineWidth: 1.5)
                                     .frame(width: 7, height: 7)
                             }
@@ -474,7 +475,7 @@ private struct ProgramLevelProgressChart: View {
                 }
                 .chartLegend(.hidden)
                 .chartPlotStyle { plot in
-                    plot.background(Color(uiColor: .systemBackground).opacity(0.7))
+                    plot.background(ABAVisualStyle.ivory.opacity(0.7))
                 }
                 .frame(height: 220)
                 .accessibilityLabel("\(goal.name) \(levels.map { "List\($0) \(learningText(for: $0))" }.joined(separator: ", ")) 정반응률 그래프")
@@ -516,7 +517,7 @@ private struct ProgramLevelProgressChart: View {
             .background(ABAVisualStyle.tertiarySurface)
             .clipShape(.rect(cornerRadius: 12))
         }
-        .abaSurface(padding: 14, background: Color(uiColor: .systemBackground))
+        .abaSurface(padding: 14, background: ABAVisualStyle.ivory)
     }
 }
 

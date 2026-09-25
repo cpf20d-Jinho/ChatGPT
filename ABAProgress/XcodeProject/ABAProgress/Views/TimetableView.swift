@@ -73,6 +73,7 @@ struct TimetableView: View {
     @State private var week = LessonSchedule.weekStart(Date())
     @State private var selected: LessonOccurrence?
     @State private var useList = false
+    private var isPhone: Bool { UIDevice.current.userInterfaceIdiom == .phone }
     private var entries: [LessonOccurrence] { LessonSchedule.occurrences(children: children, week: week) }
     private var days: [Date] { (0..<7).map { Calendar.current.date(byAdding: .day, value: $0, to: LessonSchedule.weekStart(week))! } }
     private var startHour: Int { min(8, entries.map { Calendar.current.component(.hour, from: $0.start) }.min() ?? 8) }
@@ -89,11 +90,11 @@ struct TimetableView: View {
                 Spacer()
                 Button("이번 주") { week = LessonSchedule.weekStart(Date()) }
             }.padding(.horizontal)
-            Toggle("목록으로 보기", isOn: $useList).padding(.horizontal)
+            if !isPhone { Toggle("목록으로 보기", isOn: $useList).padding(.horizontal) }
             if entries.isEmpty {
                 ContentUnavailableView("이번 주 수업이 없습니다", systemImage: "calendar",
                     description: Text("아동 정보에서 수업 시작일과 매주 반복할 요일·시간·영역을 등록하세요."))
-            } else if useList || dynamicTypeSize.isAccessibilitySize {
+            } else if isPhone || useList || dynamicTypeSize.isAccessibilitySize {
                 List {
                     ForEach(days, id: \.self) { day in
                         Section(LessonSchedule.dateText(day) + " " + LessonSchedule.weekdayName(Calendar.current.component(.weekday, from: day))) {
@@ -104,7 +105,8 @@ struct TimetableView: View {
                     }
                 }
             } else {
-                ScrollView([.horizontal, .vertical]) {
+                GeometryReader { geometry in
+                ScrollView(.vertical) {
                     HStack(alignment: .top, spacing: 0) {
                         VStack(spacing: 0) {
                             Text("시간").frame(width: 48, height: 44)
@@ -115,13 +117,15 @@ struct TimetableView: View {
                         }
                         ForEach(days, id: \.self) { day in
                             TimetableDayColumn(day: day, entries: entries.filter { Calendar.current.isDate($0.start, inSameDayAs: day) },
-                                startHour: startHour, endHour: endHour, allEntries: entries, selected: $selected)
+                                width: max(1, (geometry.size.width - 64) / 7), startHour: startHour, endHour: endHour, allEntries: entries, selected: $selected)
                         }
-                    }.padding(.horizontal)
+                    }.padding(.horizontal, 8)
+                }
                 }
             }
         }
         .background(ABAVisualStyle.ivory)
+        .abaPageBackground()
         .navigationTitle("시간표")
         .sheet(item: $selected) { entry in LessonOccurrenceEditor(entry: entry, children: children) }
     }
@@ -142,6 +146,7 @@ struct TimetableView: View {
 private struct TimetableDayColumn: View {
     let day: Date
     let entries: [LessonOccurrence]
+    let width: CGFloat
     let startHour: Int
     let endHour: Int
     let allEntries: [LessonOccurrence]
@@ -160,11 +165,11 @@ private struct TimetableDayColumn: View {
         return result
     }
     private var laneCount: Int { (placement.map(\.lane).max() ?? 0) + 1 }
-    private var width: CGFloat { CGFloat(laneCount) * 142 }
+    private var laneWidth: CGFloat { width / CGFloat(laneCount) }
     var body: some View {
         VStack(spacing: 0) {
             Text("\(LessonSchedule.weekdayName(Calendar.current.component(.weekday, from: day))) \(Calendar.current.component(.day, from: day))")
-                .font(.subheadline.bold()).frame(width: width, height: 44)
+                .font(.caption.bold()).frame(width: width, height: 44)
                 .background(Calendar.current.isDateInToday(day) ? ABAVisualStyle.butterYellow : ABAVisualStyle.ivory)
             ZStack(alignment: .topLeading) {
                 VStack(spacing: 0) {
@@ -185,7 +190,7 @@ private struct TimetableDayColumn: View {
                             if entry.isCancelled || entry.isMakeup { Text(entry.status).font(.caption2.bold()) }
                             if LessonSchedule.overlaps(entry, in: allEntries) { Image(systemName: "exclamationmark.triangle").font(.caption2) }
                         }
-                        .padding(5).frame(width: 136, height: height - 3, alignment: .topLeading)
+                        .padding(5).frame(width: max(1, laneWidth - 6), height: height - 3, alignment: .topLeading)
                         .foregroundStyle(.primary)
                         .background(entry.isMakeup ? ABAVisualStyle.butterYellow.opacity(0.6) : ABAVisualStyle.leafGreen.opacity(0.2), in: .rect(cornerRadius: 6))
                         .overlay { RoundedRectangle(cornerRadius: 6).stroke(ABAVisualStyle.leafGreen, style: StrokeStyle(lineWidth: 1, dash: entry.isCancelled ? [4, 3] : [])) }
@@ -193,7 +198,7 @@ private struct TimetableDayColumn: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(entry.child.name), \(entry.category), \(entry.start.formatted(date: .omitted, time: .shortened)), \(entry.status)")
-                    .offset(x: CGFloat(item.lane) * 142 + 3, y: CGFloat(LessonSchedule.minute(entry.start) - startHour * 60) * 2)
+                    .offset(x: CGFloat(item.lane) * laneWidth + 3, y: CGFloat(LessonSchedule.minute(entry.start) - startHour * 60) * 2)
                 }
             }
             .frame(width: width, height: CGFloat(endHour - startHour) * 120)
@@ -260,6 +265,7 @@ private struct LessonOccurrenceEditor: View {
                     Text("선택한 날짜에만 적용됩니다. 휴강을 해제하면 연결된 보강도 제거됩니다.").font(.footnote).foregroundStyle(.secondary)
                 }
             }
+            .abaPageBackground()
             .navigationTitle("수업 일정 변경")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }

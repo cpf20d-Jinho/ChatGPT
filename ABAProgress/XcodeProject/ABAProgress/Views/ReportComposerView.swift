@@ -121,6 +121,7 @@ struct ReportComposerView: View {
                         .clipShape(.rect(cornerRadius: 12))
                 }
                 .padding()
+                .abaPageBackground()
                 .navigationTitle(selection.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -491,6 +492,7 @@ struct ReportPrivacyView: View {
                 Link("Groq 데이터 처리 정책", destination: URL(string: "https://console.groq.com/docs/your-data")!)
             }
         }
+        .abaPageBackground()
         .navigationTitle("개인정보 안내")
     }
 }
@@ -533,6 +535,7 @@ Groq는 사용량 메타데이터를 보관합니다. 일반 추론 입력과 �
                     Button("동의하지 않고 취소", role: .cancel) { dismiss() }
                 }
             }
+            .abaPageBackground()
             .navigationTitle("AI 데이터 전송 동의")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } } }
         }

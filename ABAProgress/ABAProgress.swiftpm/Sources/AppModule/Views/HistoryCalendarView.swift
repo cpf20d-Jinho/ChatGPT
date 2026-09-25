@@ -112,6 +112,7 @@ struct HistoryCalendarView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle("기록 캘린더")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $childSearchText, prompt: "이 날짜의 아동 검색")
@@ -227,7 +228,7 @@ private struct MonthCalendar: View {
                 }
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.ivory)
     }
 
     private func changeMonth(_ offset: Int) {
@@ -384,6 +385,7 @@ struct ChildDateRecordsView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle(child.name)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -510,6 +512,7 @@ private struct HistoricalTargetEditView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle(target.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

@@ -31,6 +31,10 @@ struct ProgramDetailView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
+                Text(child.name).font(.largeTitle.bold())
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityAddTraits(.isHeader)
                 header
                 if let notice {
                     ABAInlineNotice(
@@ -64,7 +68,8 @@ struct ProgramDetailView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
-        .navigationTitle(child.name)
+        .abaPageBackground()
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -153,6 +158,7 @@ struct ProgramDetailView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle(target.listTitle.isEmpty ? "List\(target.levelNumber)" : target.listTitle)
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("현재 List를 완료하고 다음 List를 만들까요?", isPresented: $showingListCompletion, titleVisibility: .visible) {
@@ -225,7 +231,7 @@ struct ProgramDetailView: View {
                 }.buttonStyle(.borderedProminent)
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.ivory)
     }
 
     private func ensureInitialLevel() {
@@ -1077,6 +1083,7 @@ private struct SessionNoteView: View {
                 TextField("세션 메모", text: $note, axis: .vertical)
                     .lineLimit(4...10)
             }
+            .abaPageBackground()
             .navigationTitle("세션 메모")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -1156,6 +1163,7 @@ private struct AddTargetView: View {
                     ABASectionHeading(title: "List 종료 기준", help: "과제별 개별 기준 대신 \(level.label)의 공통 기준을 사용합니다. 같은 List의 모든 진행 과제가 같은 기록일에 기준을 달성해야 합니다. 수업이 없는 날짜는 건너뜁니다.")
                 }
             }
+            .abaPageBackground()
             .navigationTitle("과제 추가")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -1215,6 +1223,7 @@ private struct LevelSettingsView: View {
                     ABASectionHeading(title: "List 종료 안내", help: "현재 List에서 모든 진행 과제가 같은 기록일에 기준 정반응률을 달성하고, 그 상태가 설정한 기록일 수만큼 연속되면 List 완료 기준을 충족합니다. 완료할 때 다음 List 생성 여부를 확인합니다.")
                 }
             }
+            .abaPageBackground()
             .navigationTitle("List 설정")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -1284,6 +1293,7 @@ private struct EditProgramView: View {
                     TextField("목표", text: $description, axis: .vertical)
                 }
             }
+            .abaPageBackground()
             .navigationTitle("프로그램 수정")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
@@ -1341,6 +1351,7 @@ private struct EditTargetView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .abaPageBackground()
             .navigationTitle("과제 수정")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
@@ -1388,6 +1399,7 @@ private struct LevelReviewView: View {
                     Text("완료일 전 기록, 해당 List의 모든 과제, 연속 기록일 수와 정반응률 기준을 차례로 확인하세요.")
                 }
             }
+            .abaPageBackground()
             .navigationTitle("List 판정 검토")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("닫기") { dismiss() } } }
         }
