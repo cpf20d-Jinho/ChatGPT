@@ -51,7 +51,12 @@ export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10,authSe
   res.setHeader("Cache-Control","no-store");res.setHeader("Content-Type","application/json");
   // Therapist account auth (/auth/*) is a fully separate namespace from the legacy
   // shared-token report/Groq relay below: different accounts, different DB, own storage.
-  if(authService&&await authService.handle(req,res))return;
+  // A rejected promise here (Turso/Resend failure, etc.) must not crash the whole
+  // process and take the unrelated legacy relay down with it.
+  if(authService){
+   try{if(await authService.handle(req,res))return;}
+   catch{if(!res.headersSent){res.writeHead(502);res.end('{"error":"auth_service_error"}');}return;}
+  }
   const auth=req.headers.authorization??"";
   const received=createHash("sha256").update(auth.startsWith("Bearer ")?auth.slice(7):"").digest();
   const account=accounts.find(a=>Date.parse(a.expiresAt)>now()&&timingSafeEqual(received,Buffer.from(a.digest,"hex")));
