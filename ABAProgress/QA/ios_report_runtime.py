@@ -10,7 +10,7 @@ out = temp / 'aba-ios-report-qa'
 out.mkdir(exist_ok=True)
 fixture = temp / 'qa-input.json'
 run('node', 'ABAProgress/QA/report-template.test.cjs', '--fixture', str(fixture))
-app = temp / 'ABAProgressDerivedData/Build/Products/Debug-iphonesimulator/ABAProgress.app'
+app = temp / 'ABAProgressDerivedData/Build/Products/Debug-iphonesimulator/Easy_ABA.app'
 data = json.loads(run('xcrun', 'simctl', 'list', '-j'))
 runtimes = [r for r in data['runtimes'] if r.get('isAvailable') and 'iOS' in r['name'] and int(r['version'].split('.')[0]) >= 26]
 runtime = max(runtimes, key=lambda r: tuple(map(int, r['version'].split('.'))))['identifier']
@@ -51,4 +51,5 @@ for family in ['iPhone', 'iPad']:
     finally:
         subprocess.run(['xcrun', 'simctl', 'shutdown', device], check=False)
         subprocess.run(['xcrun', 'simctl', 'delete', device], check=False)
+
 
