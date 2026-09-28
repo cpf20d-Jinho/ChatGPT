@@ -13,9 +13,10 @@ Render처럼 비밀 환경변수를 사용하는 호스트는 같은 JSON을 `RE
 - 서비스: `abaprogress-reports`, Node, Free, Singapore
 - 저장소: `https://github.com/cpf20d-Jinho/ChatGPT`
 - 브랜치: `codex/abaprogress-release-readiness-v0.9`
-- 빌드: `node --check ABAProgress/Server/server.mjs`
+- 빌드: `npm install --prefix ABAProgress/Server && node --check ABAProgress/Server/server.mjs`
+  - **2026-09-28 수정**: 기존 `node --check`만으로는 `Server/package.json`의 `@libsql/client` 의존성이 설치되지 않아, `TURSO_DATABASE_URL` 도입 이후 부팅 시 `ERR_MODULE_NOT_FOUND`로 크래시함. `npm install --prefix` 스텝을 반드시 먼저 실행해야 함 (`abaprogress-ci.yml`의 CI 스텝과 동일한 패턴).
 - 시작: `node ABAProgress/Server/server.mjs`
-- 환경: `NODE_VERSION=22`, `NODE_ENV=production`, `LISTEN_HOST=0.0.0.0`, `REPORT_USERS_JSON` 비밀값
+- 환경: `NODE_VERSION=22`, `NODE_ENV=production`, `LISTEN_HOST=0.0.0.0`, `REPORT_USERS_JSON` 비밀값, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `RESEND_API_KEY`, `RESEND_FROM` (치료사 로그인용, [[치료사 로그인 및 개인정보 저장]] 참고)
 - Groq 키는 서버 환경에 저장하지 않는다. 앱의 사용자별 키를 요청에만 사용한다.
 
 ```json
