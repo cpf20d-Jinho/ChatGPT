@@ -51,10 +51,31 @@ node ABAProgress/Server/server.mjs
 
 무료 한도는 각 사용자의 Groq 조직에 적용된다. 한도를 넘으면 429를 반환하고 앱은 자동 재시도하거나 유료 모델로 전환하지 않는다. [Groq 한도](https://console.groq.com/docs/rate-limits)
 
+## 치료사 로그인 (`/auth/*`)
+
+자체 이메일+비밀번호 계정 시스템. 기존 `/report/*`의 공용 `REPORT_SERVER_TOKEN` 인증과는 완전히 분리된 별도 네임스페이스이며(`Server/auth.mjs`), 저장 대상은 **치료사 계정 정보(이메일, 비밀번호 해시, 이름·센터명·연락처 프로필)뿐**이다. 아동·시행·보고서 데이터는 여전히 기기 로컬(SwiftData)에만 있고 이 서버로 전송되지 않는다.
+
+- 비밀번호는 Node 내장 `crypto.scrypt`로 해싱(서버는 원문 비밀번호를 저장하지 않음).
+- 프로필(이름/센터명/주소/연락처 등)은 iOS 클라이언트가 비밀번호에서 파생한 키로 AES-256-GCM 암호화한 뒤 ciphertext만 전송한다 — **서버는 평문 프로필을 볼 수 없다(end-to-end 암호화)**. 자세한 설계는 Obsidian Vault의 "치료사 로그인 및 개인정보 저장" 노트 참고.
+- 이메일 인증: 가입 시 6자리 코드 발송(Resend), 서버는 해시만 보관, 15분 만료·5회 시도 제한.
+- 데이터베이스: Turso(libSQL, SQLite 호환). 필요한 환경변수:
+  - `TURSO_DATABASE_URL` — 미설정 시 `/auth/*`는 비활성화되고 기존 숫자 릴레이만 동작(하위 호환).
+  - `TURSO_AUTH_TOKEN`
+  - `RESEND_API_KEY`, `RESEND_FROM` — 미설정 시 가입은 되지만 인증 메일이 발송되지 않는다.
+
+| 경로 | 메서드 | 설명 |
+|---|---|---|
+| `/auth/signup` | POST | `{email, password, profileKeySalt, profileCiphertext, profileNonce}` (뒤 3개는 base64) |
+| `/auth/verify-email` | POST | `{email, code}` |
+| `/auth/login` | POST | `{email, password}` → `{sessionToken, profileKeySalt, profileCiphertext, profileNonce}` |
+| `/auth/profile` | PUT | `Authorization: Bearer <sessionToken>` + `{profileCiphertext, profileNonce}` |
+| `/auth/logout` | POST | `Authorization: Bearer <sessionToken>` — 세션 폐기 |
+
 ## 검증
 
 ```sh
 node --test ABAProgress/QA/report-ai.test.mjs
+node --test ABAProgress/QA/auth.test.mjs
 node ABAProgress/QA/report-template.test.cjs
 ```
 

@@ -27,6 +27,9 @@
 		A10000000000000000000014 /* ReportTemplateExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* ReportTemplateExporter.swift */; };
 		A10000000000000000000015 /* ReportComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015 /* ReportComposerView.swift */; };
 		A10000000000000000000016 /* ReportTemplate.html in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* ReportTemplate.html */; };
+		A10000000000000000000025 /* TherapistProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000025 /* TherapistProfile.swift */; };
+		A10000000000000000000026 /* TherapistAuthCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000026 /* TherapistAuthCrypto.swift */; };
+		A10000000000000000000027 /* TherapistAuthClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000027 /* TherapistAuthClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +55,9 @@
 		B10000000000000000000014 /* ReportTemplateExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReportTemplateExporter.swift"; sourceTree = "<group>"; };
 		B10000000000000000000015 /* ReportComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReportComposerView.swift"; sourceTree = "<group>"; };
 		B10000000000000000000016 /* ReportTemplate.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "Resources/ReportTemplate.html"; sourceTree = "<group>"; };
+		B10000000000000000000025 /* TherapistProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TherapistProfile.swift"; sourceTree = "<group>"; };
+		B10000000000000000000026 /* TherapistAuthCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TherapistAuthCrypto.swift"; sourceTree = "<group>"; };
+		B10000000000000000000027 /* TherapistAuthClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TherapistAuthClient.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,7 +94,10 @@
 		};
 		D10000000000000000000003 /* Models */ = {
 			isa = PBXGroup;
-			children = (B10000000000000000000002 /* Models.swift */);
+			children = (
+				B10000000000000000000002 /* Models.swift */,
+				B10000000000000000000025 /* TherapistProfile.swift */,
+			);
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -118,6 +127,8 @@
 				B10000000000000000000013 /* ReportAIClient.swift */,
                 B10000000000000000000018 /* ReportWebEditing.swift */,
 				B10000000000000000000012 /* ReportDocument.swift */,
+				B10000000000000000000026 /* TherapistAuthCrypto.swift */,
+				B10000000000000000000027 /* TherapistAuthClient.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -204,6 +215,9 @@
 				A10000000000000000000007 /* ReportPDFExporter.swift in Sources */,
 				A10000000000000000000009 /* HistoryCalendarView.swift in Sources */,
 				A10000000000000000000010 /* LevelProgressionService.swift in Sources */,
+				A10000000000000000000025 /* TherapistProfile.swift in Sources */,
+				A10000000000000000000026 /* TherapistAuthCrypto.swift in Sources */,
+				A10000000000000000000027 /* TherapistAuthClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
