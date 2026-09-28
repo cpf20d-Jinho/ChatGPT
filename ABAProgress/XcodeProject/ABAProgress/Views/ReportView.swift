@@ -1,12 +1,20 @@
 import SwiftUI
 import Charts
 
+private struct LearningReportGroup: Identifiable {
+    let program: TherapyProgram
+    let task: ProgramLibrary.TaskGroup
+    var id: UUID { task.id }
+}
+
 struct ReportView: View {
     let child: ChildProfile
 
     @State private var startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var endDate = Date()
     @State private var selectedProgramIDs: Set<UUID> = []
+    @State private var expandedTaskIDs: Set<UUID> = []
+    @State private var initializedExpansion = false
     @State private var shareURL: URL?
     @State private var exportError: String?
 
@@ -17,6 +25,14 @@ struct ReportView: View {
     private var selectedPrograms: [TherapyProgram] {
         programs.filter { selectedProgramIDs.contains($0.id) }
     }
+
+    private var selectedTasks: [LearningReportGroup] {
+        selectedPrograms.flatMap { program in
+            ProgramLibrary.taskGroups(program.targets).map { LearningReportGroup(program: program, task: $0) }
+        }.sorted { $0.task.name.localizedStandardCompare($1.task.name) == .orderedAscending }
+    }
+
+    private var selectedTaskIDs: Set<UUID> { Set(selectedTasks.map(\.id)) }
 
     private var incompleteSessionCount: Int {
         let calendar = Calendar.current
@@ -39,7 +55,7 @@ struct ReportView: View {
                         .font(.footnote)
                         .foregroundStyle(.orange)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .abaSurface(background: Color.orange.opacity(0.08))
+                        .abaSurface(background: ABAVisualStyle.butterYellow.opacity(0.34))
                 }
 
                 if programs.isEmpty {
@@ -55,8 +71,40 @@ struct ReportView: View {
                         description: Text("한 개 이상의 프로그램을 선택하면 경과 그래프를 확인할 수 있습니다.")
                     )
                 } else {
-                    ForEach(selectedPrograms) { program in
-                        ProgramReportSection(program: program, startDate: startDate, endDate: endDate)
+                    ABASectionHeading(title: "학습 경과", help: "과제명을 눌러 List별 그래프를 펼칠 수 있습니다. 각 그래프는 해당 List의 기록만 사용하며, 아래에 List 제목을 표시합니다. 접어도 보고서에는 포함됩니다.")
+                    HStack(spacing: 12) {
+                        Button("모두 펼치기") {
+                            expandedTaskIDs.formUnion(selectedTaskIDs)
+                        }
+                        .disabled(selectedTaskIDs.isSubset(of: expandedTaskIDs))
+                        Button("모두 접기") {
+                            expandedTaskIDs.subtract(selectedTaskIDs)
+                        }
+                        .disabled(expandedTaskIDs.isDisjoint(with: selectedTaskIDs))
+                    }
+                    .buttonStyle(.bordered)
+                    ForEach(selectedTasks) { item in
+                        DisclosureGroup(isExpanded: Binding(
+                            get: { expandedTaskIDs.contains(item.id) },
+                            set: { expanded in
+                                if expanded { expandedTaskIDs.insert(item.id) }
+                                else { expandedTaskIDs.remove(item.id) }
+                            }
+                        )) {
+                            if expandedTaskIDs.contains(item.id) {
+                                ProgramReportSection(child: child, program: item.program, task: item.task,
+                                                     startDate: startDate, endDate: endDate)
+                                    .padding(.top, 12)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.task.name).font(.headline)
+                                Text(item.program.category + " · " + item.program.name)
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        }
+                        .abaSurface()
                     }
                 }
 
@@ -66,16 +114,22 @@ struct ReportView: View {
                 }
             }
             .padding()
+            .safeAreaPadding(.bottom, 72)
             .frame(maxWidth: ABAVisualStyle.contentMaxWidth)
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle("경과 보고서")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if selectedProgramIDs.isEmpty {
                 selectedProgramIDs = Set(programs.map(\.id))
+            }
+            if !initializedExpansion {
+                if let first = selectedTasks.first { expandedTaskIDs.insert(first.id) }
+                initializedExpansion = true
             }
         }
         .onChange(of: startDate) {
@@ -93,34 +147,79 @@ struct ReportView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(child.name)
+            Text("데이터 선택")
                 .font(.title2.bold())
 
-            VStack(alignment: .leading, spacing: 12) {
-                DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
-                DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
-            }
-
-            ABASectionHeading(title: "프로그램 선택", help: "선택한 프로그램의 완료된 치료 기록을 지정 기간에 맞춰 집계합니다. 그래프에는 실제 기록일만 표시합니다. 프로그램을 누르면 보고서 포함 여부가 바뀝니다.")
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 150), spacing: 8)],
-                spacing: 8
-            ) {
-                ForEach(programs) { program in
-                    Toggle(program.name, isOn: Binding(
-                        get: { selectedProgramIDs.contains(program.id) },
-                        set: { selected in
-                            if selected { selectedProgramIDs.insert(program.id) }
-                            else { selectedProgramIDs.remove(program.id) }
-                        }
-                    ))
-                    .toggleStyle(.button)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHint("보고서에 이 프로그램을 포함하거나 제외합니다.")
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 24) {
+                    startDateControl
+                    endDateControl
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    startDateControl
+                    endDateControl
                 }
             }
+
+            ABASectionHeading(title: "프로그램 필터", help: "선택한 프로그램의 완료된 치료 기록을 지정 기간에 맞춰 집계합니다. 그래프에는 실제 기록일만 표시합니다. 프로그램을 누르면 보고서 포함 여부가 바뀝니다.")
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 8) {
+                    ForEach(programs) { program in
+                        let selected = selectedProgramIDs.contains(program.id)
+                        Button {
+                            if selected { selectedProgramIDs.remove(program.id) }
+                            else { selectedProgramIDs.insert(program.id) }
+                        } label: {
+                            Text(program.name)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(selected ? ABAVisualStyle.actionTint : .primary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(selected ? ABAVisualStyle.brand.opacity(0.14) : ABAVisualStyle.tertiarySurface)
+                                .clipShape(Capsule())
+                                .overlay { Capsule().stroke(selected ? ABAVisualStyle.leafGreen : .clear) }
+                        }
+                        .buttonStyle(.plain)
+                        .frame(minHeight: 44, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .accessibilityLabel(program.name)
+                        .accessibilityHint("보고서에 이 프로그램을 포함하거나 제외합니다.")
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }
+                .scrollTargetLayout()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .scrollIndicators(.visible)
+            .contentMargins(.horizontal, 0)
+            Text("좌우로 밀어 프로그램 보기")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .abaSurface()
+    }
+
+    // Intrinsic widths let ViewThatFits choose one or two rows using the
+    // available content width, including Split View and larger text sizes.
+    private var startDateControl: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text("시작일")
+            DatePicker("시작일", selection: $startDate, in: ...Date(), displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var endDateControl: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text("종료일")
+            DatePicker("종료일", selection: $endDate, in: startDate...Date(), displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+        }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var exportSection: some View {
@@ -154,60 +253,271 @@ struct ReportView: View {
                 .controlSize(.large)
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.ivory)
     }
 }
 
 private struct ProgramReportSection: View {
+    let child: ChildProfile
     let program: TherapyProgram
+    let task: ProgramLibrary.TaskGroup
     let startDate: Date
     let endDate: Date
 
-    private var targets: [TherapyTarget] {
-        program.targets.filter { target in
-            !chartEntries(for: target).isEmpty
-        }
-        .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
-    }
-
-    private var levelReviewIssues: [String] {
-        LevelProgressionService.integrityIssues(in: program)
+    private var goals: [ReportGoal] {
+        let ids = Set(task.targets.map { $0.id.uuidString })
+        return ReportDocument.build(child: child, start: startDate, end: endDate,
+                                    programs: [program], draft: ReportDraft()).goals.filter { ids.contains($0.id) }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(program.name)
-                .font(.title3.bold())
-
-            if !levelReviewIssues.isEmpty {
-                Label("레벨 판정 검토 필요", systemImage: ABASymbol.review)
-                    .font(.footnote.bold())
-                    .foregroundStyle(.orange)
+            if !task.goal.isEmpty {
+                Text(task.goal).font(.subheadline).foregroundStyle(.secondary)
             }
-
-            if targets.isEmpty {
-                Text("선택한 기간에 기록된 과제가 없습니다.")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(targets) { target in
-                    TargetReportCard(target: target, entries: chartEntries(for: target))
-                }
+            if !LevelProgressionService.integrityIssues(in: program).isEmpty {
+                Label("List 판정 검토 필요", systemImage: ABASymbol.review)
+                    .font(.footnote.bold()).foregroundStyle(.orange)
+            }
+            if goals.isEmpty {
+                Text("선택한 기간에 완료된 학습 기록이 없습니다.").foregroundStyle(.secondary)
+            }
+            ForEach(goals) { goal in
+                ProgramLevelProgressChart(child: child, program: program, goal: goal)
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+    }
+}
+
+private struct ProgramChartPoint: Identifiable {
+    let id: String
+    let index: Int
+    let date: String
+    let value: Double
+    let level: Int
+    let recordedCount: Int
+    let applicableCount: Int
+
+    var coverageLabel: String {
+        recordedCount == applicableCount && applicableCount > 0 ? "전체 과제" : "일부 과제"
+    }
+}
+
+private struct ProgramLevelSeries: Identifiable {
+    let level: Int
+    let points: [ProgramChartPoint]
+    var id: Int { level }
+    var label: String { "List\(level)" }
+}
+
+private struct ProgramLevelProgressChart: View {
+    let child: ChildProfile
+    let program: TherapyProgram
+    let goal: ReportGoal
+
+    private var points: [ProgramChartPoint] {
+        goal.points.enumerated().map { index, point in
+            ProgramChartPoint(
+                id: point.id,
+                index: index,
+                date: point.date,
+                value: point.value,
+                level: point.level,
+                recordedCount: point.recordedCount,
+                applicableCount: point.applicableCount
+            )
+        }
     }
 
-    private func chartEntries(for target: TherapyTarget) -> [ReportPoint] {
-        let cal = Calendar.current
-        let start = cal.startOfDay(for: startDate)
-        let end = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: endDate)) ?? endDate
-        return target.sessions
-            .filter { $0.completed && $0.hasMeaningfulData && $0.date >= start && $0.date < end && $0.accuracy != nil }
-            .sorted { $0.date < $1.date }
-            .enumerated()
-            .map { index, session in
-                ReportPoint(id: session.id, index: index, date: session.date, accuracy: session.accuracy ?? 0)
+    private var series: [ProgramLevelSeries] {
+        Dictionary(grouping: points, by: \.level)
+            .map { ProgramLevelSeries(level: $0.key, points: $0.value.sorted { $0.index < $1.index }) }
+            .sorted { $0.level < $1.level }
+    }
+
+    private var transitions: [ProgramChartPoint] {
+        series.dropFirst().compactMap(\.points.first)
+    }
+
+    private var visibleAxisIndices: [Int] {
+        guard points.count > 6 else { return points.map(\.index) }
+        let step = max(1, Int(ceil(Double(points.count - 1) / 5.0)))
+        var values = Array(stride(from: 0, to: points.count, by: step))
+        if let last = points.last?.index, values.last != last { values.append(last) }
+        return values
+    }
+
+    private var levels: [Int] { series.map(\.level) }
+
+    private var masteryRules: [Double] {
+        Array(Set(goal.criteria.values)).sorted()
+    }
+
+    private var isCompleted: Bool {
+        !levels.isEmpty && levels.allSatisfy { goal.masteredLevels.contains($0) }
+    }
+
+    private var dataDescription: String {
+        goal.domain == "미분류" ? "기록일별 정반응률" : "\(goal.domain) 정반응률"
+    }
+
+    private func levelColor(_ level: Int) -> Color {
+        switch (level - 1) % 5 {
+        case 0: return Color(red: 0.96, green: 0.29, blue: 0.30)
+        case 1: return Color(red: 0.98, green: 0.49, blue: 0.18)
+        case 2: return Color(red: 0.64, green: 0.43, blue: 0.79)
+        case 3: return Color(red: 0.16, green: 0.57, blue: 0.64)
+        default: return ABAVisualStyle.brand
+        }
+    }
+
+    private func displayDate(_ value: String) -> String {
+        let parts = value.split(separator: "-")
+        guard parts.count == 3, let month = Int(parts[1]), let day = Int(parts[2]) else { return value }
+        return "\(month).\(day)"
+    }
+
+    private func learningText(for level: Int) -> String {
+        let text = goal.learning[String(level)] ?? ""
+        return text.isEmpty ? "등록된 학습 내용이 없습니다." : text
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("정반응률")
+                        .font(.headline)
+                    Text(dataDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                ABAStatusPill(
+                    title: isCompleted ? "기간 내 준거 달성" : "학습 중",
+                    systemImage: isCompleted ? ABASymbol.mastered : ABASymbol.active,
+                    tint: isCompleted ? .green : .blue
+                )
             }
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let firstLevel = levels.first {
+                    Text("List\(firstLevel)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 34)
+                }
+
+                Chart {
+                    ForEach(series) { levelSeries in
+                        let color = levelColor(levelSeries.level)
+                        ForEach(levelSeries.points) { point in
+                            LineMark(
+                                x: .value("기록 순서", point.index),
+                                y: .value("정반응률", point.value),
+                                series: .value("List 계열", levelSeries.label)
+                            )
+                            .foregroundStyle(color)
+                            .lineStyle(StrokeStyle(lineWidth: 2))
+
+                            PointMark(
+                                x: .value("기록 순서", point.index),
+                                y: .value("정반응률", point.value)
+                            )
+                            .foregroundStyle(color)
+                            .symbol {
+                                Circle()
+                                    .fill(point.recordedCount < point.applicableCount ? ABAVisualStyle.ivory : color)
+                                    .stroke(color, lineWidth: 1.5)
+                                    .frame(width: 7, height: 7)
+                            }
+                        }
+                    }
+
+                    ForEach(transitions) { point in
+                        RuleMark(x: .value("List 전환", point.index))
+                            .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [4, 4]))
+                            .foregroundStyle(.secondary.opacity(0.7))
+                            .annotation(position: .top, alignment: .leading) {
+                                Text("List\(point.level)")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                    }
+
+                    ForEach(masteryRules, id: \.self) { criterion in
+                        RuleMark(y: .value("숙달 기준", criterion))
+                            .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+                            .foregroundStyle(.green)
+                            .annotation(position: .top, alignment: .trailing) {
+                                Text("숙달 \(criterion, format: .number.precision(.fractionLength(0)))%")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.green)
+                            }
+                    }
+                }
+                .chartYScale(domain: 0...100)
+                .chartXAxis {
+                    AxisMarks(values: visibleAxisIndices) { value in
+                        AxisValueLabel {
+                            if let index = value.as(Int.self), points.indices.contains(index) {
+                                Text(displayDate(points[index].date))
+                                    .font(.caption2)
+                            }
+                        }
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: [0, 20, 40, 60, 80, 100]) {
+                        AxisGridLine().foregroundStyle(Color.secondary.opacity(0.18))
+                        AxisValueLabel()
+                    }
+                }
+                .chartLegend(.hidden)
+                .chartPlotStyle { plot in
+                    plot.background(ABAVisualStyle.ivory.opacity(0.7))
+                }
+                .frame(height: 220)
+                .accessibilityLabel("\(goal.name) \(levels.map { "List\($0) \(learningText(for: $0))" }.joined(separator: ", ")) 정반응률 그래프")
+                .accessibilityValue("실제 기록일 \(points.count)개. 가로 점선은 숙달 기준입니다.")
+            }
+            .padding(12)
+            .background(ABAVisualStyle.tertiarySurface)
+            .clipShape(.rect(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center, spacing: 12) {
+                    Text("List 제목")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer(minLength: 8)
+                    NavigationLink {
+                        ProgramDetailView(child: child, program: program)
+                    } label: {
+                        Label("학습 내용 수정", systemImage: "square.and.pencil")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .accessibilityHint("해당 과제의 List 제목을 수정하면 그래프 아래에 반영됩니다.")
+                }
+                ForEach(levels, id: \.self) { level in
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("List\(level)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(levelColor(level))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .overlay { Capsule().stroke(levelColor(level), lineWidth: 1) }
+                        Text(learningText(for: level))
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+
+            }
+            .padding(12)
+            .background(ABAVisualStyle.tertiarySurface)
+            .clipShape(.rect(cornerRadius: 12))
+        }
+        .abaSurface(padding: 14, background: ABAVisualStyle.ivory)
     }
 }
 
@@ -255,8 +565,8 @@ private struct TargetReportCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("L\(target.levelNumber) · \(target.name)").font(.headline)
-                    Text("세션 \(entries.count)회 · 평균 \(average, format: .number.precision(.fractionLength(0...1)))%")
+                    Text("List\(target.levelNumber) \(target.name)").font(.headline)
+                    Text("세션 \(entries.count)회, 평균 \(average, format: .number.precision(.fractionLength(0...1)))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -2,6 +2,11 @@ import Foundation
 import SwiftData
 
 enum LevelProgressionService {
+    enum EvaluationResult: Equatable {
+        case unchanged
+        case advanced(from: Int, to: Int)
+        case completed(number: Int)
+    }
     static func targets(for level: ProgramLevel, in program: TherapyProgram) -> [TherapyTarget] {
         program.targets.filter {
             $0.levelNumber == level.levelNumber && $0.status != .discontinued
@@ -34,10 +39,11 @@ enum LevelProgressionService {
         var trailing = 0
         for date in orderedDates.reversed() {
             let allQualified = levelTargets.allSatisfy { target in
-                guard let session = target.sessions.first(where: {
+                let accuracies = target.sessions.filter {
                     $0.completed && $0.hasMeaningfulData && calendar.isDate($0.date, inSameDayAs: date)
-                }), let accuracy = session.accuracy else { return false }
-                return accuracy >= level.criterionPercent
+                }.compactMap(\.accuracy)
+                guard !accuracies.isEmpty else { return false }
+                return ReportDocument.mean(accuracies) >= level.criterionPercent
             }
             if allQualified {
                 trailing += 1
@@ -49,12 +55,12 @@ enum LevelProgressionService {
     }
 
     @discardableResult
-    static func evaluateCurrentLevel(in program: TherapyProgram, modelContext: ModelContext) -> Bool {
-        guard let level = program.currentLevel else { return false }
+    static func evaluateCurrentLevel(in program: TherapyProgram, modelContext: ModelContext, createNext: Bool = true) throws -> EvaluationResult {
+        guard let level = program.currentLevel else { return .unchanged }
         let levelTargets = targets(for: level, in: program)
-        guard !levelTargets.isEmpty else { return false }
+        guard !levelTargets.isEmpty else { return .unchanged }
         guard trailingQualifiedDays(for: level, in: program) >= level.requiredDays else {
-            return false
+            return .unchanged
         }
 
         level.status = .completed
@@ -63,7 +69,7 @@ enum LevelProgressionService {
         }
 
         let nextNumber = level.levelNumber + 1
-        if !program.levels.contains(where: { $0.levelNumber == nextNumber }) {
+        if createNext && !program.levels.contains(where: { $0.levelNumber == nextNumber }) {
             program.levels.append(
                 ProgramLevel(
                     levelNumber: nextNumber,
@@ -71,12 +77,24 @@ enum LevelProgressionService {
                     criterionPercent: level.criterionPercent
                 )
             )
-        } else if let next = program.levels.first(where: { $0.levelNumber == nextNumber }) {
-            next.status = .active
         }
 
-        try? modelContext.save()
-        return true
+        do {
+            try modelContext.save()
+            return createNext ? .advanced(from: level.levelNumber, to: nextNumber) : .completed(number: level.levelNumber)
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
+
+    static func createNextList(in program: TherapyProgram, modelContext: ModelContext) throws {
+        guard program.currentLevel == nil else { return }
+        let last = program.orderedLevels.last
+        program.levels.append(ProgramLevel(levelNumber: (last?.levelNumber ?? 0) + 1,
+            requiredDays: last?.requiredDays ?? 2, criterionPercent: last?.criterionPercent ?? 80))
+        do { try modelContext.save() }
+        catch { modelContext.rollback(); throw error }
     }
 
     static func integrityIssues(in program: TherapyProgram) -> [String] {
@@ -88,7 +106,7 @@ enum LevelProgressionService {
             let qualified = trailingQualifiedDays(for: level, in: program, through: completedAt)
             guard qualified < level.requiredDays else { return nil }
 
-            return "\(level.label): 완료 당시 기준(\(level.requiredDays)회 연속 · 전체 과제 \(Int(level.criterionPercent))% 이상)을 현재 기록이 충족하지 않습니다."
+            return "\(level.label): 완료 당시 기준인 \(level.requiredDays)회 연속, 전체 과제 \(Int(level.criterionPercent))% 이상을 현재 기록이 충족하지 않습니다."
         }
     }
 }

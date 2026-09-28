@@ -4,4 +4,8 @@
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
 <key>UISupportedInterfaceOrientations~ipad</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
+<key>UILaunchScreen</key><dict>
+<key>UIImageName</key><string>LaunchLogo</string>
+<key>UIColorName</key><string>LaunchBackground</string>
+</dict>
 </dict></plist>

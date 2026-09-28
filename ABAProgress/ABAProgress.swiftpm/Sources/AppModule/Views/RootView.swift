@@ -14,27 +14,25 @@ struct RootView: View {
                 RegularRootView(children: children)
             }
         }
-        .tint(ABAVisualStyle.brand)
+        .tint(ABAVisualStyle.actionTint)
     }
 }
 
 private struct CompactRootView: View {
     let children: [ChildProfile]
-    @State private var selection: AppDestination = .today
+    @State private var selection: AppDestination = .children
 
     var body: some View {
         TabView(selection: $selection) {
-            NavigationStack {
-                TodayOverviewView(children: children)
-            }
-            .tabItem { Label(AppDestination.today.title, systemImage: AppDestination.today.systemImage) }
-            .tag(AppDestination.today)
-
             NavigationStack {
                 ChildrenListView(children: children)
             }
             .tabItem { Label(AppDestination.children.title, systemImage: AppDestination.children.systemImage) }
             .tag(AppDestination.children)
+
+            NavigationStack { TodayOverviewView(children: children) }
+                .tabItem { Label(AppDestination.today.title, systemImage: AppDestination.today.systemImage) }
+                .tag(AppDestination.today)
 
             NavigationStack {
                 HistoryCalendarView(children: children)
@@ -47,13 +45,17 @@ private struct CompactRootView: View {
             }
             .tabItem { Label(AppDestination.reports.title, systemImage: AppDestination.reports.systemImage) }
             .tag(AppDestination.reports)
+
+            NavigationStack { TimetableView(children: children) }
+                .tabItem { Label("시간표", systemImage: "calendar.day.timeline.left") }
+                .tag(AppDestination.timetable)
         }
     }
 }
 
 private struct RegularRootView: View {
     let children: [ChildProfile]
-    @State private var selection: AppDestination? = .today
+    @State private var selection: AppDestination? = .children
 
     var body: some View {
         NavigationSplitView {
@@ -66,11 +68,21 @@ private struct RegularRootView: View {
                 }
             }
             .listStyle(.sidebar)
-            .navigationTitle("ABA Progress")
+            .abaPageBackground()
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("쉬운 ABA")
+                        .font(.headline)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.leading, 20)
+                        .accessibilityAddTraits(.isHeader)
+                }
+            }
             .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
         } detail: {
             NavigationStack {
-                switch selection ?? .today {
+                switch selection ?? .children {
                 case .children:
                     ChildrenListView(children: children)
                 case .today:
@@ -79,6 +91,8 @@ private struct RegularRootView: View {
                     HistoryCalendarView(children: children)
                 case .reports:
                     ReportHomeView(children: children)
+                case .timetable:
+                    TimetableView(children: children)
                 }
             }
         }
@@ -87,10 +101,11 @@ private struct RegularRootView: View {
 }
 
 private enum AppDestination: String, CaseIterable, Identifiable {
-    case today
     case children
+    case today
     case history
     case reports
+    case timetable
 
     var id: Self { self }
 
@@ -100,6 +115,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
         case .children: return "아동"
         case .history: return "기록"
         case .reports: return "보고서"
+        case .timetable: return "시간표"
         }
     }
 
@@ -109,6 +125,7 @@ private enum AppDestination: String, CaseIterable, Identifiable {
         case .children: return ABASymbol.children
         case .history: return ABASymbol.history
         case .reports: return ABASymbol.report
+        case .timetable: return "calendar.day.timeline.left"
         }
     }
 }
@@ -150,6 +167,7 @@ struct ChildrenListView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle("아동")
         .searchable(text: $searchText, prompt: "아동 이름 검색")
         .toolbar {
@@ -175,7 +193,7 @@ struct ChildrenListView: View {
             Button("삭제", role: .destructive) { confirmChildDeletion() }
             Button("취소", role: .cancel) { childPendingDeletion = nil }
         } message: {
-            Text("아동의 프로그램·수업 기록과 저장된 보고서 초안을 삭제합니다. 이미 공유·저장한 PDF와 기기 백업은 별도로 관리해야 합니다.")
+            Text("아동의 프로그램, 수업 기록과 저장된 보고서 초안을 삭제합니다. 이미 공유하거나 저장한 PDF와 기기 백업은 별도로 관리해야 합니다.")
         }
         .alert("삭제 확인", isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })) {
             Button("확인") { deletionError = nil }
@@ -261,6 +279,7 @@ struct TodayOverviewView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle("오늘")
     }
 }
@@ -269,162 +288,74 @@ private struct TodayChildCard: View {
     let child: ChildProfile
     let today: Date
 
-    private var programs: [TherapyProgram] { child.programs.sorted { $0.createdAt < $1.createdAt } }
-
-    private var recordablePrograms: [TherapyProgram] {
-        programs.filter { program in
-            guard let level = program.currentLevel else { return false }
-            return program.targets.contains {
-                $0.levelNumber == level.levelNumber && $0.status == .active
-            }
-        }
-    }
-
-    private var completedProgramCount: Int {
-        recordablePrograms.filter { program in
-            guard let level = program.currentLevel else { return false }
-            let targets = program.targets.filter { $0.levelNumber == level.levelNumber && $0.status == .active }
-            guard !targets.isEmpty else { return false }
-            return targets.allSatisfy { target in
-                target.sessions.contains { $0.completed && Calendar.current.isDate($0.date, inSameDayAs: today) }
-            }
-        }.count
-    }
-
-    private var todayAccuracies: [Double] {
-        child.programs.flatMap(\.targets).flatMap(\.sessions)
-            .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
-            .compactMap(\.accuracy)
-    }
-
-    private var average: Double? {
-        guard !todayAccuracies.isEmpty else { return nil }
-        return todayAccuracies.reduce(0, +) / Double(todayAccuracies.count)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
+        let summary = TodayLessonSummary(child: child, date: today)
+        NavigationLink {
+            ChildDetailView(child: child)
+        } label: {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
                     Text(child.name).font(.title3.bold())
-                    Text("오늘 진행 현황")
-                        .font(.caption)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
                 }
-                Spacer()
-                NavigationLink {
-                    ChildDetailView(child: child)
-                } label: {
-                    Label("아동 열기", systemImage: ABASymbol.open)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("최근 수업 날짜").font(.caption).foregroundStyle(.secondary)
+                    Text(summary.latestTreatmentDate.map(LessonSchedule.dateText) ?? "수업 기록 없음")
+                        .font(.subheadline)
                 }
-                    .buttonStyle(.bordered)
-            }
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
-                spacing: 12
-            ) {
-                MetricTile(title: "완료 프로그램", value: "\(completedProgramCount)/\(recordablePrograms.count)", systemImage: ABASymbol.today)
-                MetricTile(title: "평균 정반응률", value: average.map { String(format: "%.0f%%", $0) } ?? "—", systemImage: ABASymbol.accuracy)
-            }
-
-            if !programs.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(Array(programs.enumerated()), id: \.element.id) { index, program in
-                        NavigationLink {
-                            ProgramDetailView(child: child, program: program)
-                        } label: {
-                            TodayProgramStatusCompact(program: program, today: today)
-                                .contentShape(Rectangle())
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("수업 시간").font(.caption).foregroundStyle(.secondary)
+                    if summary.lessons.isEmpty {
+                        Text(child.weeklyLessons.isEmpty ? "수업 시간 미등록" : "오늘 예정된 수업 없음")
+                            .font(.subheadline)
+                    } else {
+                        ForEach(summary.lessons) { lesson in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(LessonSchedule.timeText(LessonSchedule.minute(lesson.start)))–\(LessonSchedule.timeText(LessonSchedule.minute(lesson.end)))")
+                                    .monospacedDigit()
+                                    .strikethrough(lesson.isCancelled)
+                                Text("\(lesson.category)\(lesson.isCancelled ? " · 휴강" : (lesson.isMakeup ? " · 보강" : ""))")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
                         }
-                        .buttonStyle(.plain)
-                        if index < programs.count - 1 { Divider() }
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("오늘 진행할 프로그램").font(.subheadline.bold())
+                    if summary.programs.isEmpty {
+                        Text(summary.lessons.contains { !$0.isCancelled }
+                             ? "이 수업 영역에 진행할 프로그램이 없습니다"
+                             : "오늘 예정된 프로그램이 없습니다")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(summary.programs) { program in
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(program.name).font(.body.weight(.medium))
+                                Text(program.category).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(ABAVisualStyle.tertiarySurface, in: .rect(cornerRadius: 12))
             }
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .abaSurface()
+            .contentShape(Rectangle())
         }
-        .abaSurface()
-        .accessibilityElement(children: .contain)
-    }
-}
-
-private struct MetricTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(title, systemImage: systemImage)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value).font(.title2.bold())
-        }
-        .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-        .padding(12)
-        .background(ABAVisualStyle.tertiarySurface, in: .rect(cornerRadius: 12))
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct TodayProgramStatusCompact: View {
-    let program: TherapyProgram
-    let today: Date
-
-    private var activeTargets: [TherapyTarget] {
-        guard let level = program.currentLevel else { return [] }
-        return program.targets.filter { $0.levelNumber == level.levelNumber && $0.status == .active }
-    }
-
-    private var completedCount: Int {
-        activeTargets.filter { target in
-            target.sessions.contains { $0.completed && Calendar.current.isDate($0.date, inSameDayAs: today) }
-        }.count
-    }
-
-    private var inProgressCount: Int {
-        activeTargets.filter { target in
-            target.sessions.contains {
-                $0.hasMeaningfulData && !$0.completed && Calendar.current.isDate($0.date, inSameDayAs: today)
-            }
-        }.count
-    }
-
-    private var statusText: String {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return "완료" }
-        if inProgressCount > 0 || completedCount > 0 { return "진행 중" }
-        if activeTargets.isEmpty { return "과제 없음" }
-        return "미기록"
-    }
-
-    private var statusIcon: String {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return ABASymbol.completed }
-        if inProgressCount > 0 || completedCount > 0 { return ABASymbol.inProgress }
-        if activeTargets.isEmpty { return ABASymbol.warning }
-        return ABASymbol.empty
-    }
-
-    private var statusTint: Color {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return .green }
-        if inProgressCount > 0 || completedCount > 0 { return .orange }
-        return .secondary
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(program.name)
-            Spacer()
-            if let level = program.currentLevel {
-                Text(level.label).font(.caption.bold()).foregroundStyle(.secondary)
-            }
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("\(completedCount)/\(activeTargets.count)")
-                    .font(.subheadline.monospacedDigit())
-                ABAStatusPill(title: statusText, systemImage: statusIcon, tint: statusTint)
-            }
-        }
-        .padding(.vertical, 9)
-        .accessibilityElement(children: .combine)
+        .accessibilityHint("아동 상세 정보 열기")
     }
 }
 
@@ -456,6 +387,7 @@ struct ReportHomeView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle("보고서")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -473,6 +405,10 @@ struct AddChildView: View {
     @State private var useBirthDate = false
     @State private var birthDate = Date()
     @State private var memo = ""
+    @State private var useStartDate = true
+    @State private var lessonStartDate = Date()
+    @State private var lessons: [WeeklyLesson] = []
+    @State private var saveError: String?
 
     var body: some View {
         NavigationStack {
@@ -481,11 +417,13 @@ struct AddChildView: View {
                     TextField("이름", text: $name)
                     Toggle("생년월일 입력", isOn: $useBirthDate)
                     if useBirthDate {
-                        DatePicker("생년월일", selection: $birthDate, displayedComponents: .date)
+                        DatePicker("생년월일", selection: $birthDate, in: ...Date(), displayedComponents: .date)
                     }
                     TextField("메모", text: $memo, axis: .vertical)
                 }
+                LessonScheduleFields(useStartDate: $useStartDate, startDate: $lessonStartDate, lessons: $lessons)
             }
+            .abaPageBackground()
             .navigationTitle("아동 추가")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
@@ -497,11 +435,26 @@ struct AddChildView: View {
                             memo: memo
                         )
                         modelContext.insert(child)
-                        try? modelContext.save()
-                        dismiss()
+                        child.lessonStartDate = useStartDate ? lessonStartDate : nil
+                        child.weeklyLessons = lessons
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            modelContext.rollback()
+                            saveError = "아동 정보를 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도하세요."
+                        }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !LessonSchedule.valid(lessons))
                 }
+            }
+            .alert("저장 실패", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("확인", role: .cancel) { saveError = nil }
+            } message: {
+                Text(saveError ?? "")
             }
         }
     }
@@ -549,20 +502,23 @@ enum ABASymbol {
 }
 
 enum ABAVisualStyle {
-    // Pink is reserved for navigation/actions; clinical green/orange remain semantic.
-    static let brand = Color(uiColor: UIColor { traits in
-        if traits.userInterfaceStyle == .dark {
-            return UIColor(red: 1.0, green: 0.54, blue: 0.72, alpha: 1)
-        }
-        return UIColor(red: 0.70, green: 0.12, blue: 0.36, alpha: 1)
-    })
+    // Jeju tangerine blossom palette. Asset variants preserve readable controls
+    // in light, dark, and increased-contrast appearances.
+    static let brand = Color("PaletteButterYellow")
+    static let actionTint = Color("AccentColor")
+    static let leafGreen = Color("PaletteLeafGreen")
+    static let butterYellow = Color("PaletteButterYellow")
+    static let ivory = Color("PaletteIvory")
 
     static let cornerRadius: CGFloat = 16
     static let contentMaxWidth: CGFloat = 980
-    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
-    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
-    static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
-    static let separator = Color(uiColor: .separator).opacity(0.18)
+    static let groupedBackground = ivory
+    static let secondarySurface = ivory
+    static let tertiarySurface = ivory
+    static let separator = leafGreen.opacity(0.45)
+    /// Shared, non-rendered form tracks. Every regular-width editor aligns to these axes.
+    static let formLabelWidth: CGFloat = 168
+    static let formColumnSpacing: CGFloat = 16
 }
 
 private struct ABASurfaceModifier: ViewModifier {
@@ -581,6 +537,13 @@ private struct ABASurfaceModifier: ViewModifier {
 }
 
 extension View {
+    func abaPageBackground() -> some View {
+        self.scrollContentBackground(.hidden)
+            .background(ABAVisualStyle.ivory.ignoresSafeArea())
+            .toolbarBackground(ABAVisualStyle.ivory, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+    }
+
     func abaSurface(
         padding: CGFloat = 16,
         background: Color = ABAVisualStyle.secondarySurface
@@ -589,11 +552,87 @@ extension View {
     }
 }
 
+/// A form row aligned to shared invisible label/content tracks.
+/// Compact and accessibility layouts fold the tracks onto one leading edge.
+struct ABAAlignedField<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    let title: String
+    let help: String?
+    @ViewBuilder let content: Content
+
+    init(title: String, help: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.help = help
+        self.content = content()
+    }
+
+    var body: some View {
+        if horizontalSizeClass == .compact || dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                label
+                content.frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            Grid(alignment: .topLeading, horizontalSpacing: ABAVisualStyle.formColumnSpacing) {
+                GridRow(alignment: .top) {
+                    label
+                        .frame(width: ABAVisualStyle.formLabelWidth, alignment: .leading)
+                    content
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+    }
+
+    private var label: some View {
+        HStack(alignment: .center, spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            if let help {
+                ABAHelpButton(title: title, message: help)
+            }
+        }
+        .frame(minHeight: 44, alignment: .leading)
+    }
+}
+
+struct ABAInlineNotice: View {
+    let title: String
+    let message: String
+    let systemImage: String
+    var tint: Color = .orange
+    var retryTitle: String?
+    var retry: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+                .foregroundStyle(tint)
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let retryTitle, let retry {
+                Button(retryTitle, action: retry)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .abaSurface(background: ABAVisualStyle.butterYellow.opacity(0.34))
+        .accessibilityElement(children: .contain)
+    }
+}
+
 /// Consistent, accessible help. Important consent and error states remain visible.
 struct ABAHelpButton: View {
     let title: String
     let message: String
     @State private var presented = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var body: some View {
         Button { presented = true } label: {
             Image(systemName: "questionmark.circle")
@@ -614,8 +653,10 @@ struct ABAHelpButton: View {
                     Text(message).fixedSize(horizontal: false, vertical: true)
                 }.padding(24)
             }
-            .frame(idealWidth: 360, idealHeight: 280)
-            .presentationDetents([.medium, .large])
+            .frame(idealWidth: dynamicTypeSize.isAccessibilitySize ? 440 : 360,
+                   idealHeight: dynamicTypeSize.isAccessibilitySize ? 560 : 320)
+            .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+            .presentationContentInteraction(.scrolls)
         }
     }
 }
@@ -625,8 +666,9 @@ struct ABASectionHeading: View {
     let help: String
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text(title).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+            Text(title).font(.headline)
             ABAHelpButton(title: title, message: help)
+            Spacer(minLength: 0)
         }
     }
 }

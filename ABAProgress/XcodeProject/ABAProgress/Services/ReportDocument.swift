@@ -21,15 +21,40 @@ struct ReportDraft: Codable, Equatable {
     var groupByProgram: [String: String] = [:]
     var confirmedObservations = ""
     var reviewedFingerprint = ""
+    var aiWritingEnabled: Bool? = nil
 }
 
-struct InterimReportPoint: Codable {
+struct InterimReportPoint: Codable, Identifiable {
     let date: String
     let value: Double
     let level: Int
+    let recordedCount: Int
+    let applicableCount: Int
+
+    var id: String { "\(date)-List\(level)" }
+    var hasCompleteCoverage: Bool { applicableCount > 0 && recordedCount == applicableCount }
+
+    init(date: String, value: Double, level: Int, recordedCount: Int = 0, applicableCount: Int = 0) {
+        self.date = date
+        self.value = value
+        self.level = level
+        self.recordedCount = recordedCount
+        self.applicableCount = applicableCount
+    }
+
+    private enum CodingKeys: String, CodingKey { case date, value, level, recordedCount, applicableCount }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        date = try values.decode(String.self, forKey: .date)
+        value = try values.decode(Double.self, forKey: .value)
+        level = try values.decode(Int.self, forKey: .level)
+        recordedCount = try values.decodeIfPresent(Int.self, forKey: .recordedCount) ?? 0
+        applicableCount = try values.decodeIfPresent(Int.self, forKey: .applicableCount) ?? 0
+    }
 }
 
-struct ReportGoal: Codable {
+struct ReportGoal: Codable, Identifiable {
     let id: String
     let name: String
     let domain: String
@@ -66,7 +91,7 @@ struct ReportDocument: Codable {
     var stoCount: Int { goals.reduce(0) { $0 + Set($1.points.map(\.level)).count } }
     var masteredCount: Int { goals.reduce(0) { $0 + $1.masteredLevels.count } }
 
-    // Equal weighting of observed program-level goals, not pooled trial counts.
+    // Each series is one task's List record, never an average across tasks.
     var domains: [(name: String, count: Int, first: Double, recent: Double)] {
         Dictionary(grouping: goals, by: \.domain).map { name, goals in
             let series = goals.flatMap { goal in
@@ -110,21 +135,20 @@ struct ReportDocument: Codable {
         let lower = calendar.startOfDay(for: start)
         let upper = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: end))!
         var incomplete = 0
-        let goals = programs.map { program -> ReportGoal in
+        let goals = programs.flatMap { program -> [ReportGoal] in
+          ProgramLibrary.ordered(program.targets).map { target -> ReportGoal in
             var points: [InterimReportPoint] = []
             var learning: [String: String] = [:]
             var criteria: [String: Double] = [:]
             var mastered: [Int] = []
-            let levels = Set(program.targets.map(\.levelNumber)).sorted()
+            let levels = [target.levelNumber]
             for level in levels {
-                let targets = program.targets.filter { $0.levelNumber == level }
+                let targets = [target]
                 let definition = program.levels.first { $0.levelNumber == level }
                 let criterion = definition?.criterionPercent ?? 80
                 let required = definition?.requiredDays ?? 2
                 criteria[String(level)] = criterion
-                learning[String(level)] = targets.map {
-                    $0.targetDescription.isEmpty ? $0.name : "\($0.name): \($0.targetDescription)"
-                }.joined(separator: ", ")
+                learning[String(level)] = target.listTitle.isEmpty ? "제목 없음" : target.listTitle
                 let sessions = targets.flatMap(\.sessions).filter { $0.date >= lower && $0.date < upper }
                 incomplete += sessions.filter { !$0.completed && $0.hasMeaningfulData }.count
                 let recorded = sessions.filter { $0.completed && $0.accuracy != nil }
@@ -132,18 +156,25 @@ struct ReportDocument: Codable {
                 var streak = 0
                 var met = false
                 for day in dates {
-                    let values = targets.compactMap { target -> Double? in
+                    let applicable = targets.filter { target in
+                        calendar.startOfDay(for: target.startDate) <= day &&
+                        (target.endDate == nil || calendar.startOfDay(for: target.endDate!) >= day)
+                    }
+                    let values = applicable.compactMap { target -> Double? in
                         let daily = target.sessions.filter {
                             $0.completed && $0.accuracy != nil && calendar.isDate($0.date, inSameDayAs: day)
                         }.compactMap(\.accuracy)
                         return daily.isEmpty ? nil : mean(daily)
                     }
-                    points.append(InterimReportPoint(date: date(day), value: mean(values), level: level))
+                    guard !values.isEmpty else { continue }
+                    points.append(InterimReportPoint(
+                        date: date(day),
+                        value: mean(values),
+                        level: level,
+                        recordedCount: values.count,
+                        applicableCount: applicable.count
+                    ))
                     // Averages alone do not establish mastery. Every applicable target must pass.
-                    let applicable = targets.filter { target in
-                        calendar.startOfDay(for: target.startDate) <= day &&
-                        (target.endDate == nil || calendar.startOfDay(for: target.endDate!) >= day)
-                    }
                     let allPassed = !applicable.isEmpty && applicable.allSatisfy { target in
                         let values = target.sessions.filter {
                             $0.completed && calendar.isDate($0.date, inSameDayAs: day)
@@ -156,13 +187,14 @@ struct ReportDocument: Codable {
                 if met { mastered.append(level) }
             }
             return ReportGoal(
-                id: program.id.uuidString, name: program.name,
+                id: target.id.uuidString, name: target.name,
                 domain: program.category.isEmpty ? "미분류" : program.category,
-                group: draft.groupByProgram[program.id.uuidString] ?? "기타 목표",
+                group: draft.groupByProgram[target.id.uuidString] ?? draft.groupByProgram[program.id.uuidString] ?? "기타 목표",
                 points: points.sorted { $0.date == $1.date ? $0.level < $1.level : $0.date < $1.date },
                 learning: learning, criteria: criteria, masteredLevels: mastered,
-                binary: program.targets.count == 1 && program.targets.first?.maxTrials == 1
+                binary: target.maxTrials == 1
             )
+          }
         }.filter { !$0.points.isEmpty }
         return ReportDocument(childName: child.name, birthDate: child.birthDate.map(date) ?? "",
                               start: date(start), end: date(end), goals: goals,
@@ -191,12 +223,69 @@ enum ReportDraftStore {
 
     static func load(childID: UUID, start: Date, end: Date) throws -> ReportDraft {
         let file = try url(childID: childID, start: start, end: end)
-        guard FileManager.default.fileExists(atPath: file.path) else { return ReportDraft() }
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return try ReportBasicTemplate.load()?.applying(to: ReportDraft()) ?? ReportDraft()
+        }
         return try JSONDecoder().decode(ReportDraft.self, from: Data(contentsOf: file))
     }
 
     static func save(_ draft: ReportDraft, childID: UUID, start: Date, end: Date) throws {
         try JSONEncoder().encode(draft).write(to: url(childID: childID, start: start, end: end),
                                             options: [.atomic, .completeFileProtection])
+    }
+}
+
+// Reusable basic information only; never copy clinical narratives or signing dates.
+struct ReportBasicTemplate: Codable {
+    let institution: String
+    let therapist: String
+    let className: String
+    let programFamily: String
+    let schedule: String
+    let duration: String
+    let director: String
+    let directorCredential: String
+    let copyright: String
+
+    init(_ draft: ReportDraft) {
+        institution = draft.institution
+        therapist = draft.therapist
+        className = draft.className
+        programFamily = draft.programFamily
+        schedule = draft.schedule
+        duration = draft.duration
+        director = draft.director
+        directorCredential = draft.directorCredential
+        copyright = draft.copyright
+    }
+
+    func applying(to draft: ReportDraft) -> ReportDraft {
+        var result = draft
+        result.institution = institution
+        result.therapist = therapist
+        result.className = className
+        result.programFamily = programFamily
+        result.schedule = schedule
+        result.duration = duration
+        result.director = director
+        result.directorCredential = directorCredential
+        result.copyright = copyright
+        return result
+    }
+
+    private static func fileURL() throws -> URL {
+        try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                    appropriateFor: nil, create: true)
+            .appendingPathComponent("ReportBasicTemplate.json")
+    }
+
+    static func load() throws -> ReportBasicTemplate? {
+        let file = try fileURL()
+        guard FileManager.default.fileExists(atPath: file.path) else { return nil }
+        return try JSONDecoder().decode(Self.self, from: Data(contentsOf: file))
+    }
+
+    func save() throws {
+        try JSONEncoder().encode(self).write(to: Self.fileURL(), options: [.atomic, .completeFileProtection])
     }
 }

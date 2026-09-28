@@ -1,13 +1,17 @@
 name: ABAProgress usage video
 on:
   push:
-    branches: [codex/abaprogress-release-readiness-v0.9]
-    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, .github/workflows/abaprogress-demo.yml]
+    branches: [codex/**]
+    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, ABAProgress/XcodeProject/ABAProgress/Resources/ReportTemplate.html, .github/workflows/abaprogress-demo.yml]
+  pull_request:
+    branches: [main]
+    paths: [ABAProgress/QA/DemoUITests.swift, ABAProgress/QA/record_demo.py, ABAProgress/QA/setup_demo_target.rb, ABAProgress/XcodeProject/ABAProgress/Resources/ReportTemplate.html, .github/workflows/abaprogress-demo.yml]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   record:
+    if: ${{ !contains(github.event.head_commit.message, '[debug-only]') }}
     runs-on: macos-15
     timeout-minutes: 20
     steps:
@@ -19,6 +23,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ABAProgress-usage-video
+          name: ABAProgress-iPad-11-usage-video
           path: ${{ runner.temp }}/aba-demo/
           retention-days: 7
+

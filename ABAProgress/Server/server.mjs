@@ -3,6 +3,9 @@ import {readFileSync} from "node:fs";
 import {timingSafeEqual,createHash} from "node:crypto";
 import {fileURLToPath} from "node:url";
 import {reportEditor} from "./report-editor.mjs";
+import {createAuthService} from "./auth.mjs";
+import {createDb,migrate} from "./db.mjs";
+import {createResendSender} from "./email.mjs";
 
 const guide=readFileSync(new URL("./GUIDE_SCRIPT.md",import.meta.url),"utf8");
 // This contract contains no user-supplied strings or real-world identifiers.
@@ -38,7 +41,7 @@ export function parseResponse(r){
   out.currentStatus.length>12000||out.majorChanges.length>12000)throw Error("Invalid response");
  return out;
 }
-export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
+export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10,authService}){
  const accounts=users??(token?.length>=32?[{digest:createHash("sha256").update(token).digest("hex"),expiresAt:"2099-01-01T00:00:00Z"}]:[]);
  if(!accounts.length||accounts.some(a=>!/^\w{64}$/.test(a.digest)||!/^[a-f0-9]+$/.test(a.digest)||!Number.isFinite(Date.parse(a.expiresAt))))throw Error("Configure user token digests and expiration");
  const windows=new Map();
@@ -46,6 +49,9 @@ export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
  let busy=false;
  const service=createServer(async(req,res)=>{
   res.setHeader("Cache-Control","no-store");res.setHeader("Content-Type","application/json");
+  // Therapist account auth (/auth/*) is a fully separate namespace from the legacy
+  // shared-token report/Groq relay below: different accounts, different DB, own storage.
+  if(authService&&await authService.handle(req,res))return;
   const auth=req.headers.authorization??"";
   const received=createHash("sha256").update(auth.startsWith("Bearer ")?auth.slice(7):"").digest();
   const account=accounts.find(a=>Date.parse(a.expiresAt)>now()&&timingSafeEqual(received,Buffer.from(a.digest,"hex")));
@@ -90,11 +96,22 @@ export function server({token,users,fetchImpl=fetch,now=Date.now,limit=10}){
  service.on('close',()=>editor.close());
  return service;
 }
+async function bootAuthService(){
+ // Therapist login is optional infrastructure: until TURSO_DATABASE_URL is provisioned,
+ // the numeric-only Groq relay above keeps working standalone with /auth/* disabled.
+ if(!process.env.TURSO_DATABASE_URL){console.warn("TURSO_DATABASE_URL not set; /auth/* disabled.");return undefined;}
+ const db=createDb({url:process.env.TURSO_DATABASE_URL,authToken:process.env.TURSO_AUTH_TOKEN});
+ await migrate(db);
+ const sendEmail=process.env.RESEND_API_KEY?createResendSender({apiKey:process.env.RESEND_API_KEY,from:process.env.RESEND_FROM}):undefined;
+ if(!sendEmail)console.warn("RESEND_API_KEY not set; signup verification emails will not be sent.");
+ return createAuthService({db,sendEmail});
+}
 if(process.argv[1]===fileURLToPath(import.meta.url)){
  if(process.env.NODE_ENV==="production"&&!process.env.REPORT_USERS_FILE&&!process.env.REPORT_USERS_JSON)throw Error("Production requires per-user expiring token digests");
  const users=process.env.REPORT_USERS_FILE?JSON.parse(readFileSync(process.env.REPORT_USERS_FILE,"utf8")):
   process.env.REPORT_USERS_JSON?JSON.parse(process.env.REPORT_USERS_JSON):undefined;
- const service=server({token:process.env.REPORT_SERVER_TOKEN,users});
+ const authService=await bootAuthService();
+ const service=server({token:process.env.REPORT_SERVER_TOKEN,users,authService});
  service.requestTimeout=15000;service.headersTimeout=10000;
  service.listen(Number(process.env.PORT??8787),process.env.LISTEN_HOST??"127.0.0.1",()=>console.log("Report service ready; TLS ingress required for external access."));
 }

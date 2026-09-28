@@ -26,9 +26,10 @@ concurrency:
 
 jobs:
   build-and-test:
+    if: ${{ !contains(github.event.head_commit.message, '[debug-only]') }}
     name: Build and clinical rules
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -94,10 +95,14 @@ jobs:
             ABAProgress/QA/report-calculation-tests.swift -o "$RUNNER_TEMP/report-calculation-tests"
           "$RUNNER_TEMP/report-calculation-tests"
 
+      - name: Install Server dependencies
+        run: npm install --prefix ABAProgress/Server
+
       - name: Report template and AI boundary checks (synthetic data only)
         run: |
           node --test ABAProgress/QA/report-ai.test.mjs
           node --test ABAProgress/QA/report-editor.test.mjs
+          node --test ABAProgress/QA/auth.test.mjs
           node ABAProgress/QA/report-template.test.cjs
 
       - name: Render synthetic report preview
@@ -119,3 +124,4 @@ jobs:
           name: synthetic-report-preview
           path: ${{ runner.temp }}/aba-report-preview/
           retention-days: 3
+

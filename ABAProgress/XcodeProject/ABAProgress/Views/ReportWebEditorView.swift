@@ -18,7 +18,7 @@ struct ReportWebEditorView: View {
             Form {
                 if let session {
                     Section("편집 링크") {
-                        Text("만료: \(session.expiresAt.formatted(date: .omitted, time: .shortened))")
+                        Text("만료(마지막 확인): \(session.expiresAt.formatted(date: .omitted, time: .shortened))")
                         Link("이 기기에서 웹 편집 열기", destination: session.link)
                         ShareLink(item: session.link) { Label("다른 기기로 편집 링크 전달", systemImage: "square.and.arrow.up") }
                         Text("링크를 가진 사람은 이 보고서의 서술을 읽고 수정할 수 있습니다.").font(.footnote)
@@ -44,7 +44,7 @@ struct ReportWebEditorView: View {
                     }
                 }
                 if let preview {
-                    Section("웹 수정본 · 적용 전 검토") {
+                    Section("적용 전 웹 수정본 검토") {
                         textRows(preview)
                         Button("검토한 여섯 항목 적용", action: apply).disabled(busy)
                         Button("수정본 닫기") { self.preview = nil }
@@ -53,6 +53,7 @@ struct ReportWebEditorView: View {
                 if busy { ProgressView("처리 중…") }
                 if let message { Section { Text(message).accessibilityAddTraits(.updatesFrequently) } }
             }
+            .abaPageBackground()
             .navigationTitle("보고서 웹 편집")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() }.disabled(busy) } }
             .interactiveDismissDisabled(busy)
@@ -82,7 +83,13 @@ struct ReportWebEditorView: View {
         busy = true; message = nil
         Task { @MainActor in
             defer { busy = false }
-            do { preview = try await ReportWebEditing.fetch(session) }
+            do {
+                let result = try await ReportWebEditing.fetch(session)
+                preview = result.text
+                var updated = session
+                updated.expiresAt = result.expiresAt
+                self.session = updated
+            }
             catch { message = error.localizedDescription }
         }
     }
@@ -112,3 +119,4 @@ struct ReportWebEditorView: View {
         }
     }
 }
+

@@ -1,6 +1,75 @@
 import Foundation
 import SwiftData
 
+enum ProgramLibrary {
+    struct TaskGroup: Identifiable {
+        let id: UUID
+        let name: String
+        let goal: String
+        let targets: [TherapyTarget]
+
+        var latestDate: Date? {
+            targets.flatMap(\.sessions).filter { $0.attemptedCount > 0 }.map(\.date).max()
+        }
+    }
+
+    private struct TaskKey: Hashable {
+        let name: String
+        let goal: String
+    }
+
+    /// A presentation grouping only: existing target IDs and session relationships stay intact.
+    static func taskGroups(_ targets: [TherapyTarget]) -> [TaskGroup] {
+        let grouped = Dictionary(grouping: targets) {
+            TaskKey(name: $0.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    goal: $0.targetDescription.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        return grouped.values.compactMap { items -> TaskGroup? in
+            let orderedItems = items.sorted {
+                if $0.levelNumber != $1.levelNumber { return $0.levelNumber < $1.levelNumber }
+                if $0.startDate != $1.startDate { return $0.startDate < $1.startDate }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            guard let first = orderedItems.first else { return nil }
+            return TaskGroup(id: first.id, name: first.name, goal: first.targetDescription, targets: orderedItems)
+        }.sorted {
+            let order = $0.name.compare($1.name, options: [.numeric, .caseInsensitive], locale: Locale(identifier: "ko_KR"))
+            return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
+        }
+    }
+
+    static func isRecordable(_ target: TherapyTarget, in program: TherapyProgram) -> Bool {
+        target.status == .active && program.currentLevel?.levelNumber == target.levelNumber
+    }
+
+    static func listStatus(_ target: TherapyTarget, in program: TherapyProgram) -> String {
+        if target.status == .discontinued { return "중단" }
+        if isRecordable(target, in: program) { return "진행중: List\(target.levelNumber)" }
+        if target.status == .mastered || program.levels.contains(where: {
+            $0.levelNumber == target.levelNumber && $0.status == .completed
+        }) { return "완료" }
+        return "대기: List\(target.levelNumber)"
+    }
+
+    static func ordered(_ targets: [TherapyTarget]) -> [TherapyTarget] {
+        targets.sorted {
+            let order = $0.name.compare($1.name, options: [.numeric, .caseInsensitive], locale: Locale(identifier: "ko_KR"))
+            if order != .orderedSame { return order == .orderedAscending }
+            if $0.levelNumber != $1.levelNumber { return $0.levelNumber < $1.levelNumber }
+            return $0.listTitle.compare($1.listTitle, options: [.numeric], locale: Locale(identifier: "ko_KR")) == .orderedAscending
+        }
+    }
+    static func templates(name: String, category: String, programs: [TherapyProgram]) -> [TherapyTarget] {
+        let normalize: (String) -> String = { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        guard !normalize(name).isEmpty, !normalize(category).isEmpty else { return [] }
+        let sources = programs.filter { normalize($0.name) == normalize(name) && normalize($0.category) == normalize(category) }
+        var seen = Set<String>()
+        return ordered(sources.flatMap(\.targets)).filter {
+            seen.insert("\($0.name)|\($0.levelNumber)|\($0.listTitle)|\($0.targetDescription)|\($0.maxTrials)").inserted
+        }
+    }
+}
+
 @Model
 final class ChildProfile {
     var id: UUID
@@ -8,6 +77,9 @@ final class ChildProfile {
     var birthDate: Date?
     var memo: String
     var createdAt: Date
+    var lessonStartDate: Date? = nil
+    var weeklyLessonsData: Data? = nil
+    var lessonExceptionsData: Data? = nil
 
     @Relationship(deleteRule: .cascade)
     var programs: [TherapyProgram]
@@ -18,6 +90,9 @@ final class ChildProfile {
         self.birthDate = birthDate
         self.memo = memo
         self.createdAt = Date()
+        self.lessonStartDate = nil
+        self.weeklyLessonsData = nil
+        self.lessonExceptionsData = nil
         self.programs = []
     }
 }
@@ -55,7 +130,7 @@ final class ProgramLevel {
         }
     }
 
-    var label: String { "L\(levelNumber)" }
+    var label: String { "List\(levelNumber)" }
 }
 
 @Model
@@ -104,6 +179,7 @@ final class TherapyTarget {
     var id: UUID
     var name: String
     var targetDescription: String
+    var listTitle: String = ""
     var maxTrials: Int
     var masteryPercent: Double
     var masterySessions: Int
@@ -143,6 +219,10 @@ final class TherapyTarget {
             statusRaw = newValue.rawValue
             endDate = newValue == .active ? nil : Date()
         }
+    }
+
+    var displayName: String {
+        [name, "List\(levelNumber)", listTitle].filter { !$0.isEmpty }.joined(separator: " ")
     }
 }
 

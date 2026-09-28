@@ -112,6 +112,7 @@ struct HistoryCalendarView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle("기록 캘린더")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $childSearchText, prompt: "이 날짜의 아동 검색")
@@ -227,7 +228,7 @@ private struct MonthCalendar: View {
                 }
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.ivory)
     }
 
     private func changeMonth(_ offset: Int) {
@@ -258,10 +259,16 @@ private struct DayCell: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(historyDayIdentifier)
         .accessibilityLabel(date.formatted(date: .complete, time: .omitted))
         .accessibilityValue(hasRecord ? "기록 있음" : "기록 없음")
         .accessibilityHint("이 날짜의 치료 기록을 확인합니다.")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private var historyDayIdentifier: String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "history-day-%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
     }
 }
 
@@ -308,7 +315,7 @@ private struct ChildDateSummaryCard: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(child.name).font(.headline)
-                Text("프로그램 \(recordedPrograms.count)개 · Session \(sessions.count)개")
+                Text("프로그램 \(recordedPrograms.count)개, Session \(sessions.count)개")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -378,6 +385,7 @@ struct ChildDateRecordsView: View {
                 }
             }
         }
+        .abaPageBackground()
         .navigationTitle(child.name)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -389,7 +397,7 @@ struct ChildDateRecordsView: View {
             }
             return hasRecord ? target.levelNumber : nil
         })
-        return levels.sorted().map { "L\($0)" }
+        return levels.sorted().map { "List\($0)" }
     }
 }
 
@@ -404,15 +412,15 @@ private struct HistoricalTargetRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
-                Text(target.name)
-                Text("L\(target.levelNumber) · + \(session?.correctCount ?? 0) / - \(session?.promptedCount ?? 0) / NA \(session?.naCount ?? 0)")
+                Text(target.displayName)
+                Text("List\(target.levelNumber), 정반응 \(session?.correctCount ?? 0) / 촉구반응 \(session?.promptedCount ?? 0) / 미기록 \(session?.naCount ?? 0)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let session {
                     HStack(spacing: 6) {
                         Text(session.completed ? "완료" : "미완료")
                         if session.wasEditedAfterCreation {
-                            Text("· 수정됨")
+                            Text("수정됨")
                         }
                     }
                     .font(.caption2)
@@ -440,6 +448,7 @@ private struct HistoricalTargetEditView: View {
 
     @State private var showingDeleteConfirmation = false
     @State private var reviewRefreshVersion = 0
+    @State private var saveError: String?
 
     private var session: TherapySession? {
         target.sessions.first { $0.hasMeaningfulData && Calendar.current.isDate($0.date, inSameDayAs: date) }
@@ -453,11 +462,14 @@ private struct HistoricalTargetEditView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if let saveError {
+                    ABAInlineNotice(title: "저장 실패", message: saveError, systemImage: ABASymbol.warning, tint: .red)
+                }
                 VStack(alignment: .leading, spacing: 6) {
                     Label("과거 기록 수정", systemImage: ABASymbol.editHistory)
                         .font(.caption.bold())
                         .foregroundStyle(.orange)
-                    Text("\(child.name) · \(program.name)")
+                    Text("아동 \(child.name), 프로그램 \(program.name)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(date.formatted(date: .long, time: .omitted))
@@ -485,10 +497,11 @@ private struct HistoricalTargetEditView: View {
                 TargetSessionCard(
                     target: target,
                     selectedDate: date,
-                    levelLabel: "L\(target.levelNumber)",
+                    levelLabel: "List\(target.levelNumber)",
                     historicalEditMode: true,
                     onSessionCompleted: {
-                        _ = LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext)
+                        do { _ = try LevelProgressionService.evaluateCurrentLevel(in: program, modelContext: modelContext) }
+                        catch { saveError = "List 판정을 저장하지 못해 이전 상태로 복구했습니다." }
                         reviewRefreshVersion += 1
                     },
                     onDataChanged: refreshLevelIntegrity
@@ -499,6 +512,7 @@ private struct HistoricalTargetEditView: View {
             .frame(maxWidth: .infinity)
         }
         .background(ABAVisualStyle.groupedBackground)
+        .abaPageBackground()
         .navigationTitle(target.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -518,21 +532,27 @@ private struct HistoricalTargetEditView: View {
             Button("기록 삭제", role: .destructive) { deleteSession() }
             Button("취소", role: .cancel) { }
         } message: {
-            Text("Trial과 세션 메모가 삭제됩니다. 완료된 레벨의 근거였던 기록이면 레벨 검토 경고가 표시될 수 있습니다.")
+            Text("Trial과 세션 메모가 삭제됩니다. 완료된 List의 근거였던 기록이면 List 검토 경고가 표시될 수 있습니다.")
         }
     }
 
     private func refreshLevelIntegrity() {
         reviewRefreshVersion += 1
-        try? modelContext.save()
+        do { try modelContext.save(); saveError = nil }
+        catch { modelContext.rollback(); saveError = "과거 기록을 저장하지 못해 마지막 저장 상태로 복구했습니다." }
     }
 
     private func deleteSession() {
         guard let session else { return }
         modelContext.delete(session)
-        try? modelContext.save()
-        reviewRefreshVersion += 1
-        dismiss()
+        do {
+            try modelContext.save()
+            reviewRefreshVersion += 1
+            dismiss()
+        } catch {
+            modelContext.rollback()
+            saveError = "기록을 삭제하지 못했습니다. 원본 기록은 그대로 보존되었습니다."
+        }
     }
 }
 
@@ -542,3 +562,4 @@ private extension Calendar {
         return self.date(from: components) ?? startOfDay(for: date)
     }
 }
+
