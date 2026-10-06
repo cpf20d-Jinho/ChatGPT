@@ -887,8 +887,8 @@ private struct TrialButtonStyle: ButtonStyle {
     private var foreground: Color {
         switch response {
         case .notApplicable: return .secondary
-        case .correct: return .green
-        case .prompted: return .orange
+        // Primary text keeps contrast on the tinted fill; fill and border carry the colour.
+        case .correct, .prompted: return .primary
         }
     }
 

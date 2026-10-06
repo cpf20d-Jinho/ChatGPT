@@ -751,10 +751,15 @@ struct ABAStatusPill: View {
     let tint: Color
 
     var body: some View {
-        Label(title, systemImage: systemImage)
+        // Text stays primary for contrast; the tinted symbol and fill carry the status colour.
+        Label {
+            Text(title).foregroundStyle(.primary)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+        }
             .font(.caption.weight(.semibold))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(tint.opacity(contrast == .increased ? 0.22 : 0.12), in: Capsule())
