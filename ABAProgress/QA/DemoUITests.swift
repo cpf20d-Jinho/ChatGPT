@@ -255,6 +255,10 @@ final class DemoUITests: XCTestCase {
         let oldDate = Calendar.current.date(byAdding: .day, value: -8, to: Date())!
         let components = Calendar.current.dateComponents([.year, .month, .day], from: oldDate)
         let oldDateIdentifier = String(format: "history-day-%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
+        if components.month != Calendar.current.component(.month, from: Date()) {
+            let previousMonth = app.buttons["이전 달"]
+            XCTAssertTrue(previousMonth.waitForExistence(timeout: 5)); previousMonth.tap()
+        }
         let day = app.buttons[oldDateIdentifier]
         XCTAssertTrue(day.waitForExistence(timeout: 5)); day.tap()
         let historyChild = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "8개 프로그램 시연 아동")).firstMatch
