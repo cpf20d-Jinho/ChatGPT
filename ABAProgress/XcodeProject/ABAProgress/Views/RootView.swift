@@ -581,19 +581,31 @@ enum ABASymbol {
 }
 
 enum ABAVisualStyle {
-    // Pink is reserved for navigation/actions; clinical green/orange remain semantic.
+    // Theme palette (cream, navy, brown, amber). Brown/amber is reserved for navigation and actions;
+    // clinical green/orange remain semantic.
     static let brand = Color(uiColor: UIColor { traits in
-        if traits.userInterfaceStyle == .dark {
-            return UIColor(red: 1.0, green: 0.54, blue: 0.72, alpha: 1)
-        }
-        return UIColor(red: 0.70, green: 0.12, blue: 0.36, alpha: 1)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.878, green: 0.663, blue: 0.373, alpha: 1)
+            : UIColor(red: 0.541, green: 0.310, blue: 0.165, alpha: 1)
     })
 
     static let cornerRadius: CGFloat = 16
     static let contentMaxWidth: CGFloat = 980
-    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
-    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
-    static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
+    static let groupedBackground = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.090, green: 0.106, blue: 0.133, alpha: 1)
+            : UIColor(red: 0.957, green: 0.929, blue: 0.882, alpha: 1)
+    })
+    static let secondarySurface = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.122, green: 0.153, blue: 0.200, alpha: 1)
+            : UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1)
+    })
+    static let tertiarySurface = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.165, green: 0.200, blue: 0.255, alpha: 1)
+            : UIColor(red: 0.902, green: 0.863, blue: 0.796, alpha: 1)
+    })
     static let separator = Color(uiColor: .separator).opacity(0.18)
     /// Shared, non-rendered form tracks. Every regular-width editor aligns to these axes.
     static let formLabelWidth: CGFloat = 168
