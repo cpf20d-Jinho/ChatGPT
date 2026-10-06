@@ -423,8 +423,8 @@ private struct TodayProgramStatusCompact: View {
     }
 
     private var statusTint: Color {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return .green }
-        if inProgressCount > 0 || completedCount > 0 { return .orange }
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return Color.abaSuccess }
+        if inProgressCount > 0 || completedCount > 0 { return Color.abaWarning }
         return .secondary
     }
 
@@ -612,6 +612,25 @@ enum ABAVisualStyle {
     static let formColumnSpacing: CGFloat = 16
 }
 
+// Theme palette semantic colours: olive success, terracotta (amber in dark) warning, sky blue info.
+extension Color {
+    static let abaSuccess = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.616, green: 0.690, blue: 0.478, alpha: 1)
+            : UIColor(red: 0.361, green: 0.420, blue: 0.271, alpha: 1)
+    })
+    static let abaWarning = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.878, green: 0.663, blue: 0.373, alpha: 1)
+            : UIColor(red: 0.710, green: 0.412, blue: 0.290, alpha: 1)
+    })
+    static let abaInfo = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.616, green: 0.765, blue: 0.980, alpha: 1)
+            : UIColor(red: 0.243, green: 0.435, blue: 0.659, alpha: 1)
+    })
+}
+
 private struct ABASurfaceModifier: ViewModifier {
     let padding: CGFloat
     let background: Color
@@ -687,7 +706,7 @@ struct ABAInlineNotice: View {
     let title: String
     let message: String
     let systemImage: String
-    var tint: Color = .orange
+    var tint: Color = Color.abaWarning
     var retryTitle: String?
     var retry: (() -> Void)?
 

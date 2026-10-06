@@ -264,7 +264,7 @@ private struct TodayProgramStatusRow: View {
             ABAStatusPill(
                 title: statusTitle,
                 systemImage: statusIcon,
-                tint: isComplete ? .green : (completedCount > 0 ? .orange : .secondary)
+                tint: isComplete ? Color.abaSuccess : (completedCount > 0 ? Color.abaWarning : .secondary)
             )
         }
         .accessibilityElement(children: .combine)

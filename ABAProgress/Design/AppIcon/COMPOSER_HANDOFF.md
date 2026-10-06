@@ -1,10 +1,10 @@
-# ABA — Rose Progress
+# ABA — Navy Progress
 
 Status: original vector source and flat fallback only. Icon Composer has NOT been run; no verified .icon document is supplied. Do not rename this folder to .icon.
 
 ## Composition
 
-1024 × 1024 square canvas, no baked system corner mask. Pink gradient (#F6ACC9 → #E66CA2 → #C62D76), warm-white ABA wordmark, three small ascending marks suggesting progress. Letterforms are original vector paths, not embedded font files or copied SF Symbols. No puzzle-piece or clinical outcome claim.
+1024 × 1024 square canvas, no baked system corner mask. Navy gradient (#2A3341 → #1F2733 → #171B22), cream (#F4EDE1) ABA wordmark, three small ascending marks suggesting progress. Letterforms are original vector paths, not embedded font files or copied SF Symbols. No puzzle-piece or clinical outcome claim.
 
 ## Finish in Icon Composer on a Mac
 

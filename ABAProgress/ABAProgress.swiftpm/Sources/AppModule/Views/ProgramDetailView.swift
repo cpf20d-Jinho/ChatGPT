@@ -58,7 +58,7 @@ struct ProgramDetailView: View {
                         title: notice.title,
                         message: notice.message,
                         systemImage: notice.title.contains("실패") ? ABASymbol.warning : ABASymbol.completed,
-                        tint: notice.title.contains("실패") ? .red : .green,
+                        tint: notice.title.contains("실패") ? .red : Color.abaSuccess,
                         retryTitle: notice.title.contains("실패") ? "다시 저장" : nil,
                         retry: notice.title.contains("실패") ? savePendingChanges : nil
                     )
@@ -108,7 +108,7 @@ struct ProgramDetailView: View {
                         }
                         .padding(.top, 8)
                     }
-                    .abaSurface(background: Color(uiColor: .systemBackground))
+                    .abaSurface(background: ABAVisualStyle.secondarySurface)
                 }
             }
             .padding()
@@ -240,7 +240,7 @@ struct ProgramDetailView: View {
 
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.secondarySurface)
     }
 
     private func ensureInitialLevel() {
@@ -253,7 +253,7 @@ struct ProgramDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("과거 기록 수정으로 레벨 판정 확인이 필요합니다", systemImage: ABASymbol.review)
                 .font(.headline)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.abaWarning)
             Text(levelReviewIssues.joined(separator: "\n"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -265,7 +265,7 @@ struct ProgramDetailView: View {
                 .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .abaSurface(background: Color.orange.opacity(0.08))
+        .abaSurface(background: Color.abaWarning.opacity(0.08))
     }
 
     private func evaluateCurrentLevel() {
@@ -396,7 +396,7 @@ struct TargetSessionCard: View {
             if historicalEditMode {
                 Label("과거 기록 수정 모드", systemImage: ABASymbol.editHistory)
                     .font(.caption.bold())
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.abaWarning)
             }
 
             ViewThatFits(in: .horizontal) {
@@ -653,8 +653,8 @@ struct TargetSessionCard: View {
     }
 
     private var sessionStatusColor: Color {
-        if session?.completed == true { return .green }
-        if attemptedCount > 0 { return .orange }
+        if session?.completed == true { return Color.abaSuccess }
+        if attemptedCount > 0 { return Color.abaWarning }
         return .secondary
     }
 
@@ -878,9 +878,9 @@ private struct TrialButtonStyle: ButtonStyle {
 
     private var background: Color {
         switch response {
-        case .notApplicable: return Color(uiColor: .secondarySystemBackground)
-        case .correct: return Color.green.opacity(increasedContrast ? 0.25 : 0.16)
-        case .prompted: return Color.orange.opacity(increasedContrast ? 0.25 : 0.16)
+        case .notApplicable: return ABAVisualStyle.tertiarySurface
+        case .correct: return Color.abaSuccess.opacity(increasedContrast ? 0.25 : 0.16)
+        case .prompted: return Color.abaWarning.opacity(increasedContrast ? 0.25 : 0.16)
         }
     }
 
@@ -895,8 +895,8 @@ private struct TrialButtonStyle: ButtonStyle {
     private var border: Color {
         switch response {
         case .notApplicable: return .gray.opacity(0.35)
-        case .correct: return .green.opacity(0.7)
-        case .prompted: return .orange.opacity(0.7)
+        case .correct: return Color.abaSuccess.opacity(0.7)
+        case .prompted: return Color.abaWarning.opacity(0.7)
         }
     }
 }
