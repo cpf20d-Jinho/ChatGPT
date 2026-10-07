@@ -1,4 +1,6 @@
 import SwiftUI
+import UniformTypeIdentifiers
+import UIKit
 
 private enum ReportComposerStep: String, CaseIterable, Identifiable {
     case details = "1 기본"
@@ -8,11 +10,13 @@ private enum ReportComposerStep: String, CaseIterable, Identifiable {
 }
 
 struct ReportComposerView: View {
+    @Environment(\.scenePhase) private var scenePhase
     let child: ChildProfile
     let startDate: Date
     let endDate: Date
     let programs: [TherapyProgram]
     @State private var draft = ReportDraft()
+    @State private var logoImporterPresented = false
     @State private var narrativeEditor: NarrativeEditorSelection?
     @State private var templateStatus: String?
     @State private var pendingTemplate: ReportBasicTemplate?
@@ -48,7 +52,7 @@ struct ReportComposerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            ABASectionHeading(title: "보고서", help: "STO는 프로그램의 기록된 레벨 단위로 집계합니다. 서술은 아동과 보고기간별로 기기에 자동 저장됩니다. AI 초안은 종합 현황과 주요 변화 두 항목에만 적용됩니다. PDF를 생성하기 전에 그래프와 서술을 검토하세요.")
+            ABASectionHeading(title: "보고서", help: "쉬운 ABA 수행 보고서의 1~4번 내용으로 작성합니다. 프로그램별 과제·그래프·세션 노트를 함께 출력하며 내용에 따라 페이지가 늘어납니다. 서술은 직접 작성하고 아동과 보고 기간별로 자동 저장합니다.")
             Picker("보고서 작성 단계", selection: $step) {
                 ForEach(ReportComposerStep.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -74,6 +78,24 @@ struct ReportComposerView: View {
                 Button("입력 완료") { focusedField = nil }
             }
         }
+        .fileImporter(isPresented: $logoImporterPresented, allowedContentTypes: [.png, .jpeg]) { result in
+            do {
+                let url = try result.get()
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+                let data = try Data(contentsOf: url)
+                guard data.count <= 5_000_000, let image = UIImage(data: data),
+                      image.size.width > 0, image.size.height > 0 else {
+                    throw NSError(domain: "ReportLogo", code: 1, userInfo: [NSLocalizedDescriptionKey: "5MB 이하의 PNG 또는 JPEG 이미지를 선택하세요."])
+                }
+                let ratio = min(1, 240 / max(image.size.width, image.size.height))
+                let size = CGSize(width: image.size.width * ratio, height: image.size.height * ratio)
+                let format = UIGraphicsImageRendererFormat(); format.scale = 1
+                draft.logoPNG = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+                    image.draw(in: CGRect(origin: .zero, size: size))
+                }.pngData()?.base64EncodedString()
+            } catch { self.error = "로고 불러오기 실패: \(error.localizedDescription)" }
+        }
         .task {
             do {
                 draft = try ReportDraftStore.load(childID: child.id, start: startDate, end: endDate)
@@ -93,6 +115,12 @@ struct ReportComposerView: View {
         .onChange(of: document.fingerprint) {
             reviewed = false
             removeShareFile()
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase != .active && loaded {
+                draftSaveTask?.cancel()
+                storeDraft(draft)
+            }
         }
         .onDisappear {
             draftSaveTask?.cancel()
@@ -146,7 +174,7 @@ struct ReportComposerView: View {
 
     @ViewBuilder
     private var detailsStep: some View {
-        ABASectionHeading(title: "기본 양식", help: "기관명, 담당 치료사, 소속반, 프로그램 분류 표시, 주 횟수, 회기 시간, 기관장, 자격 정보와 하단 문구를 이 기기에 저장합니다. 새 아동이나 새 보고 기간의 보고서에 자동 적용합니다. 기존 보고서에는 불러오기를 눌렀을 때만 적용됩니다. 서명 일자, 평가군 분류와 서술은 양식에 저장하지 않습니다. 다시 저장하면 이전 기본 양식을 대체합니다.")
+        ABASectionHeading(title: "기본 양식", help: "기관명·로고, 작성자, 주당 빈도, 세션 시간과 하단 문구를 이 기기에 저장합니다. 새 보고서에 자동 적용하며 기존 보고서는 불러오기를 눌렀을 때만 바뀝니다. 총 회기와 서술·프로그램별 노트는 재사용 양식에 저장하지 않습니다.")
         HStack {
             Button("기본 양식 저장") {
                 do {
@@ -168,31 +196,18 @@ struct ReportComposerView: View {
         if let templateStatus { Text(templateStatus).font(.footnote).foregroundStyle(.secondary) }
         VStack(alignment: .leading, spacing: 12) {
             singleLineField("기관명", $draft.institution)
-            singleLineField("담당 치료사", $draft.therapist)
-            singleLineField("소속반", $draft.className)
-            singleLineField("프로그램 분류 표시", $draft.programFamily)
-            singleLineField("주 횟수", $draft.schedule)
-            singleLineField("회기 시간", $draft.duration)
-            singleLineField("기관장", $draft.director)
-            singleLineField("기관장 자격 정보", $draft.directorCredential)
-            singleLineField("서명 일자", $draft.signedDate)
-            singleLineField("하단 저작권과 출처 문구", $draft.copyright)
-        }
-
-        DisclosureGroup("평가군 분류") {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(programs) { program in
-                    ABAAlignedField(title: program.name) {
-                        TextField("ELCAR 평가 또는 기타 목표", text: Binding(
-                            get: { draft.groupByProgram[program.id.uuidString] ?? "기타 목표" },
-                            set: { draft.groupByProgram[program.id.uuidString] = $0 }
-                        ))
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityLabel("\(program.name) 평가군")
-                    }
-                }
+            Button("기관 로고 선택") { logoImporterPresented = true }.disabled(!loaded)
+            if let logo = draft.logoPNG, let data = Data(base64Encoded: logo), let image = UIImage(data: data) {
+                Image(uiImage: image).resizable().scaledToFit().frame(height: 48).accessibilityLabel("기관 로고")
+                Button("로고 제거", role: .destructive) { draft.logoPNG = nil }
             }
-            .padding(.top, 8)
+            singleLineField("작성자", $draft.therapist)
+            singleLineField("주당 빈도", $draft.schedule)
+            singleLineField("세션 시간", $draft.duration)
+            singleLineField("총 회기 (직접 확인)", optionalText(\.totalSessions))
+            Text("완료 기록이 있는 치료일: \(document.recordedDayCount)일. 과제별 기록은 방문 회기가 아니므로 총 회기를 직접 확인하여 입력하세요.")
+                .font(.footnote).foregroundStyle(.secondary)
+            singleLineField("하단 저작권과 출처 문구", $draft.copyright)
         }
 
         Button("다음") { step = .narratives }
@@ -202,22 +217,30 @@ struct ReportComposerView: View {
 
     @ViewBuilder
     private var narrativesStep: some View {
-        Toggle("AI로 작성", isOn: Binding(
-            get: { draft.aiWritingEnabled ?? false },
-            set: { draft.aiWritingEnabled = $0 }
-        )).disabled(!loaded || isBusy)
-        field("도전적 행동 변화", $draft.behavior, help: "서술은 아동과 보고 기간별로 이 기기에 자동 저장됩니다. AI에는 반응률 수치만 보내며, 행동 관찰과 직접 작성한 문장은 보내지 않습니다. 현재 AI는 행동 변화를 생성하지 않으므로 직접 작성한 내용이 유지됩니다. AI 작성 여부와 관계없이 직접 편집할 수 있습니다. PDF 공유 시 이 항목이 포함됩니다.")
-        field("종합 현황", $draft.currentStatus, help: narrativeStorageHelp, aiManaged: true)
-        field("강점과 주요 변화", $draft.majorChanges, help: narrativeStorageHelp, aiManaged: true)
-        DisclosureGroup("참고 메모") {
-            field("관찰 메모", $draft.confirmedObservations, help: "아동과 보고 기간별로 이 기기에 자동 저장하는 작성 참고 자료입니다. AI 요청, 웹 편집과 최종 PDF에는 포함하지 않습니다. 앱 데이터 삭제 시 메모도 삭제될 수 있습니다.")
+        ABASectionHeading(title: "1. 개요", help: "치료 목적, 사용 프로그램, 현재 수행, 중재·교수 전략, 도전적 행동, 장소·빈도·주요 영역과 이번 기간의 핵심 목표를 직접 작성합니다.")
+        field("개요", $draft.currentStatus)
+        ABASectionHeading(title: "2. 진행 과제 및 수행 기록", help: "영역은 프로그램 분류, 목표는 프로그램 설명(없으면 이름), List는 기간 내 적용 과제입니다. 그래프는 유효한 완료 기록만 사용합니다. 각 프로그램의 세션 노트와 가정 연계를 직접 작성하세요.")
+        ForEach(document.goals, id: \.id) { goal in
+            field("\(goal.name) · 세션 노트 및 가정 연계 사항", Binding(
+                get: { draft.notesByProgram?[goal.id] ?? "" },
+                set: { value in
+                    var notes = draft.notesByProgram ?? [:]
+                    notes[goal.id] = value
+                    draft.notesByProgram = notes
+                }
+            ))
         }
-        if draft.aiWritingEnabled == true { aiControls }
-        Divider()
-        ABASectionHeading(title: "치료사 작성", help: "아래 소견, 가정 안내와 다음 목표는 직접 작성합니다. AI 초안을 적용해도 이 항목들은 바뀌지 않습니다.")
-        field("치료사 종합 소견", $draft.therapistOpinion)
-        field("가정에서 함께 하기", $draft.homePractice)
-        field("다음 목표", $draft.nextGoals)
+        field("공통 가정 연계 사항", $draft.homePractice)
+        ABASectionHeading(title: "3. 결과 해석", help: "향상, 지원 필요, 행동 변화와 전체적인 해석을 직접 작성합니다. 기존 보고서 문장은 유지되므로 새 제목에 맞는지 검토하세요.")
+        field("향상된 부분", $draft.majorChanges)
+        field("아직 지원이 필요한 부분", optionalText(\.supportNeeds))
+        field("행동 변화", $draft.behavior)
+        field("전체적인 해석", $draft.therapistOpinion)
+        ABASectionHeading(title: "4. 향후 목표 및 치료 계획", help: "유지·일반화 목표, 신규 목표, 다음 중재 방향을 직접 작성합니다.")
+        field("향후 목표 및 치료 계획", $draft.nextGoals)
+        DisclosureGroup("참고 메모") {
+            field("관찰 메모", $draft.confirmedObservations, help: "기기에만 저장하는 참고 자료입니다. PDF와 웹 편집에는 포함하지 않습니다.")
+        }
         HStack {
             Button("이전") { step = .details }.buttonStyle(.bordered)
             Spacer()
@@ -235,7 +258,7 @@ struct ReportComposerView: View {
         )
         DisclosureGroup("보고서 서술 확인") {
             VStack(alignment: .leading, spacing: 16) {
-                ForEach(Array(ReportEditableText(draft).rows.enumerated()), id: \.offset) { _, field in
+                ForEach(reviewRows, id: \.0) { field in
                     VStack(alignment: .leading, spacing: 6) {
                         Text(field.0).font(.headline)
                         Text(field.1.isEmpty ? "작성된 내용이 없습니다." : field.1)
@@ -261,13 +284,14 @@ struct ReportComposerView: View {
                 }
             }
         Button { webEditorPresented = true } label: {
-            Label(webSession == nil ? "보고서 웹 편집" : "웹 수정본 가져오기", systemImage: "rectangle.and.pencil.and.ellipsis")
+            Label(webSession == nil ? "기존 6개 서술 웹 편집" : "웹 수정본 가져오기", systemImage: "rectangle.and.pencil.and.ellipsis")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.bordered).controlSize(.large).disabled(!loaded || isBusy)
+        Text("웹 편집은 기존 6개 공통 서술만 지원합니다. 지원 필요 항목과 프로그램별 노트는 앱에서 작성합니다.").font(.footnote).foregroundStyle(.secondary)
         Toggle("집계 기준, 그래프와 서술 내용을 검토했습니다", isOn: $reviewed)
         Button(action: exportPDF) {
-            Label(isBusy ? "처리 중…" : "기본 양식 PDF 생성", systemImage: ABASymbol.pdf)
+            Label(isBusy ? "처리 중…" : "수행 보고서 PDF 생성", systemImage: ABASymbol.pdf)
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent).controlSize(.large)
@@ -341,12 +365,25 @@ struct ReportComposerView: View {
         }
     }
 
+    private var reviewRows: [(String, String)] {
+        [("1. 개요", draft.currentStatus)] + document.goals.map {
+            ("2. \($0.name) · 세션 노트 [\($0.id.prefix(8))]", draft.notesByProgram?[$0.id] ?? "")
+        } + [("공통 가정 연계 사항", draft.homePractice),
+             ("3. 향상된 부분", draft.majorChanges), ("지원이 필요한 부분", draft.supportNeeds ?? ""),
+             ("행동 변화", draft.behavior), ("전체적인 해석", draft.therapistOpinion),
+             ("4. 향후 목표 및 치료 계획", draft.nextGoals)]
+    }
+
+    private func optionalText(_ path: WritableKeyPath<ReportDraft, String?>) -> Binding<String> {
+        Binding(get: { draft[keyPath: path] ?? "" }, set: { draft[keyPath: path] = $0 })
+    }
+
     private var narrativeStorageHelp: String {
-        "서술은 아동과 보고 기간별로 이 기기에 자동 저장됩니다. AI 요청에는 직접 작성한 문장 대신 반응률 수치만 전송합니다. AI로 작성 중에는 수동 편집을 잠그고 적용된 내용은 보고서에서 확인합니다. 기능을 꺼도 기존 문장은 유지됩니다. 웹 편집을 요청하면 선택한 보고서의 여섯 서술 항목을 전송하며, PDF 공유 시 작성한 서술이 포함됩니다. 참고 메모는 AI, 웹 편집과 PDF에 포함하지 않습니다."
+        "아동과 보고 기간별로 기기에 자동 저장되며 PDF에 포함됩니다. 새 양식의 서술은 직접 작성합니다. 기존 6개 공통 서술만 선택적으로 웹 편집할 수 있고, 지원 필요 항목과 프로그램별 노트는 기기에서 작성합니다. 참고 메모는 PDF에 포함되지 않습니다."
     }
 
     private func field(_ title: String, _ value: Binding<String>, help: String? = nil, aiManaged: Bool = false) -> some View {
-        let locked = aiManaged && draft.aiWritingEnabled == true
+        let locked = false // Performance report narratives are always directly editable.
         return ABAAlignedField(title: title, help: help ?? narrativeStorageHelp) {
             Button {
                 narrativeEditor = NarrativeEditorSelection(title: title, value: value)

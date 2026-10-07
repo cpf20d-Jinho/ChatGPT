@@ -65,7 +65,7 @@ final class ReportTemplateExporter: NSObject, WKNavigationDelegate {
         stamp.dateFormat = "yyyyMMdd_HHmmss_SSS"
         let suffix = UUID().uuidString.prefix(8)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("ABA_중간보고서_\(stamp.string(from: Date()))_\(suffix).pdf")
+            .appendingPathComponent("ABA_수행보고서_\(stamp.string(from: Date()))_\(suffix).pdf")
         try (output as Data).write(to: url, options: [.atomic, .completeFileProtection])
         return url
     }
@@ -106,11 +106,19 @@ extension ReportTemplateExporter {
                 try? FileManager.default.removeItem(at: destination)
                 try FileManager.default.copyItem(at: generated, to: destination)
                 guard let pdf = PDFDocument(url: destination), let content = pdf.string,
-                      content.contains(document.childName), content.contains("검증끝"), pdf.pageCount >= 10 else {
+                      content.contains(document.childName), content.contains("검증끝"), content.contains("1. 개요"),
+                      content.contains("2. 진행 과제"), content.contains("3. 결과 해석"),
+                      content.contains("4. 향후 목표"), pdf.pageCount > 0 else {
                     throw NSError(domain: "ReportQA", code: 1, userInfo: [NSLocalizedDescriptionKey: "PDF text or page verification failed"])
                 }
-                if index == 0 && pdf.pageCount >= 16 {
-                    throw NSError(domain: "ReportQA", code: 2, userInfo: [NSLocalizedDescriptionKey: "Baseline report still has \(pdf.pageCount) pages; expected fewer than 16"])
+                let compact = content.filter { !$0.isWhitespace }
+                let required = document.goals.map { $0.objective ?? $0.name }
+                    + (document.draft.notesByProgram ?? [:]).values.compactMap {
+                        $0.split(separator: "\n").last.map(String.init)
+                    }
+                    + [document.draft.supportNeeds ?? ""]
+                guard required.allSatisfy({ compact.contains($0.filter { !$0.isWhitespace }) }) else {
+                    throw NSError(domain: "ReportQA", code: 3, userInfo: [NSLocalizedDescriptionKey: "Report content missing after pagination"])
                 }
                 results.append(["fixture": index, "pages": pdf.pageCount, "textVerified": true])
             }
@@ -140,7 +148,7 @@ private final class ReportPageRenderer: UIPrintPageRenderer {
 
     override func drawHeaderForPage(at pageIndex: Int, in headerRect: CGRect) {
         draw(institution, in: CGRect(x: printableRect.minX, y: 18, width: printableRect.width, height: 16),
-             color: UIColor(red: 0.91, green: 0.40, blue: 0.55, alpha: 1), size: 9, alignment: .center)
+             color: .darkGray, size: 9, alignment: .center)
     }
 
     override func drawFooterForPage(at pageIndex: Int, in footerRect: CGRect) {

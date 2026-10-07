@@ -102,7 +102,7 @@ struct ReportView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(ABAVisualStyle.groupedBackground)
-        .navigationTitle("경과 보고서")
+        .navigationTitle("수행 보고서")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if selectedProgramIDs.isEmpty {
@@ -277,6 +277,8 @@ private struct ProgramReportSection: View {
                 Text("선택한 기간에 기록된 과제가 없습니다.")
                     .foregroundStyle(.secondary)
             } else if let goal {
+                LabeledContent("영역", value: goal.domain)
+                LabeledContent("목표", value: goal.objective ?? goal.name)
                 HStack(spacing: 8) {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(ABAVisualStyle.brand.opacity(0.55))
@@ -332,10 +334,11 @@ private struct ProgramLevelProgressChart: View {
     let goal: ReportGoal
 
     private var points: [ProgramChartPoint] {
-        goal.points.enumerated().map { index, point in
+        let dates = Array(Set(goal.points.map(\.date))).sorted()
+        return goal.points.map { point in
             ProgramChartPoint(
                 id: point.id,
-                index: index,
+                index: dates.firstIndex(of: point.date) ?? 0,
                 date: point.date,
                 value: point.value,
                 level: point.level,
@@ -356,9 +359,10 @@ private struct ProgramLevelProgressChart: View {
     }
 
     private var visibleAxisIndices: [Int] {
-        guard points.count > 6 else { return points.map(\.index) }
-        let step = max(1, Int(ceil(Double(points.count - 1) / 5.0)))
-        var values = Array(stride(from: 0, to: points.count, by: step))
+        let indices = Array(Set(points.map(\.index))).sorted()
+        guard indices.count > 6 else { return indices }
+        let step = max(1, Int(ceil(Double(indices.count - 1) / 5.0)))
+        var values = Array(stride(from: 0, to: indices.count, by: step))
         if let last = points.last?.index, values.last != last { values.append(last) }
         return values
     }
@@ -476,8 +480,8 @@ private struct ProgramLevelProgressChart: View {
                 .chartXAxis {
                     AxisMarks(values: visibleAxisIndices) { value in
                         AxisValueLabel {
-                            if let index = value.as(Int.self), points.indices.contains(index) {
-                                Text(displayDate(points[index].date))
+                            if let index = value.as(Int.self), let point = points.first(where: { $0.index == index }) {
+                                Text(displayDate(point.date))
                                     .font(.caption2)
                             }
                         }
@@ -495,7 +499,7 @@ private struct ProgramLevelProgressChart: View {
                 }
                 .frame(height: 220)
                 .accessibilityLabel("\(goal.name) 기록일별 정반응률 그래프")
-                .accessibilityValue("레벨 \(series.count)개, 실제 기록일 \(points.count)개. 가로 점선은 숙달 기준이고 세로 점선은 다음 레벨의 새 집계 시작입니다.")
+                .accessibilityValue("레벨 \(series.count)개, 실제 기록일 \(Set(points.map(\.date)).count)개. 가로 점선은 숙달 기준이고 세로 점선은 다음 레벨의 새 집계 시작입니다.")
             }
             .padding(12)
             .background(ABAVisualStyle.tertiarySurface)

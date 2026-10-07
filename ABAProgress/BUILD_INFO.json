@@ -1,10 +1,10 @@
 {
   "product": "ABAProgress",
-  "version": "0.12.1",
-  "buildTimeKST": "2026-09-11T18:12:43+09:00",
-  "buildHash": "4805dde010",
-  "sourceSHA256": "4805dde010f5804a1638bde0b6421137675825333cc2b42ead10b8126db8019e",
-  "previousBuild": "v0.11.0_403f604dcb",
+  "version": "0.13.0",
+  "buildTimeKST": "2026-10-07T23:24:29+09:00",
+  "buildHash": "33c19e9884",
+  "sourceSHA256": "33c19e9884e8a38c8cfe09e94c455412994787047877b02c70478ca0d7b6f323",
+  "previousBuild": "v0.12.1_4805dde010",
   "compatibility": {
     "minimumOS": "iOS/iPadOS 17.0",
     "deviceFamilies": [
@@ -12,28 +12,8 @@
       "iPad"
     ]
   },
-  "notes": "UTF-8 text hashes normalize CRLF to LF. Metadata excluded from source digest. Validation references PR #7 source checks.",
+  "notes": "v0.13.0 source update for performance report Contents. Existing reference PDF unchanged. No signed release artifact generated. See REPORT_CONTENT_AUDIT.md.",
   "previousValidation": {
-    "reportServerTests": "PASS_15_SYNTHETIC",
-    "syntheticReportTemplate": "PASS",
-    "sourceParity": "PASS",
-    "iOSBuild": "PASS_RUN_34439190365",
-    "releaseArchive": "PASS_UNSIGNED_XCODE_26_3_IOS_SDK_26_2_RUN_34439190365",
-    "iosPDFPagination": "PASS_IPHONE_IPAD_16_BASELINE_18_LONG_RUN_34439190365",
-    "finalFollowupCI": "PASS_RUN_34439190365",
-    "clinicalScenarios": "PASS_RUN_34439190365",
-    "actualReportCalculationTests": "PASS_RUN_34439190365",
-    "iosRuntimeTest": "IPHONE_UI_WORKFLOW_AND_IPHONE_IPAD_PDF",
-    "liveAPI": "NOT_RUN_NEW_GROQ_KEY_REQUIRED",
-    "renderDeployment": "LIVE_AUTHENTICATED_HEALTH_200_RECHECKED_2026_09_10",
-    "distributionSigning": "WORKFLOW_PREPARED_NOT_EXECUTED",
-    "validatedSourceCommit": "8aca36ca028b31ad66e4597599417ff0a9535d8c",
-    "pdfVisualReview": "PASS_16_BASELINE_PAGES_PRINT_COLORS_HEADERS_FOOTERS",
-    "uiWalkthrough": "PASS_IPHONE_RECORD_TO_PDF_SHARE_RUN_34439190347",
-    "demoPDF": "PASS_10_PAGES_FIVE_RECORDED_DATES_40_TO_80_PERCENT_MANUAL_NARRATIVE",
-    "demoVideo": "REAL_SIMULATOR_RECORDING_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION"
-  },
-  "validation": {
     "reportServerTests": "PASS_18_SYNTHETIC",
     "sourceParity": "PASS_LOCAL_XCODE_SWIFTPM_STATIC",
     "iOSBuild": "PASS_RUN_34583078908",
@@ -52,6 +32,16 @@
     "demoVideo": "REAL_IPAD_11_SIMULATOR_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION_RUN_34583078472",
     "renderDeployment": "LIVE_DEP_dah975m1egvs73d4hle0_SERVER_COMMIT_a4605082",
     "liveWebEditing": "PASS_SYNTHETIC_HTTPS_CONSENT_CREATE_READ_UPDATE_CONFLICT_DELETE_2026_09_10"
+  },
+  "validation": {
+    "reportServerTests": "PASS_17_LOCAL_NODE",
+    "reportContentTests": "PASS_LOCAL_NODE",
+    "browserPDF": "PASS_CHROME_13_PROGRAMS_8_PAGES_LONG_CONTENT_15_PAGES_NO_FIXED_PAGE_COUNT",
+    "sourceParity": "PASS_LOCAL_XCODE_SWIFTPM",
+    "iOSBuild": "PENDING_GITHUB_ACTIONS_WINDOWS_HOST_NO_XCODE",
+    "clinicalScenarios": "PENDING_SWIFT_TOOLCHAIN",
+    "actualReportCalculationTests": "PENDING_GITHUB_ACTIONS",
+    "distributionSigning": "NOT_EXECUTED"
   },
   "reportTemplateRegistration": {
     "dateKST": "2026-10-07",

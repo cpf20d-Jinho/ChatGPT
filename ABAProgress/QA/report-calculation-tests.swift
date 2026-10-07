@@ -35,6 +35,28 @@ import CryptoKit
             ReportDocument.build(child: child, start: day(1), end: day(4), programs: [program], draft: draft)
         }
         let first = report()
+        precondition(first.recordedDayCount == 2, "Do not count target sessions as visits")
+        var legacy = try JSONSerialization.jsonObject(with: JSONEncoder().encode(draft)) as! [String: Any]
+        for key in ["supportNeeds", "notesByProgram", "totalSessions", "logoPNG"] { legacy.removeValue(forKey: key) }
+        let migrated = try JSONDecoder().decode(ReportDraft.self, from: JSONSerialization.data(withJSONObject: legacy))
+        precondition(migrated == draft, "Existing drafts must decode without new fields or narrative loss")
+        var extended = migrated
+        extended.supportNeeds = "PRIVATE_SUPPORT"
+        extended.notesByProgram = [program.id.uuidString: "PRIVATE_PROGRAM_NOTE"]
+        extended.totalSessions = "3"
+        let roundTrip = try JSONDecoder().decode(ReportDraft.self, from: JSONEncoder().encode(extended))
+        precondition(roundTrip == extended)
+        let safeWeb = ReportEditableText(extended).applying(to: extended)
+        precondition(safeWeb.supportNeeds == extended.supportNeeds && safeWeb.notesByProgram == extended.notesByProgram)
+        let future = TherapyTarget(name: "FUTURE_MUST_NOT_APPEAR")
+        future.startDate = day(10)
+        program.targets.append(future)
+        program.programDescription = "FULL_OBJECTIVE"
+        let withFuture = report()
+        precondition(withFuture.goals[0].objective == "FULL_OBJECTIVE")
+        precondition(!withFuture.goals[0].learning.values.joined().contains("FUTURE_MUST_NOT_APPEAR"))
+        program.targets.removeAll { $0.id == future.id }
+        program.programDescription = ""
         precondition(first.goals[0].points.map(\.value) == [90,90], "NA/unfinished dates must be excluded")
         precondition(first.goals[0].points.map(\.date) == ["2026-01-01","2026-01-03"])
         precondition(first.goals[0].points.allSatisfy { $0.recordedCount == 2 && $0.applicableCount == 2 && $0.hasCompleteCoverage })

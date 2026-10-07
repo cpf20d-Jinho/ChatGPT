@@ -15,8 +15,8 @@ struct ReportEditableText: Codable, Equatable {
         homePractice = draft.homePractice; nextGoals = draft.nextGoals
     }
     var rows: [(String, String)] {
-        [("도전적 행동 변화", behavior), ("종합 현황", currentStatus), ("강점과 주요 변화", majorChanges),
-         ("치료사 종합 소견", therapistOpinion), ("가정에서 함께 하기", homePractice), ("다음 목표", nextGoals)]
+        [("행동 변화", behavior), ("개요 (기존 종합 현황)", currentStatus), ("향상된 부분", majorChanges),
+         ("전체적인 해석", therapistOpinion), ("공통 가정 연계 사항", homePractice), ("향후 목표 및 치료 계획", nextGoals)]
     }
     func validate() throws {
         guard rows.allSatisfy({ $0.1.utf16.count <= 12000 }) else {
@@ -54,7 +54,7 @@ struct ReportWebSession {
 
 enum ReportWebEditing {
     static let notice = """
-선택한 보고서의 도전적 행동 변화, 종합 현황, 주요 변화, 치료사 소견, 가정 안내와 다음 목표만 편집합니다. 아동 프로필, 생년월일, 시행 기록, 그래프, 표지, 서명과 참고 메모는 포함하지 않습니다. 문장에 직접 적은 개인정보는 자동으로 제거되지 않으므로 전송 전에 삭제하세요.
+선택한 보고서의 기존 여섯 서술만 편집합니다. 웹의 종합 현황은 개요, 주요 변화는 향상된 부분, 치료사 소견은 전체적인 해석, 가정 안내는 공통 가정 연계, 다음 목표는 향후 목표 및 치료 계획에 대응합니다. 지원 필요 항목과 프로그램별 세션 노트는 전송하지 않으며 앱에서 작성합니다. 아동 프로필, 생년월일, 시행 기록, 그래프, 표지, 서명과 참고 메모는 포함하지 않습니다. 문장에 직접 적은 개인정보는 자동으로 제거되지 않으므로 전송 전에 삭제하세요.
 
 여섯 항목을 기기에서 암호화한 뒤 Render 보고서 서버(싱가포르)의 메모리에 처음 1시간 임시 보관합니다. 웹에서 30분씩 연장할 수 있지만 계정 만료 시각을 넘길 수 없습니다. AI에는 보내지 않습니다. 무료 서버가 중지되거나 재시작되면 더 일찍 사라질 수 있습니다. 서버 저장은 백업이 아니며, 앱 원본은 유지됩니다. 연결 과정에서 서비스 제공자가 IP 등 접속 정보를 처리할 수 있습니다.
 

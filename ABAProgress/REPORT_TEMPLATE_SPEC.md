@@ -1,6 +1,6 @@
 # 기본 보고서 기준 변경 (2026-10-07)
 
-사용자가 제공한 [쉬운 ABA 수행 보고서](Design/ReportTemplates/README.md)를 향후 기본 보고서 틀로 지정합니다. [원본 PDF](Design/ReportTemplates/easy-aba-performance-report.pdf)를 함께 보관합니다. 이번 변경은 기준 자료 등록이며 앱 출력 전환은 별도 구현이 필요합니다.
+사용자가 제공한 [쉬운 ABA 수행 보고서](Design/ReportTemplates/README.md)를 기본 보고서 틀로 지정합니다. [원본 PDF](Design/ReportTemplates/easy-aba-performance-report.pdf)를 함께 보관합니다. v0.13.0은 원본의 Contents를 기준으로 앱 입력과 출력 구조를 전환합니다. 여러 프로그램과 긴 내용에 따라 페이지 수가 달라지며 고정하지 않습니다. 현재 구현 기준과 검증 범위는 [내용 대응 점검](REPORT_CONTENT_AUDIT.md)을 참고하세요.
 
 아래는 기존 16페이지 양식의 구현 이력입니다. 새 양식의 구성과 충돌하는 경우 위 신규 기준을 우선합니다. 집계 및 개인정보 처리 규칙은 유지합니다.
 
