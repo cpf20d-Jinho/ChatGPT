@@ -1,6 +1,6 @@
 {
   "product": "ABAProgress",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "buildTimeKST": "2026-09-11T18:12:43+09:00",
   "buildHash": "4805dde010",
   "sourceSHA256": "4805dde010f5804a1638bde0b6421137675825333cc2b42ead10b8126db8019e",
@@ -52,5 +52,13 @@
     "demoVideo": "REAL_IPAD_11_SIMULATOR_SYNTHETIC_DATA_NO_EXTERNAL_SUBMISSION_RUN_34583078472",
     "renderDeployment": "LIVE_DEP_dah975m1egvs73d4hle0_SERVER_COMMIT_a4605082",
     "liveWebEditing": "PASS_SYNTHETIC_HTTPS_CONSENT_CREATE_READ_UPDATE_CONFLICT_DELETE_2026_09_10"
+  },
+  "reportTemplateRegistration": {
+    "dateKST": "2026-10-07",
+    "baseCommit": "c5869a7e29a983d3341e26a850c24d81ec927e03",
+    "scope": "reference PDF and documentation only; no application build",
+    "template": "Design/ReportTemplates/easy-aba-performance-report.pdf",
+    "sha256": "97c8070b024f9ac9e3b70d14814b7aa14f452e5676e952f0b602d9f11754d155",
+    "validation": "PDF text and visual inspection; source bytes unchanged; Swift/Apple SDK unavailable"
   }
 }
