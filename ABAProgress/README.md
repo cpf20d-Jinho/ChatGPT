@@ -97,3 +97,7 @@ iPhone + iPad 공용 ABA 치료 실시간 기록/경과관리 앱의 개인기�
 
 실제 iOS/iPadOS 렌더링, Long Press 체감, SwiftData 앱 라이프사이클은 iPad Swift Playgrounds에서 추가 실기기 검증이 필요합니다.
 
+
+## 기본 수행 보고서 양식 (2026-10-07)
+
+[쉬운 ABA 기본 보고서 틀 및 입력 명세](Design/ReportTemplates/README.md)를 등록했습니다. 원본 PDF와 4개 항목 구성을 향후 기본 양식으로 사용합니다. 현재 앱 출력 전환은 별도 구현 대상입니다.
