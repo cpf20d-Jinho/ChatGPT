@@ -1,24 +1,15 @@
 <!doctype html><html lang="ko"><meta charset="utf-8">
 <style>
-:root{--pink:#e9658c;--line:#f4c6d4;color-scheme:light}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;color:#252525;background:white;font:10pt -apple-system,"Apple SD Gothic Neo",sans-serif;line-height:1.85}
-.page{break-before:page;page-break-before:always}.page:first-child{break-before:auto;page-break-before:auto}
-h1{font-size:26pt;letter-spacing:2pt;margin:12pt 0}h2{font-size:13pt;margin:12pt 0 7pt;border-bottom:1pt solid var(--pink);padding-bottom:5pt}h3{font-size:11pt;margin:0}
-p{margin:0 0 16pt;white-space:pre-wrap;overflow-wrap:anywhere}.hint,.muted{color:#898989;font-size:8pt}
-.cover{text-align:center;padding-top:5pt}.cover-meta{text-align:left;color:#aaa;font-size:7pt}
-.brand{color:var(--pink);font-size:15pt;letter-spacing:1pt;margin:22pt 0 0}.brandmark{color:var(--pink);font-weight:800;font-size:23pt;letter-spacing:-1pt;margin-top:28pt}
-.cover table{margin-top:22pt;text-align:left;width:100%;border-collapse:collapse;font-size:10pt}td,th{border:.6pt solid var(--line);padding:9pt 12pt}th{background:#fff1f5;color:var(--pink);font-weight:600;width:16%}
-.summary{margin-top:12pt;padding:10pt 13pt;background:#fffafb;border:.6pt solid var(--line);border-left:3pt solid var(--pink);border-radius:5pt;text-align:left}.summary small{color:var(--pink);font-size:7pt;letter-spacing:1pt}.summary p{margin:3pt 0}
-.chart{width:100%;display:block}.goal{border:.6pt solid #ddd;border-left:3pt solid #e6d9f2;border-radius:9pt;padding:10pt 12pt;margin:10pt 0;break-inside:avoid;page-break-inside:avoid}
-.group{color:#a67ac3;border-left:3pt solid #ff91b1;padding-left:8pt;font-size:10pt;margin-top:10pt}.goal-title{display:flex;justify-content:space-between;gap:12pt;align-items:start}
-.status{white-space:nowrap;color:white;border-radius:12pt;padding:1pt 8pt;background:#368de2;font-size:7pt}.status.done{background:#619d20}.domain{font-size:8pt;color:#999;margin:4pt 0 8pt}
-.graph-box,.learning{background:#f9f9f9;border-radius:7pt;padding:8pt 10pt;margin-top:7pt}.learning{font-size:8pt;color:#666;border-left:2pt solid #e6d9f2}.learning p{margin:3pt 0}
-.level{border:1pt solid currentColor;border-radius:6pt;padding:0 5pt;display:inline-block;margin-right:6pt;font-size:7pt}
-.narrative-block{margin:13pt 0;break-inside:avoid;page-break-inside:avoid}
-.narrative-block h3{font-size:10pt;color:var(--pink);border-top:.6pt solid var(--line);padding-top:7pt;margin-bottom:6pt;font-weight:600}
-.narrative-block .body{background:#fdfbfc;border-left:2pt solid #ff91b1;padding:8pt 12pt;white-space:pre-wrap;overflow-wrap:anywhere}
-.signature{margin-top:22pt;padding-top:12pt;border-top:.6pt solid var(--line);text-align:center;break-inside:avoid;page-break-inside:avoid}.signature table{width:76%;margin:10pt auto;border-collapse:collapse;font-size:9pt}.signature th{background:white}
-.signature .note{font-size:8pt;color:#aaa;line-height:1.5}.closing{color:var(--pink);border:.6pt solid var(--pink);border-radius:7pt;margin-top:18pt;padding:12pt;font-size:9pt}
-@media screen{body{max-width:515pt;margin:35pt auto}.page{border-bottom:1px dashed #ddd;min-height:730pt;margin-bottom:30pt}}
+
+:root{color-scheme:light}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;color:#202020;background:#fff;font:10pt -apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.65}
+header{border-bottom:1pt solid #222;padding-bottom:8pt}.logo{width:36pt;height:36pt;object-fit:contain;vertical-align:middle;margin-right:8pt}
+h1{font-size:24pt;letter-spacing:2pt;margin:8pt 0 12pt}h2{font-size:12pt;margin:16pt 0 7pt;break-after:avoid;page-break-after:avoid}h3{font-size:10pt;margin:0 0 5pt;break-after:avoid;page-break-after:avoid}
+p{margin:5pt 0;white-space:pre-wrap;overflow-wrap:anywhere}.hint{font-size:8pt;color:#666}.performance-record{margin:12pt 0 18pt}.program-title{font-weight:600}
+table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{border:.7pt solid #555;padding:5pt 8pt;vertical-align:top;overflow-wrap:anywhere}th{width:22%;font-weight:600;background:#fafafa}
+ul{padding-left:16pt;margin:2pt 0 5pt}.task-level{margin-bottom:4pt}.chart{width:100%;display:block}.graph-box{border:.7pt solid #555;border-top:0;padding:8pt;break-inside:avoid;page-break-inside:avoid}
+.narrative-block{margin:7pt 0}.body{border:.7pt solid #777;padding:7pt 9pt;white-space:pre-wrap;overflow-wrap:anywhere;orphans:3;widows:3;min-height:30pt}
+@media screen{body{max-width:515pt;margin:30pt auto;padding:12pt}}
 </style><body><main id="report"></main><script>
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0;
@@ -54,47 +45,41 @@ function chart(points,criteria={},binary=false,growth=false,events={}){
  dates.forEach((date,i)=>{if(i%step===0||i===dates.length-1)out+=text(x(date),h-8,date.slice(5).replace("-","."),8,"#999","middle")});
  return out+"</svg>";
 }
+function ageAt(birth, end){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(birth||'')||!/^\d{4}-\d{2}-\d{2}$/.test(end||'')||birth>end)return '미입력';
+ const [by,bm,bd]=birth.split('-').map(Number),[ey,em,ed]=end.split('-').map(Number);
+ const months=(ey-by)*12+em-bm-(ed<bd?1:0);
+ return months<0?'미입력':Math.floor(months/12)+'세 '+months%12+'개월';
+}
+function narrative(title,body){
+ return '<div class="narrative-block"><h3>'+esc(title)+'</h3><div class="body">'+esc(String(body??'').trim()||'미작성')+'</div></div>';
+}
 function renderReport(doc){
- const d=doc.draft,groups=new Map();
- for(const g of doc.goals){const a=groups.get(g.domain)||[];for(const l of new Set(g.points.map(p=>p.level)))a.push(g.points.filter(p=>p.level===l));groups.set(g.domain,a);}
- const domains=[...groups].map(([name,a])=>({name,count:a.length,first:mean(a.map(s=>mean(s.slice(0,3).map(p=>p.value)))),recent:mean(a.map(s=>mean(s.slice(-3).map(p=>p.value))))})).sort((a,b)=>b.recent-a.recent);
- const total=domains.reduce((s,r)=>s+r.count,0),mastered=doc.goals.reduce((s,g)=>s+g.masteredLevels.length,0);
- const initial=mean(domains.map(r=>r.first)),recent=mean(domains.map(r=>r.recent)),delta=recent-initial;
- let html='<section class="page cover"><div class="cover-meta">보고유형 중간보고서<br>보고기간 '+esc(doc.start)+' ~ '+esc(doc.end)+'</div><div class="brandmark">ABA</div><div class="brand">'+esc(d.institution)+'</div><div class="muted">개별화된 데이터 기반 중재와 언어 및 행동 통합적 접근</div><h1>중간 보고서</h1><div class="muted">아동 '+esc(doc.childName)+', 치료사 '+esc(d.therapist)+'</div><table>';
- const rows=[["아동명",doc.childName,"생년월일",doc.birthDate],["소속반",d.className,"담당 치료사",d.therapist],["치료기간",doc.start+" ~ "+doc.end,"프로그램",d.programFamily],["주 횟수",d.schedule,"회기 시간",d.duration]];
- for(const r of rows){
-  const left=String(r[1]??"").trim(),right=String(r[3]??"").trim();
-  if(left&&right)html+="<tr><th>"+esc(r[0])+"</th><td>"+esc(left)+"</td><th>"+esc(r[2])+"</th><td>"+esc(right)+"</td></tr>";
-  else if(left||right)html+="<tr><th>"+esc(left?r[0]:r[2])+"</th><td colspan=\"3\">"+esc(left||right)+"</td></tr>";
+ const d=doc.draft;
+ const value=v=>esc(String(v??'').trim()||'미입력');
+ const days=new Set(doc.goals.flatMap(g=>g.points.map(p=>p.date))).size;
+ const logo=/^[A-Za-z0-9+/=]+$/.test(d.logoPNG||'')?'<img class="logo" alt="기관 로고" src="data:image/png;base64,'+d.logoPNG+'">':'';
+ let html='<header>'+logo+'<strong>'+value(d.institution)+'</strong> | '+value(doc.childName)+' 학생 ('+value(doc.birthDate)+', '+ageAt(doc.birthDate,doc.end)+')<h1>수행 보고서</h1>';
+ html+='<p>기간: '+esc(doc.start)+' ~ '+esc(doc.end)+'<br>주당 빈도: '+value(d.schedule)+' · 세션 시간: '+value(d.duration)+' · 총 회기: '+value(d.totalSessions)+'<br>작성자: '+value(d.therapist)+'</p>';
+ html+='<p class="hint">생활연령은 보고 기간 종료일 기준입니다. 유효한 완료 기록이 있는 치료일: '+days+'일. 과제별 기록 수는 실제 방문 회기 수와 다르므로 총 회기는 작성자가 확인하여 입력합니다.</p></header>';
+ html+='<section class="report-section"><h2>1. 개요</h2>'+narrative('치료 목적 · 사용 프로그램 · 현재 수행 · 중재 및 교수 전략',d.currentStatus)+'</section>';
+ html+='<section class="report-section"><h2>2. 진행 과제 및 수행 기록</h2><p class="hint">NA와 미완료 기록은 제외합니다. 날짜별 적용 과제 정반응률의 평균이며 실제 기록일을 등간격으로 표시합니다. 빈 원은 일부 과제만 기록된 날입니다. 레벨 전환에서는 선을 연결하지 않습니다.</p>';
+ const ordered=[...doc.goals].sort((a,b)=>a.domain.localeCompare(b.domain,'ko')||a.name.localeCompare(b.name,'ko'));
+ for(const g of ordered){
+  const levels=[...new Set(g.points.map(p=>p.level))].sort((a,b)=>a-b);
+  let tasks='';
+  for(const l of levels){
+   const entries=String(g.learning[String(l)]||'').split('\n').filter(Boolean);
+   tasks+='<div class="task-level"><strong>L'+l+'</strong><ul>'+entries.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul></div>';
+  }
+  html+='<article class="performance-record" data-goal-id="'+esc(g.id)+'"><h3 class="program-title">'+esc(g.name)+'</h3><table class="task-table"><tbody><tr><th>영역</th><td>'+esc(g.domain)+'</td></tr><tr><th>목표</th><td>'+esc(g.objective||g.name)+'</td></tr><tr><th>진행 과제 (List)</th><td>'+tasks+'</td></tr></tbody></table><div class="graph-box">'+chart(g.points,g.criteria,g.binary)+'</div>'+narrative('세션 노트 및 가정 연계 사항',d.notesByProgram?.[g.id])+'</article>';
  }
- html+='</table><div class="summary"><small>핵심 요약</small><p>'+esc(doc.childName)+' 아동의 영역별 달성률 평균은 '+Math.round(initial)+'%에서 '+Math.round(recent)+'%로 '+(delta>=0?"+":"")+Math.round(delta)+'%p 변화했습니다. '+total+'개 STO 중 '+mastered+'개에서 보고 기간 내 준거를 달성했습니다.</p></div></section>';
- let bars='<svg class="chart" viewBox="0 0 660 '+Math.max(100,domains.length*30+30)+'" xmlns="http://www.w3.org/2000/svg">'+text(390,15,"평균 달성률(%)",10,"#777","middle");
- domains.forEach((r,i)=>{const y=30+i*30;bars+=text(212,y+13,r.name+" ("+r.count+"개)",11,"#555","end")+
- '<rect x="224" y="'+y+'" width="390" height="18" rx="4" fill="#f4f4f4"/><rect x="224" y="'+y+'" width="'+r.recent*3.9+'" height="18" rx="4" fill="'+(r.recent>=80?"#619d20":r.recent>=60?"#4c96dd":"#f3ad37")+'"/>'+text(Math.min(626,230+r.recent*3.9),y+13,Math.round(r.recent)+"%",11,"#333");});
- const dates=[...new Set(doc.goals.flatMap(g=>g.points.map(p=>p.date)))].sort();
- const growth=dates.map(date=>({date,level:0,value:mean(doc.goals.map(g=>g.points.filter(p=>p.date<=date).at(-1)?.value).filter(v=>v!==undefined))}));
- const events={};for(const g of doc.goals){const levels=[...new Set(g.points.map(p=>p.level))];for(const l of levels){const date=g.points.find(p=>p.level===l)?.date;if(date)events[date]=l===levels[0]?"+새 목표":"+새 단계";}}
- html+='<section class="page"><h2>영역별 균형 분석</h2><p class="hint">※ 영역별 최근 3회기 평균 달성률이며 괄호는 단기 목표(STO) 수입니다. 회색은 달성률로 나타내지 않는 영역입니다.<br>※ 초록은 80% 이상 숙달, 파랑은 60~79% 진전, 주황은 60% 미만 집중 지도를 뜻합니다.</p>'+bars+'</svg><div style="height:25pt"></div><h2>성장 추이 (전체 목표 평균)</h2><p class="hint">※ 선택 기간에 관측된 전체 목표의 평균 정반응률입니다. 그날 측정하지 않은 목표는 최근 값을 사용하며 라벨은 일부만 표시합니다.<br>※ +새 목표 / +새 단계는 새로 시작한 날입니다. 낮은 수행률에서 출발해 평균이 잠시 내려갈 수 있습니다.</p>'+chart(growth,{},false,true,events)+'</section>';
- const ordered=[...doc.goals].sort((a,b)=>a.group.localeCompare(b.group,"ko")||a.domain.localeCompare(b.domain,"ko")||a.name.localeCompare(b.name,"ko"));
- for(let i=0;i<ordered.length;i+=2){
-  html+='<section class="page">'+(i===0?'<h2>영역별 세부 학습 목표</h2><p class="hint">※ 영역별 목표의 진행 상태와 추이선입니다. 회기당 1회 시도 목표는 O(성공) 또는 X(실패)로 표시합니다.<br>※ 빈 원은 해당 날짜에 일부 적용 과제만 기록된 평균이며 세로 점선은 다음 레벨의 새 집계 시작입니다.</p>':"");
-  let last="";
-  for(const g of ordered.slice(i,i+2)){
-   if(last!==g.group){html+='<div class="group">'+esc(g.group)+'</div>';last=g.group;}
-   const levels=[...new Set(g.points.map(p=>p.level))],done=levels.length>0&&levels.every(l=>g.masteredLevels.includes(l));
-   html+='<article class="goal"><div class="goal-title"><h3>'+esc(g.name)+'</h3><span class="status '+(done?"done":"")+'">'+(done?"완료":"진행중")+'</span></div><div class="domain">'+esc(g.domain)+'</div><div class="graph-box">'+chart(g.points,g.criteria,g.binary)+'</div><div class="learning">학습 내용';
-   for(const l of levels)html+='<p><span class="level" style="color:'+color(l)+'">L'+l+'</span>'+esc(g.learning[String(l)]||"")+'</p>';
-   html+="</div></article>";
-  }html+="</section>";
- }
- html+='<section class="page narrative"><h2>치료 경과 및 다음 계획</h2>';
- for(const [title,body] of [["도전적 행동 변화",d.behavior],["종합 현황",d.currentStatus],["이번 기간의 강점과 주요 변화",d.majorChanges],["치료사 종합 소견",d.therapistOpinion],["가정에서 함께 하기",d.homePractice],["다음 목표",d.nextGoals]]){
-  if(!String(body??"").trim())continue;
-  html+='<div class="narrative-block"><h3>'+esc(title)+'</h3><div class="body">'+esc(body)+'</div></div>';
- }
- html+='<div class="signature"><div style="color:var(--pink)">확인 및 서명</div><table><tr><th>구 분</th><th>성 명</th><th>서 명</th><th>일 자</th></tr><tr><td>담당 치료사</td><td>'+esc(d.therapist)+'</td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr><tr><td>기관장</td><td>'+esc(d.director)+'<br><small>'+esc(d.directorCredential)+'</small></td><td>(인)</td><td>'+esc(d.signedDate)+'</td></tr></table><div class="note">본 보고서는 '+esc(doc.childName)+' 아동의 IEP에 따라 작성되었으며, 데이터 기반 분석을 통해 아동의 강점 영역과 진행 양상을 정리하였습니다.<br>'+esc(d.institution)+'는 아동의 다음 단계 학습을 위한 체계적 중재를 진행합니다.</div><div class="closing">본 보고 기간 동안 확인된 진행 양상을 토대로, 다음 단계의 중재를 진행합니다.</div></div></section>';
- document.getElementById("report").innerHTML=html;
- return {sections:document.querySelectorAll(".page").length,stoCount:total,masteredCount:mastered};
+ if(!ordered.length)html+='<p>선택 기간에 유효한 완료 기록이 없습니다.</p>';
+ if(String(d.homePractice||'').trim())html+=narrative('공통 가정 연계 사항',d.homePractice);
+ html+='</section><section class="report-section"><h2>3. 결과 해석</h2>';
+ for(const [title,body] of [['① 향상된 부분',d.majorChanges],['② 아직 지원이 필요한 부분',d.supportNeeds],['③ 행동 변화',d.behavior],['④ 전체적인 해석',d.therapistOpinion]])html+=narrative(title,body);
+ html+='</section><section class="report-section"><h2>4. 향후 목표 및 치료 계획</h2>'+narrative('유지·일반화 목표 · 신규 목표 · 다음 중재 방향',d.nextGoals)+'</section>';
+ document.getElementById('report').innerHTML=html;
+ return {sections:4,stoCount:doc.goals.reduce((n,g)=>n+new Set(g.points.map(p=>p.level)).size,0),masteredCount:doc.goals.reduce((n,g)=>n+g.masteredLevels.length,0)};
 }
 </script></body></html>
-

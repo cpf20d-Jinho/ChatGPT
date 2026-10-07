@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 
 struct ReportDraft: Codable, Equatable {
-    var institution = "검단ABA언어행동연구소"
+    var institution = "쉬운 aba"
     var therapist = ""
     var director = ""
     var directorCredential = ""
@@ -22,6 +22,11 @@ struct ReportDraft: Codable, Equatable {
     var confirmedObservations = ""
     var reviewedFingerprint = ""
     var aiWritingEnabled: Bool? = nil
+    // Optional additions preserve decoding of all existing saved drafts.
+    var supportNeeds: String? = nil
+    var notesByProgram: [String: String]? = nil
+    var totalSessions: String? = nil
+    var logoPNG: String? = nil
 }
 
 struct InterimReportPoint: Codable, Identifiable {
@@ -64,6 +69,7 @@ struct ReportGoal: Codable {
     let criteria: [String: Double]
     let masteredLevels: [Int]
     let binary: Bool
+    var objective: String? = nil
 }
 
 struct ReportDocument: Codable {
@@ -75,16 +81,21 @@ struct ReportDocument: Codable {
     let incompleteCount: Int
     let draft: ReportDraft
 
+    var recordedDayCount: Int { Set(goals.flatMap(\.points).map(\.date)).count }
+
     var fingerprint: String {
         struct Source: Encodable {
             let start: String
             let end: String
             let goals: [ReportGoal]
             let observations: String
+            let childName: String
+            let birthDate: String
+            let incompleteCount: Int
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        guard let data = try? encoder.encode(Source(start: start, end: end, goals: goals, observations: draft.confirmedObservations)) else { return "" }
+        guard let data = try? encoder.encode(Source(start: start, end: end, goals: goals, observations: draft.confirmedObservations, childName: childName, birthDate: birthDate, incompleteCount: incompleteCount)) else { return "" }
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
@@ -147,9 +158,12 @@ struct ReportDocument: Codable {
                 let criterion = definition?.criterionPercent ?? 80
                 let required = definition?.requiredDays ?? 2
                 criteria[String(level)] = criterion
-                learning[String(level)] = targets.map {
+                // Include tasks applicable during the report period, never future tasks.
+                learning[String(level)] = targets.filter {
+                    $0.startDate < upper && ($0.endDate == nil || $0.endDate! >= lower)
+                }.map {
                     $0.targetDescription.isEmpty ? $0.name : "\($0.name): \($0.targetDescription)"
-                }.joined(separator: ", ")
+                }.joined(separator: "\n")
                 let sessions = targets.flatMap(\.sessions).filter { $0.date >= lower && $0.date < upper }
                 incomplete += sessions.filter { !$0.completed && $0.hasMeaningfulData }.count
                 let recorded = sessions.filter { $0.completed && $0.accuracy != nil }
@@ -193,7 +207,8 @@ struct ReportDocument: Codable {
                 group: draft.groupByProgram[program.id.uuidString] ?? "기타 목표",
                 points: points.sorted { $0.date == $1.date ? $0.level < $1.level : $0.date < $1.date },
                 learning: learning, criteria: criteria, masteredLevels: mastered,
-                binary: program.targets.count == 1 && program.targets.first?.maxTrials == 1
+                binary: program.targets.count == 1 && program.targets.first?.maxTrials == 1,
+                objective: program.programDescription.isEmpty ? program.name : program.programDescription
             )
         }.filter { !$0.points.isEmpty }
         return ReportDocument(childName: child.name, birthDate: child.birthDate.map(date) ?? "",
@@ -246,6 +261,7 @@ struct ReportBasicTemplate: Codable {
     let director: String
     let directorCredential: String
     let copyright: String
+    var logoPNG: String? = nil
 
     init(_ draft: ReportDraft) {
         institution = draft.institution
@@ -257,6 +273,7 @@ struct ReportBasicTemplate: Codable {
         director = draft.director
         directorCredential = draft.directorCredential
         copyright = draft.copyright
+        logoPNG = draft.logoPNG
     }
 
     func applying(to draft: ReportDraft) -> ReportDraft {
@@ -270,6 +287,7 @@ struct ReportBasicTemplate: Codable {
         result.director = director
         result.directorCredential = directorCredential
         result.copyright = copyright
+        result.logoPNG = logoPNG
         return result
     }
 

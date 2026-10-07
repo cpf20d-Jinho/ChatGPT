@@ -111,6 +111,10 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/aba-report-tools/node_modules" \
           REPORT_QA_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
           REPORT_QA_OUTPUT="$RUNNER_TEMP/aba-report-preview" \
+          node ABAProgress/QA/report-content-render.cjs
+          NODE_PATH="$RUNNER_TEMP/aba-report-tools/node_modules" \
+          REPORT_QA_CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+          REPORT_QA_OUTPUT="$RUNNER_TEMP/aba-report-preview" \
           node ABAProgress/QA/report-editor-browser.cjs
 
       - name: Upload synthetic report preview
