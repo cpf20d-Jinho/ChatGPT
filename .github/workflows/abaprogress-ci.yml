@@ -42,6 +42,16 @@ jobs:
       - name: Select App Store compatible Xcode and SDK
         run: python3 ABAProgress/QA/select_xcode.py
 
+      - name: Validate and package Swift Playgrounds project
+        run: python3 ABAProgress/QA/package_playgrounds.py --output "$RUNNER_TEMP/aba-playgrounds"
+
+      - name: Upload Swift Playgrounds project
+        uses: actions/upload-artifact@v4
+        with:
+          name: ABAProgress-Swift-Playgrounds-v0.12.0
+          path: ${{ runner.temp }}/aba-playgrounds/
+          retention-days: 30
+
       - name: Build Universal iOS app for Simulator
         run: |
           set -o pipefail

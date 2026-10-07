@@ -1,4 +1,8 @@
-# ABAProgress v0.10.0 — Report Editing
+# ABAProgress v0.12.0 — Report Fidelity & Swift Playgrounds
+
+- GitHub Actions가 최신 `ABAProgress.swiftpm`을 검증해 `ABAProgress-Swift-Playgrounds-v0.12.0` 아티팩트로 제공합니다. iPad에서 내려받아 압축을 풀고 `ABAProgress.swiftpm` 폴더를 탭하면 됩니다.
+- 패키징 전에 Xcode와 Swift Playgrounds의 앱 소스·리소스가 바이트 단위로 같은지, 버전과 iOS/iPadOS 17 Universal 설정이 일치하는지 검사합니다.
+- 실제 사용법과 데이터 보존 주의사항은 패키지 안의 `README_iPad.txt`를 확인하세요.
 
 - `?` 도움말과 통일된 보고서 입력 정렬을 적용했습니다.
 - 앱의 **보고서 웹 편집**에서 동의 후 여섯 서술 항목만 암호화된 임시 링크로 수정할 수 있습니다. 아동 정보·기록·그래프는 편집되지 않습니다. 웹 저장 후 앱에서 검토·반영하세요.
