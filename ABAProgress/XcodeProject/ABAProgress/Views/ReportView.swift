@@ -39,9 +39,9 @@ struct ReportView: View {
                 if incompleteSessionCount > 0 {
                     Label("선택 기간에 미완료 Session이 \(incompleteSessionCount)개 있습니다. 미완료 기록은 보고서 통계와 그래프에서 제외됩니다.", systemImage: ABASymbol.warning)
                         .font(.footnote)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.abaWarning)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .abaSurface(background: Color.orange.opacity(0.08))
+                        .abaSurface(background: Color.abaWarning.opacity(0.08))
                 }
 
                 if programs.isEmpty {
@@ -234,7 +234,7 @@ struct ReportView: View {
                 .controlSize(.large)
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.secondarySurface)
     }
 }
 
@@ -270,7 +270,7 @@ private struct ProgramReportSection: View {
             if !levelReviewIssues.isEmpty {
                 Label("레벨 판정 검토 필요", systemImage: ABASymbol.review)
                     .font(.footnote.bold())
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.abaWarning)
             }
 
             if targets.isEmpty {
@@ -379,10 +379,10 @@ private struct ProgramLevelProgressChart: View {
 
     private func levelColor(_ level: Int) -> Color {
         switch (level - 1) % 5 {
-        case 0: return Color(red: 0.96, green: 0.29, blue: 0.30)
-        case 1: return Color(red: 0.98, green: 0.49, blue: 0.18)
-        case 2: return Color(red: 0.64, green: 0.43, blue: 0.79)
-        case 3: return Color(red: 0.16, green: 0.57, blue: 0.64)
+        case 0: return Color(red: 0.541, green: 0.310, blue: 0.165)
+        case 1: return Color(red: 0.243, green: 0.435, blue: 0.659)
+        case 2: return Color(red: 0.361, green: 0.420, blue: 0.271)
+        case 3: return Color(red: 0.773, green: 0.541, blue: 0.180)
         default: return ABAVisualStyle.brand
         }
     }
@@ -412,7 +412,7 @@ private struct ProgramLevelProgressChart: View {
                 ABAStatusPill(
                     title: isCompleted ? "완료" : "진행중",
                     systemImage: isCompleted ? ABASymbol.mastered : ABASymbol.active,
-                    tint: isCompleted ? .green : .blue
+                    tint: isCompleted ? Color.abaSuccess : Color.abaInfo
                 )
             }
 
@@ -443,7 +443,7 @@ private struct ProgramLevelProgressChart: View {
                             .foregroundStyle(color)
                             .symbol {
                                 Circle()
-                                    .fill(point.recordedCount < point.applicableCount ? Color(uiColor: .systemBackground) : color)
+                                    .fill(point.recordedCount < point.applicableCount ? ABAVisualStyle.secondarySurface : color)
                                     .stroke(color, lineWidth: 1.5)
                                     .frame(width: 7, height: 7)
                             }
@@ -464,11 +464,11 @@ private struct ProgramLevelProgressChart: View {
                     ForEach(masteryRules, id: \.self) { criterion in
                         RuleMark(y: .value("숙달 기준", criterion))
                             .lineStyle(StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color.abaSuccess)
                             .annotation(position: .top, alignment: .trailing) {
                                 Text("숙달 \(criterion, format: .number.precision(.fractionLength(0)))%")
                                     .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(Color.abaSuccess)
                             }
                     }
                 }
@@ -491,7 +491,7 @@ private struct ProgramLevelProgressChart: View {
                 }
                 .chartLegend(.hidden)
                 .chartPlotStyle { plot in
-                    plot.background(Color(uiColor: .systemBackground).opacity(0.7))
+                    plot.background(ABAVisualStyle.secondarySurface.opacity(0.7))
                 }
                 .frame(height: 220)
                 .accessibilityLabel("\(goal.name) 기록일별 정반응률 그래프")
@@ -533,7 +533,7 @@ private struct ProgramLevelProgressChart: View {
             .background(ABAVisualStyle.tertiarySurface)
             .clipShape(.rect(cornerRadius: 12))
         }
-        .abaSurface(padding: 14, background: Color(uiColor: .systemBackground))
+        .abaSurface(padding: 14, background: ABAVisualStyle.secondarySurface)
     }
 }
 
@@ -571,8 +571,8 @@ private struct TargetReportCard: View {
 
     private var statusTint: Color {
         switch target.status {
-        case .active: return .blue
-        case .mastered: return .green
+        case .active: return Color.abaInfo
+        case .mastered: return Color.abaSuccess
         case .discontinued: return .secondary
         }
     }

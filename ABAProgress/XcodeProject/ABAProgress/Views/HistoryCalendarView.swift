@@ -227,7 +227,7 @@ private struct MonthCalendar: View {
                 }
             }
         }
-        .abaSurface(background: Color(uiColor: .systemBackground))
+        .abaSurface(background: ABAVisualStyle.secondarySurface)
     }
 
     private func changeMonth(_ offset: Int) {
@@ -422,7 +422,7 @@ private struct HistoricalTargetRow: View {
                         }
                     }
                     .font(.caption2)
-                    .foregroundStyle(session.completed ? .green : .orange)
+                    .foregroundStyle(session.completed ? Color.abaSuccess : Color.abaWarning)
                 }
             }
             Spacer()
@@ -466,7 +466,7 @@ private struct HistoricalTargetEditView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("과거 기록 수정", systemImage: ABASymbol.editHistory)
                         .font(.caption.bold())
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.abaWarning)
                     Text("아동 \(child.name), 프로그램 \(program.name)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -487,9 +487,9 @@ private struct HistoricalTargetEditView: View {
                 if !levelReviewIssues.isEmpty {
                     Label(levelReviewIssues.joined(separator: "\n"), systemImage: ABASymbol.review)
                         .font(.footnote)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.abaWarning)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .abaSurface(background: Color.orange.opacity(0.08))
+                        .abaSurface(background: Color.abaWarning.opacity(0.08))
                 }
 
                 TargetSessionCard(

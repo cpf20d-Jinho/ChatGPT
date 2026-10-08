@@ -423,8 +423,8 @@ private struct TodayProgramStatusCompact: View {
     }
 
     private var statusTint: Color {
-        if !activeTargets.isEmpty && completedCount == activeTargets.count { return .green }
-        if inProgressCount > 0 || completedCount > 0 { return .orange }
+        if !activeTargets.isEmpty && completedCount == activeTargets.count { return Color.abaSuccess }
+        if inProgressCount > 0 || completedCount > 0 { return Color.abaWarning }
         return .secondary
     }
 
@@ -581,23 +581,54 @@ enum ABASymbol {
 }
 
 enum ABAVisualStyle {
-    // Pink is reserved for navigation/actions; clinical green/orange remain semantic.
+    // Theme palette (cream, navy, brown, amber). Brown/amber is reserved for navigation and actions;
+    // clinical green/orange remain semantic.
     static let brand = Color(uiColor: UIColor { traits in
-        if traits.userInterfaceStyle == .dark {
-            return UIColor(red: 1.0, green: 0.54, blue: 0.72, alpha: 1)
-        }
-        return UIColor(red: 0.70, green: 0.12, blue: 0.36, alpha: 1)
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.878, green: 0.663, blue: 0.373, alpha: 1)
+            : UIColor(red: 0.541, green: 0.310, blue: 0.165, alpha: 1)
     })
 
     static let cornerRadius: CGFloat = 16
     static let contentMaxWidth: CGFloat = 980
-    static let groupedBackground = Color(uiColor: .systemGroupedBackground)
-    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
-    static let tertiarySurface = Color(uiColor: .tertiarySystemGroupedBackground)
+    static let groupedBackground = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.090, green: 0.106, blue: 0.133, alpha: 1)
+            : UIColor(red: 0.957, green: 0.929, blue: 0.882, alpha: 1)
+    })
+    static let secondarySurface = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.122, green: 0.153, blue: 0.200, alpha: 1)
+            : UIColor(red: 1.000, green: 1.000, blue: 1.000, alpha: 1)
+    })
+    static let tertiarySurface = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.165, green: 0.200, blue: 0.255, alpha: 1)
+            : UIColor(red: 0.902, green: 0.863, blue: 0.796, alpha: 1)
+    })
     static let separator = Color(uiColor: .separator).opacity(0.18)
     /// Shared, non-rendered form tracks. Every regular-width editor aligns to these axes.
     static let formLabelWidth: CGFloat = 168
     static let formColumnSpacing: CGFloat = 16
+}
+
+// Theme palette semantic colours: olive success, terracotta (amber in dark) warning, sky blue info.
+extension Color {
+    static let abaSuccess = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.616, green: 0.690, blue: 0.478, alpha: 1)
+            : UIColor(red: 0.361, green: 0.420, blue: 0.271, alpha: 1)
+    })
+    static let abaWarning = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.878, green: 0.663, blue: 0.373, alpha: 1)
+            : UIColor(red: 0.710, green: 0.412, blue: 0.290, alpha: 1)
+    })
+    static let abaInfo = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.616, green: 0.765, blue: 0.980, alpha: 1)
+            : UIColor(red: 0.243, green: 0.435, blue: 0.659, alpha: 1)
+    })
 }
 
 private struct ABASurfaceModifier: ViewModifier {
@@ -675,7 +706,7 @@ struct ABAInlineNotice: View {
     let title: String
     let message: String
     let systemImage: String
-    var tint: Color = .orange
+    var tint: Color = Color.abaWarning
     var retryTitle: String?
     var retry: (() -> Void)?
 
@@ -751,10 +782,15 @@ struct ABAStatusPill: View {
     let tint: Color
 
     var body: some View {
-        Label(title, systemImage: systemImage)
+        // Text stays primary for contrast; the tinted symbol and fill carry the status colour.
+        Label {
+            Text(title).foregroundStyle(.primary)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+        }
             .font(.caption.weight(.semibold))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .background(tint.opacity(contrast == .increased ? 0.22 : 0.12), in: Capsule())

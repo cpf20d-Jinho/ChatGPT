@@ -231,7 +231,7 @@ struct ReportComposerView: View {
             title: "내보내기 전 확인",
             message: "기간 \(ReportDocument.date(startDate)) ~ \(ReportDocument.date(endDate)), 프로그램 \(programs.count)개와 STO \(document.stoCount)개를 사용합니다. 그래프의 빈 표식은 일부 과제만 기록된 날짜입니다.",
             systemImage: ABASymbol.review,
-            tint: .blue
+            tint: Color.abaInfo
         )
         DisclosureGroup("보고서 서술 확인") {
             VStack(alignment: .leading, spacing: 16) {
@@ -248,7 +248,7 @@ struct ReportComposerView: View {
                 Text("검토 전 AI 초안").font(.headline)
                 Text(result.currentStatus).textSelection(.enabled)
                 Text(result.majorChanges).textSelection(.enabled)
-                Text(result.warnings.joined(separator: "\n")).font(.footnote).foregroundStyle(.orange)
+                Text(result.warnings.joined(separator: "\n")).font(.footnote).foregroundStyle(Color.abaWarning)
                 Button("검토한 AI 초안을 두 항목에 적용") {
                     guard aiFingerprint == document.fingerprint else {
                         error = "데이터가 변경되었습니다. 초안을 다시 생성하세요."
